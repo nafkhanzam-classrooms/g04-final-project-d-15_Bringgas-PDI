@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lopyta Interactive Class — Layar Siswa</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo">
+        <span>⚡</span> Lopyta Classroom
+      </div>
+      <div id="statusBadge" class="status-badge" style="display: none;">
+        <span class="status-dot"></span>
+        <span id="nodeName">Terhubung</span>
+      </div>
+    </header>
+
+    <!-- Join Screen -->
+    <div id="joinScreen" class="glass-card join-container">
+      <h2 class="join-title">Gabung Kelas</h2>
+      <p class="join-subtitle">Masukkan kode kelas dari Guru untuk bergabung ke sesi belajar.</p>
+      
+      <div class="input-group">
+        <label for="classCodeInput">Kode Kelas</label>
+        <input type="text" id="classCodeInput" class="input-field" placeholder="Contoh: CAFE12" maxlength="6" style="text-transform: uppercase;">
+      </div>
+      
+      <div class="input-group">
+        <label for="studentNameInput">Nama Lengkap</label>
+        <input type="text" id="studentNameInput" class="input-field" placeholder="Masukkan nama panggilan Anda...">
+      </div>
+      
+      <button id="joinBtn" class="btn" style="width: 100%;">Masuk Kelas</button>
+    </div>
+
+    <!-- Active Class Layout (Hidden by default) -->
+    <div id="classScreen" class="host-grid" style="display: none;">
+      <!-- Left Column: Active Presentation Slide -->
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Class Metadata Card -->
+        <div class="glass-card" style="padding: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h3 id="classNameDisplay" style="font-size: 1.2rem; margin-bottom: 2px;">Nama Kelas</h3>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">Pengajar: <span id="hostNameDisplay" style="color: #fff; font-weight: 500;">-</span></p>
+            </div>
+            <div style="text-align: right;">
+              <span id="studentNameDisplay" style="font-family: var(--font-title); font-weight: 700; color: var(--secondary); font-size: 1.1rem;">Nama Siswa</span>
+              <p id="studentScoreDisplay" style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">Skor: 0 poin</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sync Slide Viewer Card -->
+        <div class="glass-card slide-pane" style="min-height: 480px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Layar Presentasi Guru (Sinkron)</h3>
+            <span id="slideIndicator" style="font-family: var(--font-title); font-weight: 700; color: var(--secondary); font-size: 0.9rem;">Halaman 1 / 5</span>
+          </div>
+
+          <div class="slide-content-area" style="background: rgba(255, 255, 255, 0.015); min-height: 320px;">
+            <h2 id="slideTitle" class="slide-title">Menunggu Slide...</h2>
+            <p id="slideBody" class="slide-body">Slide materi yang dibagikan oleh Guru akan muncul secara instan di sini secara real-time.</p>
+          </div>
+          
+          <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">
+            <span>Layar ini dikontrol sepenuhnya oleh Guru.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Quiz Action & Leaderboard -->
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Active Quiz Box Card -->
+        <div class="glass-card" style="min-height: 250px; display: flex; flex-direction: column;">
+          
+          <!-- State 1: No Active Quiz -->
+          <div id="quizWaitingState" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px;">
+            <div style="font-size: 3rem; margin-bottom: 12px; animation: pulse-waiting 1.5s infinite alternate;">💭</div>
+            <h3>Menunggu Kuis Dimulai...</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 8px;">Siapkan konsentrasi Anda! Pertanyaan kuis dari Guru akan muncul secara otomatis di layar ini.</p>
+          </div>
+
+          <!-- State 2: Active Question Board -->
+          <div id="quizActiveState" style="display: none; flex: 1; flex-direction: column;">
+            <div class="question-header">
+              <h3 style="color: var(--secondary); font-size: 0.9rem; text-transform: uppercase;">Pertanyaan Aktif</h3>
+              <div id="studentTimer" class="timer">
+                <span>⏱️</span>
+                <span id="studentTimerVal">15</span>s
+              </div>
+            </div>
+            
+            <h2 id="quizQuestionText" style="font-size: 1.4rem; line-height: 1.5; color: #fff; margin-bottom: 20px;">Isi pertanyaan kuis...</h2>
+
+            <div class="options-grid">
+              <button id="btnOptA" class="option-btn option-a" onclick="submitAnswer('A')">
+                <span class="option-badge">A</span>
+                <span id="lblOptA">Opsi A</span>
+              </button>
+              <button id="btnOptB" class="option-btn option-b" onclick="submitAnswer('B')">
+                <span class="option-badge">B</span>
+                <span id="lblOptB">Opsi B</span>
+              </button>
+              <button id="btnOptC" class="option-btn option-c" onclick="submitAnswer('C')">
+                <span class="option-badge">C</span>
+                <span id="lblOptC">Opsi C</span>
+              </button>
+              <button id="btnOptD" class="option-btn option-d" onclick="submitAnswer('D')">
+                <span class="option-badge">D</span>
+                <span id="lblOptD">Opsi D</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- State 3: Submitted / Waiting other participants -->
+          <div id="quizSubmittedState" style="display: none; flex: 1; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px;">
+            <div style="font-size: 3rem; margin-bottom: 12px;">✅</div>
+            <h3>Jawaban Terkirim!</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 8px;">Menunggu sisa siswa lainnya selesai menjawab atau waktu berakhir...</p>
+          </div>
+
+          <!-- State 4: Instant Result Feedback -->
+          <div id="quizResultState" style="display: none; flex: 1; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+            <div class="feedback-pane">
+              <h2 id="feedbackTitle" class="feedback-title">BENAR!</h2>
+              <p id="feedbackText" style="color: var(--text-muted); font-size: 1rem; margin-bottom: 16px;">Anda menjawab kuis dengan sangat cepat.</p>
+              
+              <div id="feedbackPoints" class="feedback-score">+120 Poin</div>
+              <div id="feedbackStreak" class="feedback-streak">🔥 Streak x3</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Leaderboard (Always Visible to track competition) -->
+        <div class="glass-card" style="flex: 1; display: flex; flex-direction: column;">
+          <h3 style="margin-bottom: 20px;">Peringkat Kelas</h3>
+          <div id="leaderboardList" class="leaderboard-list">
+            <!-- Dynamically populated entries -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    // Specific Student Logic
+    window.addEventListener('DOMContentLoaded', () => {
+      initStudentLogic();
+    });
+  </script>
+</body>
+</html>

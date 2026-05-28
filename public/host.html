@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lopyta Interactive Class — Panel Guru</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo">
+        <span>🎓</span> Lopyta Guru Dashboard
+      </div>
+      <div id="statusBadge" class="status-badge" style="display: none;">
+        <span class="status-dot"></span>
+        <span id="nodeName">Terhubung</span>
+      </div>
+    </header>
+
+    <!-- Create Session Screen (Hidden after creation) -->
+    <div id="createScreen" class="glass-card join-container">
+      <h2 class="join-title">Mulai Sesi Kelas</h2>
+      <p class="join-subtitle">Buat ruang belajar interaktif real-time Anda sekarang.</p>
+      
+      <div class="input-group">
+        <label for="classNameInput">Nama Kelas</label>
+        <input type="text" id="classNameInput" class="input-field" placeholder="Contoh: Jaringan Komputer A" value="Jaringan Komputer A">
+      </div>
+      
+      <div class="input-group">
+        <label for="hostNameInput">Nama Pengajar</label>
+        <input type="text" id="hostNameInput" class="input-field" placeholder="Contoh: Pak Dosen" value="Pak Dosen">
+      </div>
+      
+      <button id="createBtn" class="btn" style="width: 100%;">Buat Kelas Baru</button>
+    </div>
+
+    <!-- Active Session Dashboard (Hidden by default) -->
+    <div id="dashboardScreen" class="host-grid" style="display: none;">
+      <!-- Left Column: Controls & Interaction -->
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Class Meta info Card -->
+        <div class="glass-card" style="padding: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h2 id="classNameDisplay" style="font-size: 1.5rem; margin-bottom: 4px;">Nama Kelas</h2>
+              <p style="color: var(--text-muted); font-size: 0.9rem;">Dosen: <span id="hostNameDisplay" style="color: #fff; font-weight: 600;">-</span></p>
+            </div>
+            <div style="text-align: right;">
+              <p style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Kode Kelas</p>
+              <h1 id="classCodeDisplay" style="font-size: 2.5rem; color: var(--secondary); letter-spacing: 0.05em; text-shadow: 0 0 15px var(--secondary-glow);">------</h1>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide Presentation Card -->
+        <div class="glass-card slide-pane">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Materi Presentasi (Slide)</h3>
+            <span id="slideIndicator" style="font-family: var(--font-title); font-weight: 700; color: var(--secondary);">Halaman 1 / 5</span>
+          </div>
+
+          <div class="slide-content-area">
+            <h2 id="slideTitle" class="slide-title">Selamat Datang di Lopyta!</h2>
+            <p id="slideBody" class="slide-body">Gunakan slide control di bawah untuk menyinkronkan presentasi Anda secara real-time ke semua layar siswa yang terhubung.</p>
+          </div>
+
+          <div class="slide-controls">
+            <button id="prevSlideBtn" class="btn btn-secondary">← Sebelumnya</button>
+            <button id="nextSlideBtn" class="btn">Selanjutnya →</button>
+          </div>
+        </div>
+
+        <!-- Quiz Question Launcher Card -->
+        <div class="glass-card">
+          <h3 style="margin-bottom: 20px;">Luncurkan Kuis Interaktif</h3>
+          
+          <div class="input-group">
+            <label for="quizQuestionInput">Pertanyaan</label>
+            <input type="text" id="quizQuestionInput" class="input-field" placeholder="Masukkan pertanyaan Anda di sini..." value="Protokol manakah yang merupakan Connection-oriented di Layer Transport?">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+            <div class="input-group" style="margin-bottom: 0;">
+              <label>Opsi A</label>
+              <input type="text" id="optA" class="input-field" value="UDP">
+            </div>
+            <div class="input-group" style="margin-bottom: 0;">
+              <label>Opsi B</label>
+              <input type="text" id="optB" class="input-field" value="TCP">
+            </div>
+            <div class="input-group" style="margin-bottom: 0;">
+              <label>Opsi C</label>
+              <input type="text" id="optC" class="input-field" value="IP">
+            </div>
+            <div class="input-group" style="margin-bottom: 0;">
+              <label>Opsi D</label>
+              <input type="text" id="optD" class="input-field" value="DNS">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 16px;">
+            <div class="input-group" style="flex: 1; margin-bottom: 0;">
+              <label for="correctOptionInput">Jawaban Benar</label>
+              <select id="correctOptionInput" class="input-field">
+                <option value="A">Opsi A</option>
+                <option value="B" selected>Opsi B</option>
+                <option value="C">Opsi C</option>
+                <option value="D">Opsi D</option>
+              </select>
+            </div>
+            <div class="input-group" style="flex: 1; margin-bottom: 0;">
+              <label for="durationInput">Durasi (Detik)</label>
+              <input type="number" id="durationInput" class="input-field" value="15">
+            </div>
+          </div>
+
+          <button id="launchQuizBtn" class="btn" style="width: 100%; margin-top: 24px;">🚀 Luncurkan Pertanyaan ke Siswa</button>
+        </div>
+      </div>
+
+      <!-- Right Column: Stats, Leaderboard & Participants -->
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Live Quiz Statistics Card -->
+        <div class="glass-card">
+          <h3>Statistik Jawaban Live</h3>
+          <p id="activeQuestionDisplay" style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; margin-bottom: 20px;">Tidak ada kuis aktif</p>
+          
+          <div class="quiz-stats">
+            <div class="stat-bar-container">
+              <span class="stat-label">A</span>
+              <div class="stat-progress-bg">
+                <div id="statBarA" class="stat-progress-fill a" style="width: 0%;"></div>
+              </div>
+              <span id="statCountA" class="stat-count">0</span>
+            </div>
+            
+            <div class="stat-bar-container">
+              <span class="stat-label">B</span>
+              <div class="stat-progress-bg">
+                <div id="statBarB" class="stat-progress-fill b" style="width: 0%;"></div>
+              </div>
+              <span id="statCountB" class="stat-count">0</span>
+            </div>
+            
+            <div class="stat-bar-container">
+              <span class="stat-label">C</span>
+              <div class="stat-progress-bg">
+                <div id="statBarC" class="stat-progress-fill c" style="width: 0%;"></div>
+              </div>
+              <span id="statCountC" class="stat-count">0</span>
+            </div>
+            
+            <div class="stat-bar-container">
+              <span class="stat-label">D</span>
+              <div class="stat-progress-bg">
+                <div id="statBarD" class="stat-progress-fill d" style="width: 0%;"></div>
+              </div>
+              <span id="statCountD" class="stat-count">0</span>
+            </div>
+          </div>
+          <div style="margin-top: 20px; display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted);">
+            <span>Total Siswa Menjawab: <span id="totalAnswersDisplay" style="color: #fff; font-weight: 600;">0</span></span>
+            <span id="timerDisplay" style="color: var(--error); font-weight: 700;">--:--</span>
+          </div>
+        </div>
+
+        <!-- Live Leaderboard Card -->
+        <div class="glass-card" style="flex: 1; display: flex; flex-direction: column;">
+          <h3 style="margin-bottom: 20px;">Papan Peringkat Kelas (Leaderboard)</h3>
+          
+          <div id="leaderboardPlaceholder" style="flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.95rem; text-align: center; border: 2px dashed rgba(255, 255, 255, 0.03); border-radius: 12px; padding: 20px;">
+            Belum ada siswa yang menjawab kuis. Papan peringkat akan muncul secara real-time di sini.
+          </div>
+
+          <div id="leaderboardList" class="leaderboard-list" style="display: none;">
+            <!-- Render entries dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    // Specific Host Logic
+    window.addEventListener('DOMContentLoaded', () => {
+      initHostLogic();
+    });
+  </script>
+</body>
+</html>

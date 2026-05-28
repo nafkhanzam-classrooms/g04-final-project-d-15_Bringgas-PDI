@@ -116,13 +116,23 @@
 
 ---
 
-### [cite_start]3. Ketentuan Teknis [cite: 89]
+### 3. Ketentuan Teknis
 
-[cite_start]**3.1 Arsitektur Server** [cite: 90]
-* [cite_start]Minimal 1 server dan 5 client yang terhubung bersamaan [cite: 91]
-* [cite_start]Server menggunakan threading ATAU select/poll/asyncio untuk concurrency [cite: 92]
-* [cite_start]Server menangani semua logika bisnis (skor, validasi, broadcast) [cite: 93]
-* [cite_start]Pemilihan arsitektur (threading vs async) harus didokumentasikan beserta alasannya [cite: 94]
+**3.1 Arsitektur Server & Stack Teknologi**
+* **Concurrency Model:** Menggunakan **Golang Goroutines & Channels (CSP Model)**. Runtime Scheduler Go (M:N scheduler) mengelola ribuan koneksi konkuren secara efisien tanpa beban thread OS standar, memenuhi ketentuan penanganan concurrency tingkat tinggi.
+* **Backend Framework:** **Golang Fiber** (berbasis Fasthttp) untuk performa router HTTP/WebSocket yang sangat cepat, minim alokasi memori, dan latency rendah.
+* **Reverse Proxy & Load Balancer:** **Nginx** digunakan di depan server Fiber untuk:
+  * TLS/HTTPS Termination (mengamankan seluruh komunikasi).
+  * Load Balancing (mendistribusikan trafik secara merata ke multiple instance server).
+  * Efisiensi penyajian file statis dan ketahanan (high availability).
+* **Distributed 2-Server Setup via VPN:**
+  * Menggunakan **2 server node** terpisah yang dihubungkan secara aman menggunakan **VPN (WireGuard)**.
+  * Sinkronisasi state kelas (Classroom Session, Active Quiz, Slide Position, Leaderboard) dilakukan secara real-time antar-server melalui protokol sinkronisasi khusus di atas jaringan VPN.
+  * Memenuhi bonus "Distributed Server" dan "Load Balancing" secara penuh.
+* **User Interface (UI) & Client:**
+  * Web-based client premium yang disajikan langsung oleh Fiber web server.
+  * Desain UI premium menggunakan **HTML5 & Vanilla CSS** dengan estetika modern (vibrant colors, glassmorphism, dark mode, dan mikro-animasi halus).
+  * Menggunakan **WebSocket** sebagai transport layer untuk komunikasi real-time, mengemas **Custom Network Protocol** yang dirancang (menggunakan custom binary frame atau structured frame).
 
 [cite_start]**3.2 Protokol Jaringan Custom** [cite: 95]
 Kelompok wajib merancang dan mendokumentasikan protokol komunikasi sendiri. [cite_start]Dokumentasi protokol mencakup: [cite: 96]
