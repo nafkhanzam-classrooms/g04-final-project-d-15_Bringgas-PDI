@@ -53,8 +53,10 @@ sudo systemctl restart nginx
 ```
 
 ### Langkah 3: Jalankan Kluster Server Go
-Kita akan menjalankan **2 Node Server** secara aktif. Kedua node ini akan berkomunikasi satu sama lain untuk menyinkronkan data secara instan melintasi TCP.
 
+Ada dua opsi untuk menjalankan kedua server node Anda:
+
+#### Opsi A: Menjalankan Secara Manual (Menggunakan 2 Terminal Terpisah)
 Buka **Terminal 1** dan jalankan **Node 1** (Web port: `8789`, Sync port: `8889`):
 ```bash
 go run main.go -port 8789 -sync-port 8889 -peer-sync 127.0.0.1:8890 -node node-1
@@ -64,6 +66,46 @@ Buka **Terminal 2** dan jalankan **Node 2** (Web port: `8790`, Sync port: `8890`
 ```bash
 go run main.go -port 8790 -sync-port 8890 -peer-sync 127.0.0.1:8889 -node node-2
 ```
+
+#### Opsi B: Menjalankan di Background Menggunakan Supervisor (Sangat Direkomendasikan)
+Supervisor akan secara otomatis memantau, menjalankan, dan merestart kedua server node di latar belakang (*daemonize*) tanpa perlu membuka terminal aktif.
+
+1. **Pasang Supervisor di Ubuntu Anda:**
+   ```bash
+   sudo apt update && sudo apt install -y supervisor
+   ```
+
+2. **Kompilasi Aplikasi Go Terlebih Dahulu (Sudah Dibuatkan):**
+   ```bash
+   go build -o lopyta-server main.go
+   ```
+
+3. **Pasang File Konfigurasi Supervisor:**
+   Salin file konfigurasi kustom yang telah dibuat ke direktori Supervisor:
+   ```bash
+   sudo cp supervisor/lopyta.conf /etc/supervisor/conf.d/lopyta.conf
+   ```
+
+4. **Muat Ulang & Jalankan Supervisor:**
+   Perintahkan Supervisor untuk mendeteksi berkas baru dan menjalankannya:
+   ```bash
+   sudo supervisorctl reread
+   sudo supervisorctl update
+   ```
+
+5. **Periksa Status Proses:**
+   Untuk memastikan kedua node berjalan sukses di background:
+   ```bash
+   sudo supervisorctl status
+   ```
+   *(Output akan menampilkan lopyta-node-1 dan lopyta-node-2 dalam status `RUNNING`).*
+
+6. **Mengendalikan Layanan (Opsional):**
+   * Restart: `sudo supervisorctl restart lopyta-node-1`
+   * Stop: `sudo supervisorctl stop all`
+   * Monitor Log secara langsung:
+     * Node 1: `tail -f /var/log/supervisor/lopyta-node-1-stdout.log`
+     * Node 2: `tail -f /var/log/supervisor/lopyta-node-2-stdout.log`
 
 *(Catatan: Dalam lingkungan produksi sesungguhnya, parameter `-peer-sync` akan diisi oleh IP VPN Wireguard dari VPS lawan).*
 
