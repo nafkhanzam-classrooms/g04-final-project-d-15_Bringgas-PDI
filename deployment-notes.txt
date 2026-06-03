@@ -1,0 +1,146 @@
+PANDUAN DEPLOYMENT PRODUCTION - LOPYTA CLASSROOM BRINGGAS
+------------------------------------------------------------------------
+
+1. PERSYARATAN SERVER & INSTALASI SERVICE
+------------------------------------------------------------------------
+- OS: Ubuntu 22.04 / 24.04 LTS
+- Web Server & Load Balancer: Nginx (Wajib)
+- Database: MariaDB / MySQL 8.0+
+- Cache / PubSub: Redis Server (Wajib)
+- Process Monitor: Supervisor (Wajib)
+- SSL Certificate: Certbot / Let's Encrypt (Wajib untuk HTTPS & Google OAuth)
+- Bahasa/Runtime: Golang 1.24+
+
+1.1 INSTALASI SEMUA DEPENDENSI
+------------------------------------------------------------------------
+Jalankan di terminal server:
+  sudo apt update
+  sudo apt install redis-server mariadb-server nginx supervisor certbot python3-certbot-nginx -y
+
+1.2 PILIHAN DEDICATED DATABASE USER SETUP
+------------------------------------------------------------------------
+Jalankan perintah ini di terminal server untuk menginisialisasi database dan hak akses khusus aplikasi Lopyta:
+
+  sudo mysql -e "CREATE DATABASE IF NOT EXISTS classroom_bringgas; CREATE USER IF NOT EXISTS 'lopyta_dbuser'@'127.0.0.1' IDENTIFIED BY 'LopytaBringgas2026'; GRANT ALL PRIVILEGES ON classroom_bringgas.* TO 'lopyta_dbuser'@'127.0.0.1'; FLUSH PRIVILEGES;"
+
+*Catatan: Password sengaja tidak menggunakan tanda seru (!) untuk mencegah error "event not found" pada terminal Bash.*
+
+1.3 MEMBANGUN SERVER (COMPILING GO BINARY)
+------------------------------------------------------------------------
+Jalankan kompilasi kode program Go Anda sebelum menjalankan Supervisor:
+  cd /var/www/classroom-bringgas
+  go mod tidy
+  go build -o lopyta-server main.go
+
+---
+
+2. KONFIGURASI .ENV (PRODUCTION)
+------------------------------------------------------------------------
+Buat berkas `.env` di direktori `/var/www/classroom-bringgas/` dengan isi:
+
+DB_DSN=lopyta_dbuser:LopytaBringgas2026@tcp(127.0.0.1:3306)/classroom_bringgas?parseTime=true
+REDIS_ADDR=127.0.0.1:6379
+REDIS_PASSWORD=
+TEACHER_DOMAIN=guru.lopyta.org
+STUDENT_DOMAIN=siswa.lopyta.org
+PORT=8789
+NODE_NAME=node-1
+SESSION_SECRET=bringgas_lopyta_secret_2026
+
+# Google OAuth 2.0 Credentials (Isi untuk mengaktifkan login Google asli)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URL=https://guru.lopyta.org/api/auth/google/callback
+
+---
+
+3. SETUP PROCESS MONITOR (SUPERVISOR)
+------------------------------------------------------------------------
+Gunakan berkas konfigurasi `/var/www/classroom-bringgas/supervisor/lopyta.conf` dan hubungkan ke Supervisor sistem:
+
+  sudo cp /var/www/classroom-bringgas/supervisor/lopyta.conf /etc/supervisor/conf.d/lopyta.conf
+  sudo supervisorctl reread
+  sudo supervisorctl update
+
+Perintah Kontrol Supervisor:
+- Melihat status proses: `sudo supervisorctl status`
+- Melakukan restart: `sudo supervisorctl restart all`
+
+---
+
+4. SETUP WEB SERVER & LOAD BALANCER (NGINX)
+------------------------------------------------------------------------
+Gunakan berkas konfigurasi `/var/www/classroom-bringgas/nginx/lopyta.conf` ke Nginx:
+
+  sudo cp /var/www/classroom-bringgas/nginx/lopyta.conf /etc/nginx/sites-available/lopyta.conf
+  sudo ln -sf /etc/nginx/sites-available/lopyta.conf /etc/nginx/sites-enabled/lopyta.conf
+  sudo nginx -t
+  sudo systemctl reload nginx
+
+---
+
+5. SETUP SSL/HTTPS (CERTBOT + LET'S ENCRYPT)
+------------------------------------------------------------------------
+PENTING: Google OAuth 2.0 WAJIB menggunakan HTTPS. Tanpa sertifikat SSL,
+login Google tidak akan berfungsi.
+
+PRASYARAT:
+- DNS A Record untuk `guru.lopyta.org` dan `siswa.lopyta.org` HARUS
+  mengarah ke IP PUBLIK server Anda (bukan localhost/127.0.0.1).
+- Port 80 dan 443 harus terbuka di firewall.
+
+5.1 Cek DNS mengarah ke server:
+  dig guru.lopyta.org +short
+  dig siswa.lopyta.org +short
+  # Output harus menampilkan IP publik server, BUKAN localhost.
+
+5.2 Install Certbot dan plugin Nginx:
+  sudo apt install certbot python3-certbot-nginx -y
+
+5.3 Generate sertifikat SSL (otomatis konfigurasi Nginx):
+  sudo certbot --nginx -d guru.lopyta.org -d siswa.lopyta.org
+
+  # Certbot akan otomatis:
+  # - Memverifikasi kepemilikan domain via HTTP-01 challenge
+  # - Mendownload sertifikat dari Let's Encrypt
+  # - Memodifikasi Nginx config untuk menambahkan ssl_certificate
+  # - Mengaktifkan redirect HTTP → HTTPS
+
+5.4 Verifikasi SSL aktif:
+  sudo nginx -t
+  sudo systemctl reload nginx
+  curl -I https://guru.lopyta.org  # Harus mengembalikan HTTP/2 200
+
+5.5 Auto-renewal (Certbot otomatis menambahkan cron job):
+  sudo certbot renew --dry-run  # Tes apakah renewal berfungsi
+
+CATATAN UNTUK DEVELOPMENT LOKAL:
+------------------------------------------------------------------------
+Untuk testing lokal TANPA domain publik, gunakan self-signed certificate:
+
+  sudo mkdir -p /etc/ssl/lopyta
+  sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/ssl/lopyta/lopyta.key \
+    -out /etc/ssl/lopyta/lopyta.crt \
+    -subj "/CN=guru.lopyta.org" \
+    -addext "subjectAltName=DNS:guru.lopyta.org,DNS:siswa.lopyta.org"
+
+Browser akan menampilkan warning "Not Secure" (klik Advanced → Proceed).
+Google OAuth tetap berfungsi karena URL callback menggunakan https://.
+
+---
+
+6. URUTAN UPDATE APLIKASI (PULL TERBARU)
+------------------------------------------------------------------------
+Setiap kali ada pembaruan kode kodingan dari repository Git Anda:
+
+  # 1. Tarik pembaruan
+  git pull origin main
+
+  # 2. Build ulang biner Golang
+  go mod tidy
+  go build -o lopyta-server main.go
+
+  # 3. Reload Nginx & Restart Supervisor
+  sudo systemctl reload nginx
+  sudo supervisorctl restart lopyta-node-1 lopyta-node-2

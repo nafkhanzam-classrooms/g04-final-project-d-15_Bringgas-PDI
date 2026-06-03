@@ -121,6 +121,10 @@
 **3.1 Arsitektur Server & Stack Teknologi**
 * **Concurrency Model:** Menggunakan **Golang Goroutines & Channels (CSP Model)**. Runtime Scheduler Go (M:N scheduler) mengelola ribuan koneksi konkuren secara efisien tanpa beban thread OS standar, memenuhi ketentuan penanganan concurrency tingkat tinggi.
 * **Backend Framework:** **Golang Fiber** (berbasis Fasthttp) untuk performa router HTTP/WebSocket yang sangat cepat, minim alokasi memori, dan latency rendah.
+* **Database & Persistence Layer (MariaDB):**
+  * Menggunakan **MariaDB** sebagai database relasional untuk menyimpan data terstruktur yang membutuhkan persistensi jangka panjang.
+  * Menyimpan akun guru (Teacher Accounts) dengan enkripsi password (bcrypt), riwayat kelas yang pernah dibuat, daftar kuis dan tugas (tasks), serta peringkat leaderboard/nilai siswa (submissions).
+  * Mendukung arsitektur **Hybrid Data Store**: state real-time (aktif) dikelola di RAM (In-Memory) dan direplikasi antar server via TCP, sedangkan state historis dan administratif disimpan di MariaDB.
 * **Reverse Proxy & Load Balancer:** **Nginx** digunakan di depan server Fiber untuk:
   * TLS/HTTPS Termination (mengamankan seluruh komunikasi).
   * Load Balancing (mendistribusikan trafik secara merata ke multiple instance server).

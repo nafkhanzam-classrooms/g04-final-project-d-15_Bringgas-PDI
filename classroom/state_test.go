@@ -7,7 +7,7 @@ import (
 
 func TestCreateAndJoinSession(t *testing.T) {
 	sm := NewSessionManager()
-	session := sm.CreateSession("Jaringan Komputer A", "Pak Budi")
+	session := sm.CreateSession("Jaringan Komputer A", "Pak Budi", 1, "CODE12", time.Time{})
 
 	if session.Code == "" {
 		t.Fatal("Expected session code to be generated, got empty")
@@ -17,8 +17,11 @@ func TestCreateAndJoinSession(t *testing.T) {
 		t.Errorf("Expected class name 'Jaringan Komputer A', got '%s'", session.ClassName)
 	}
 
-	// Join Student 1
-	p1, status, err := session.JoinParticipant("Siswa 1")
+	// Active state check: start session first
+	session.StartSession()
+
+	// Join Student 1 (Correct Code)
+	p1, status, err := session.JoinParticipant("Siswa 1", "CODE12")
 	if err != nil {
 		t.Fatalf("Failed to join student: %v", err)
 	}
@@ -39,20 +42,16 @@ func TestCreateAndJoinSession(t *testing.T) {
 
 func TestScoreAndLeaderboardCalculation(t *testing.T) {
 	sm := NewSessionManager()
-	s := sm.CreateSession("Sesi Test", "Guru")
+	s := sm.CreateSession("Sesi Test", "Guru", 1, "CODE12", time.Time{})
+	s.StartSession()
 
 	// Join 3 students
-	s.JoinParticipant("Alice")
-	s.JoinParticipant("Bob")
-	s.JoinParticipant("Charlie")
+	s.JoinParticipant("Alice", "CODE12")
+	s.JoinParticipant("Bob", "CODE12")
+	s.JoinParticipant("Charlie", "CODE12")
 
 	// Start Quiz
 	s.StartQuestion("Protokol UDP?", []string{"TCP", "UDP", "IP", "DNS"}, "B", 10)
-
-	// Submit answers with simulated timestamps (speed)
-	// Alice answers correct immediately (high speed bonus)
-	// Bob answers correct slowly (low speed bonus)
-	// Charlie answers incorrect (0 points)
 
 	// Since we mock, let's inject manually to verify score math
 	s.CurrentQuestion.EndTime = time.Now().Add(10 * time.Second) // 10s total duration
@@ -64,7 +63,6 @@ func TestScoreAndLeaderboardCalculation(t *testing.T) {
 	}
 
 	// Bob submits (we delay slightly)
-	// To mock delay, we manually override Alice's and Bob's scores to test leaderboard sorting
 	s.Participants["Alice"].Score = 180
 	s.Participants["Bob"].Score = 120
 	s.Participants["Charlie"].Score = 0
@@ -87,9 +85,10 @@ func TestScoreAndLeaderboardCalculation(t *testing.T) {
 
 func TestAnswerStreaks(t *testing.T) {
 	sm := NewSessionManager()
-	s := sm.CreateSession("Sesi Streak", "Guru")
+	s := sm.CreateSession("Sesi Streak", "Guru", 1, "CODE12", time.Time{})
+	s.StartSession()
 
-	s.JoinParticipant("Alice")
+	s.JoinParticipant("Alice", "CODE12")
 
 	// Question 1 Correct
 	s.StartQuestion("Q1", []string{"A", "B"}, "A", 10)

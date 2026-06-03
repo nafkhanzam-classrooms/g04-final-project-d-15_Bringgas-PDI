@@ -2,9 +2,13 @@ package classroom
 
 import (
 	"crypto/rand"
+	"database/sql"
+	"fmt"
 	"math/big"
 	"sync"
 	"time"
+
+	"classroom-bringgas/database"
 )
 
 // Participant represents a student in a session
@@ -20,12 +24,12 @@ type Participant struct {
 type QuizQuestion struct {
 	QuestionID      int                  `json:"questionId"`
 	QuestionText    string               `json:"questionText"`
-	Options         []string             `json:"options"` // e.g. ["Option A", "Option B", "Option C", "Option D"]
-	CorrectOption   string               `json:"correctOption"` // "A", "B", "C", or "D"
+	Options         []string             `json:"options"`
+	CorrectOption   string               `json:"correctOption"`
 	DurationSeconds int                  `json:"durationSeconds"`
 	EndTime         time.Time            `json:"endTime"`
-	Answers         map[string]string    `json:"answers"`    // Name -> Answer
-	Timestamps      map[string]time.Time `json:"timestamps"` // Name -> Submission time
+	Answers         map[string]string    `json:"answers"`
+	Timestamps      map[string]time.Time `json:"timestamps"`
 }
 
 // LeaderboardEntry is an item in the leaderboard ranking
@@ -34,24 +38,29 @@ type LeaderboardEntry struct {
 	Score       int    `json:"score"`
 	Streak      int    `json:"streak"`
 	Rank        int    `json:"rank"`
-	Change      int    `json:"change"` // Rank change: positive = up, negative = down, 0 = no change
+	Change      int    `json:"change"`
 	LastRank    int    `json:"lastRank"`
 	StreakBonus int    `json:"streakBonus"`
 }
 
 // ClassSession represents the full state of a single classroom
 type ClassSession struct {
-	Code            string                  `json:"code"`
-	ClassName       string                  `json:"className"`
-	HostName        string                  `json:"hostName"`
-	Active          bool                    `json:"active"`
-	ActiveSlide     int                     `json:"activeSlide"`
-	TotalSlides     int                     `json:"totalSlides"`
-	Participants    map[string]*Participant `json:"participants"`
-	CurrentQuestion *QuizQuestion           `json:"currentQuestion"`
-	Leaderboard     []LeaderboardEntry      `json:"leaderboard"`
-	CreatedAt       time.Time               `json:"createdAt"`
-	mu              sync.RWMutex
+	Code              string                  `json:"code"`
+	ClassName         string                  `json:"className"`
+	HostName          string                  `json:"hostName"`
+	TeacherID         int                     `json:"teacherId"`
+	StudentEntryCode  string                  `json:"studentEntryCode"` // Kode Khusus (manual or system-generated)
+	Active            bool                    `json:"active"`           // WebSocket connectivity active
+	IsActive          bool                    `json:"isActive"`         // Teacher started the class
+	PointMultiplier   int                     `json:"pointMultiplier"`   // Multiplier x1 or x2
+	ScheduledTime     time.Time               `json:"scheduledTime"`
+	ActiveSlide       int                     `json:"activeSlide"`
+	TotalSlides       int                     `json:"totalSlides"`
+	Participants      map[string]*Participant `json:"participants"`
+	CurrentQuestion   *QuizQuestion           `json:"currentQuestion"`
+	Leaderboard       []LeaderboardEntry      `json:"leaderboard"`
+	CreatedAt         time.Time               `json:"createdAt"`
+	mu                sync.RWMutex
 }
 
 // SessionManager manages all active classroom sessions in-memory
@@ -78,8 +87,19 @@ func GenerateRandomCode() string {
 	return string(b)
 }
 
+// GenerateRandomEntryCode generates a 5-character simple numeric entry code
+func GenerateRandomEntryCode() string {
+	const charset = "0123456789"
+	b := make([]byte, 5)
+	for i := range b {
+		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		b[i] = charset[n.Int64()]
+	}
+	return string(b)
+}
+
 // CreateSession initializes a new interactive classroom session
-func (sm *SessionManager) CreateSession(className, hostName string) *ClassSession {
+func (sm *SessionManager) CreateSession(className, hostName string, teacherID int, entryCode string, schedTime time.Time) *ClassSession {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
@@ -91,17 +111,42 @@ func (sm *SessionManager) CreateSession(className, hostName string) *ClassSessio
 		}
 	}
 
-	session := &ClassSession{
-		Code:         code,
-		ClassName:    className,
-		HostName:     hostName,
-		Active:       true,
-		ActiveSlide:  1,
-		TotalSlides:  5, // Default total slides
-		Participants: make(map[string]*Participant),
-		Leaderboard:  []LeaderboardEntry{},
-		CreatedAt:    time.Now(),
+	// Dynamic student entry code generation
+	studentEntryCode := entryCode
+	if studentEntryCode == "" {
+		studentEntryCode = GenerateRandomEntryCode()
 	}
+
+	session := &ClassSession{
+		Code:             code,
+		ClassName:        className,
+		HostName:         hostName,
+		TeacherID:        teacherID,
+		StudentEntryCode: studentEntryCode,
+		Active:           true,
+		IsActive:         false, // Class must be explicitly started by the teacher
+		PointMultiplier:  1,
+		ScheduledTime:    schedTime,
+		ActiveSlide:      1,
+		TotalSlides:      5,
+		Participants:     make(map[string]*Participant),
+		Leaderboard:      []LeaderboardEntry{},
+		CreatedAt:        time.Now(),
+	}
+
+	// Persist the created class metadata to MariaDB in a non-blocking goroutine
+	go func() {
+		db := database.GetDB()
+		if db == nil {
+			return
+		}
+		query := "INSERT INTO classes (code, class_name, teacher_id, student_entry_code, scheduled_time, is_active) VALUES (?, ?, ?, ?, ?, ?)"
+		var sched interface{} = nil
+		if !schedTime.IsZero() {
+			sched = schedTime
+		}
+		db.Exec(query, session.Code, session.ClassName, session.TeacherID, session.StudentEntryCode, sched, 0)
+	}()
 
 	sm.sessions[code] = session
 	return session
@@ -121,7 +166,7 @@ func (sm *SessionManager) GetSession(code string) *ClassSession {
 	return sm.sessions[code]
 }
 
-// RemoveSession deletes a session
+// RemoveSession deletes a session and logs it
 func (sm *SessionManager) RemoveSession(code string) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
@@ -129,14 +174,24 @@ func (sm *SessionManager) RemoveSession(code string) {
 }
 
 // JoinParticipant joins a student to a class session, handling registration/reconnection
-func (s *ClassSession) JoinParticipant(name string) (*Participant, string, error) {
+func (s *ClassSession) JoinParticipant(name string, entryCode string) (*Participant, string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	// 1. Verify Class Active State (Lifecycle control)
+	if !s.IsActive {
+		return nil, "", fmt.Errorf("Sesi kelas belum dimulai oleh Guru.")
+	}
+
+	// 2. Validate Student Entry Code (Kode Khusus)
+	if s.StudentEntryCode != "" && entryCode != s.StudentEntryCode {
+		return nil, "", fmt.Errorf("Kode Khusus (Entry Code) salah.")
+	}
 
 	p, exists := s.Participants[name]
 	if exists {
 		if p.Active {
-			// Duplicate login: we return a status telling the server to kick the old one
+			// Duplicate login: telling the server to kick the old connection
 			p.LastActiveTime = time.Now()
 			return p, "kick", nil
 		}
@@ -156,7 +211,6 @@ func (s *ClassSession) JoinParticipant(name string) (*Participant, string, error
 	}
 	s.Participants[name] = p
 
-	// Recalculate leaderboard to include new participant
 	s.recalculateLeaderboardNoLock()
 
 	return p, "join", nil
@@ -201,13 +255,12 @@ func (s *ClassSession) SubmitAnswer(name, answer string) (bool, int, error) {
 
 	q := s.CurrentQuestion
 	if q == nil {
-		return false, 0, nil // No active question
+		return false, 0, nil
 	}
 
-	// Check timeout
 	now := time.Now()
 	if now.After(q.EndTime) {
-		return false, 0, nil // Question has expired
+		return false, 0, nil // Timeout
 	}
 
 	// Record answer
@@ -229,16 +282,13 @@ func (s *ClassSession) SubmitAnswer(name, answer string) (bool, int, error) {
 		baseScore := 100
 		speedBonus := 0
 		
-		// Calculate time taken
 		timeLeft := q.EndTime.Sub(now)
 		totalDuration := time.Duration(q.DurationSeconds) * time.Second
 		
 		if timeLeft > 0 && totalDuration > 0 {
-			// Max 100 speed bonus points
 			speedBonus = int((timeLeft.Seconds() / totalDuration.Seconds()) * 100)
 		}
 		
-		// Streak Bonus: 20 points per streak level (max 100 extra points)
 		streakBonus := (p.Streak - 1) * 20
 		if streakBonus > 100 {
 			streakBonus = 100
@@ -248,15 +298,66 @@ func (s *ClassSession) SubmitAnswer(name, answer string) (bool, int, error) {
 		}
 
 		pointsEarned = baseScore + speedBonus + streakBonus
+
+		// Apply Points Multiplier (Poin x1 atau x2 kustom dari Guru)
+		multiplier := s.PointMultiplier
+		if multiplier < 1 {
+			multiplier = 1
+		}
+		pointsEarned = pointsEarned * multiplier
+
 		p.Score += pointsEarned
 	} else {
-		p.Streak = 0 // Reset streak
+		p.Streak = 0
 	}
 
 	p.LastActiveTime = now
 	s.recalculateLeaderboardNoLock()
 
+	// Persist the student score dynamically to MariaDB in a non-blocking background routine
+	go func(classCode, studentName string, score, streak int) {
+		db := database.GetDB()
+		if db == nil {
+			return
+		}
+		var id int
+		err := db.QueryRow("SELECT id FROM submissions WHERE class_code = ? AND student_name = ?", classCode, studentName).Scan(&id)
+		if err == sql.ErrNoRows {
+			db.Exec("INSERT INTO submissions (class_code, student_name, score, streak) VALUES (?, ?, ?, ?)", classCode, studentName, score, streak)
+		} else if err == nil {
+			db.Exec("UPDATE submissions SET score = ?, streak = ? WHERE id = ?", score, streak, id)
+		}
+	}(s.Code, name, p.Score, p.Streak)
+
 	return isCorrect, pointsEarned, nil
+}
+
+// StartSession sets class active state to true in-memory and in MariaDB
+func (s *ClassSession) StartSession() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.IsActive = true
+
+	go func(code string) {
+		db := database.GetDB()
+		if db != nil {
+			db.Exec("UPDATE classes SET is_active = 1 WHERE code = ?", code)
+		}
+	}(s.Code)
+}
+
+// EndSession sets class active state to false and marks it in database
+func (s *ClassSession) EndSession() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.IsActive = false
+
+	go func(code string) {
+		db := database.GetDB()
+		if db != nil {
+			db.Exec("UPDATE classes SET is_active = 0 WHERE code = ?", code)
+		}
+	}(s.Code)
 }
 
 // ChangeSlide updates slide position
@@ -277,13 +378,11 @@ func (s *ClassSession) RecalculateLeaderboard() {
 
 // recalculateLeaderboardNoLock is internal helper, assumes caller holds the lock
 func (s *ClassSession) recalculateLeaderboardNoLock() {
-	// 1. Keep track of previous ranks to compute rank change
 	prevRanks := make(map[string]int)
 	for _, entry := range s.Leaderboard {
 		prevRanks[entry.Name] = entry.Rank
 	}
 
-	// 2. Collect participants
 	var list []LeaderboardEntry
 	for _, p := range s.Participants {
 		streakBonus := (p.Streak - 1) * 20
@@ -301,8 +400,6 @@ func (s *ClassSession) recalculateLeaderboardNoLock() {
 		})
 	}
 
-	// 3. Sort by Score descending
-	// Simple bubble sort or standard sort is fine since participant counts are small (minimal 5, usually <= 50)
 	for i := 0; i < len(list); i++ {
 		for j := i + 1; j < len(list); j++ {
 			if list[i].Score < list[j].Score {
@@ -311,7 +408,6 @@ func (s *ClassSession) recalculateLeaderboardNoLock() {
 		}
 	}
 
-	// 4. Assign ranks and compute differences
 	for i := range list {
 		rank := i + 1
 		list[i].Rank = rank
@@ -319,8 +415,6 @@ func (s *ClassSession) recalculateLeaderboardNoLock() {
 		lastRank, hadRank := prevRanks[list[i].Name]
 		if hadRank {
 			list[i].LastRank = lastRank
-			// If rank went from 5 to 3, change is +2 (improvement).
-			// If rank went from 2 to 4, change is -2.
 			list[i].Change = lastRank - rank
 		} else {
 			list[i].LastRank = rank
@@ -337,13 +431,18 @@ func (s *ClassSession) CopyState() *ClassSession {
 	defer s.mu.RUnlock()
 
 	copied := &ClassSession{
-		Code:        s.Code,
-		ClassName:   s.ClassName,
-		HostName:    s.HostName,
-		Active:      s.Active,
-		ActiveSlide: s.ActiveSlide,
-		TotalSlides: s.TotalSlides,
-		CreatedAt:   s.CreatedAt,
+		Code:             s.Code,
+		ClassName:        s.ClassName,
+		HostName:         s.HostName,
+		TeacherID:        s.TeacherID,
+		StudentEntryCode: s.StudentEntryCode,
+		Active:           s.Active,
+		IsActive:         s.IsActive,
+		PointMultiplier:  s.PointMultiplier,
+		ScheduledTime:    s.ScheduledTime,
+		ActiveSlide:      s.ActiveSlide,
+		TotalSlides:      s.TotalSlides,
+		CreatedAt:        s.CreatedAt,
 	}
 
 	copied.Participants = make(map[string]*Participant)

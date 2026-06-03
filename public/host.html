@@ -5,6 +5,124 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lopyta Interactive Class — Panel Guru</title>
   <link rel="stylesheet" href="/css/app.css">
+  <style>
+    .teacher-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-glow);
+      border-radius: 12px;
+      padding: 12px 24px;
+      margin-bottom: 24px;
+    }
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .profile-avatar {
+      width: 36px;
+      height: 36px;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 700;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-title);
+    }
+    .host-sections {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .tab-container {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-glow);
+      padding-bottom: 8px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: var(--font-title);
+      font-weight: 600;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+    .tab-btn.active {
+      color: var(--secondary);
+      border-bottom: 2px solid var(--secondary);
+    }
+    .class-card-item {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border-glow);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: var(--transition-smooth);
+    }
+    .class-card-item:hover {
+      border-color: rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.04);
+    }
+    .bank-list {
+      max-height: 400px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .bank-item {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border-glow);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+    .bank-item:hover {
+      border-color: var(--secondary);
+      background: rgba(255,255,255,0.04);
+    }
+    .badge-type {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-type.quiz { background: rgba(0, 240, 255, 0.15); color: var(--secondary); }
+    .badge-type.code { background: rgba(0, 255, 136, 0.15); color: var(--success); }
+    .class-status-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+    .class-status-banner.inactive {
+      background: rgba(255, 51, 102, 0.15);
+      border: 1px solid var(--error);
+      color: var(--error);
+    }
+    .class-status-banner.active {
+      background: rgba(0, 255, 136, 0.15);
+      border: 1px solid var(--success);
+      color: var(--success);
+    }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -19,22 +137,118 @@
       </div>
     </header>
 
-    <!-- Create Session Screen (Hidden after creation) -->
-    <div id="createScreen" class="glass-card join-container">
-      <h2 class="join-title">Mulai Sesi Kelas</h2>
-      <p class="join-subtitle">Buat ruang belajar interaktif real-time Anda sekarang.</p>
-      
-      <div class="input-group">
-        <label for="classNameInput">Nama Kelas</label>
-        <input type="text" id="classNameInput" class="input-field" placeholder="Contoh: Jaringan Komputer A" value="Jaringan Komputer A">
+    <!-- Teacher Navigation bar -->
+    <div class="teacher-nav">
+      <div class="user-profile">
+        <div class="profile-avatar" id="avatarDisplay">G</div>
+        <div>
+          <h4 id="teacherNameDisplay">Guru Lopyta</h4>
+          <p id="teacherEmailDisplay" style="font-size: 0.8rem; color: var(--text-muted);"></p>
+        </div>
       </div>
+      <button id="logoutBtn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.9rem;">Keluar (Logout)</button>
+    </div>
+
+    <!-- Create & Manage Classes Screen -->
+    <div id="createScreen" class="host-sections">
       
-      <div class="input-group">
-        <label for="hostNameInput">Nama Pengajar</label>
-        <input type="text" id="hostNameInput" class="input-field" placeholder="Contoh: Pak Dosen" value="Pak Dosen">
+      <!-- Left Column: Create Class -->
+      <div class="glass-card">
+        <h3 style="margin-bottom: 16px;">Buat Kelas Baru</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">Siapkan kuis dan materi interaktif Anda secara terjadwal.</p>
+        
+        <div class="input-group">
+          <label for="classNameInput">Nama Kelas / Mata Kuliah</label>
+          <input type="text" id="classNameInput" class="input-field" placeholder="Contoh: Jaringan Komputer B" value="Jaringan Komputer B">
+        </div>
+        
+        <div class="input-group">
+          <label for="entryCodeInput">Kode Khusus Siswa (Maks 10 digit)</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="entryCodeInput" class="input-field" placeholder="Contoh: JARKOM2026" maxlength="10" style="flex: 1;">
+            <button id="rollCodeBtn" class="btn btn-secondary" style="padding: 12px 16px;" title="Acak Kode">🎲 Acak</button>
+          </div>
+          <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">Kosongkan jika ingin dibuatkan kode angka acak oleh sistem.</span>
+        </div>
+        
+        <button id="createBtn" class="btn" style="width: 100%;">Buat Kelas Baru</button>
       </div>
-      
-      <button id="createBtn" class="btn" style="width: 100%;">Buat Kelas Baru</button>
+
+      <!-- Right Column: Classes and Question Bank Tabs -->
+      <div class="glass-card" style="display: flex; flex-direction: column;">
+        <div class="tab-container">
+          <button id="tabClassesBtn" class="tab-btn active" onclick="switchMainTab('classes')">Kelas Saya</button>
+          <button id="tabBankBtn" class="tab-btn" onclick="switchMainTab('bank')">Bank Soal & Tugas</button>
+        </div>
+
+        <!-- Tab Content 1: My Classes List -->
+        <div id="tabClassesContent" style="flex: 1;">
+          <div id="classesListContainer" style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Tab Content 2: Question/Task Bank -->
+        <div id="tabBankContent" style="display: none; flex: 1; flex-direction: column; gap: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Kelola template soal quiz dan kodingan yang siap pakai.</p>
+            <button id="openAddBankBtn" class="btn" style="padding: 6px 14px; font-size: 0.85rem;" onclick="showAddBankForm()">+ Tambah Soal</button>
+          </div>
+
+          <!-- Add Bank Soal Modal Panel (hidden by default) -->
+          <div id="addBankPanel" style="display: none; background: rgba(255,255,255,0.01); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+            <h4 style="margin-bottom: 12px; color: var(--secondary);">Tambah ke Bank Soal</h4>
+            <div class="input-group">
+              <label>Judul Soal (Untuk Pencarian)</label>
+              <input type="text" id="bankTitleInput" class="input-field" placeholder="Contoh: Kuis TCP/UDP">
+            </div>
+            <div class="input-group">
+              <label>Jenis Kegiatan</label>
+              <select id="bankTypeSelect" class="input-field" onchange="toggleBankTypeFields()">
+                <option value="quiz">Pilihan Ganda (Quiz)</option>
+                <option value="code">Tugas Kodingan (C/C++/Python Compiler)</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label>Pertanyaan Soal</label>
+              <textarea id="bankTextInput" class="input-field" placeholder="Masukkan teks pertanyaan atau deskripsi tugas..." style="min-height: 80px; font-family: var(--font-body);"></textarea>
+            </div>
+
+            <!-- Quiz Option Fields -->
+            <div id="bankQuizOptions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+              <input type="text" id="bankOptA" class="input-field" placeholder="Opsi A">
+              <input type="text" id="bankOptB" class="input-field" placeholder="Opsi B">
+              <input type="text" id="bankOptC" class="input-field" placeholder="Opsi C">
+              <input type="text" id="bankOptD" class="input-field" placeholder="Opsi D">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="input-group">
+                <label id="correctLabel">Kunci Jawaban</label>
+                <select id="bankCorrectSelect" class="input-field">
+                  <option value="A">Opsi A</option>
+                  <option value="B">Opsi B</option>
+                  <option value="C">Opsi C</option>
+                  <option value="D">Opsi D</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label>Durasi Menjawab (Detik)</label>
+                <input type="number" id="bankDurationInput" class="input-field" value="20">
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+              <button class="btn btn-secondary" onclick="hideAddBankForm()" style="padding: 8px 16px; font-size: 0.9rem;">Batal</button>
+              <button class="btn" onclick="saveToQuestionBank()" style="padding: 8px 16px; font-size: 0.9rem;">Simpan Soal</button>
+            </div>
+          </div>
+
+          <div id="bankListContainer" class="bank-list">
+            <!-- Loaded dynamically -->
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Active Session Dashboard (Hidden by default) -->
@@ -44,10 +258,19 @@
         
         <!-- Class Meta info Card -->
         <div class="glass-card" style="padding: 24px;">
+          <!-- Active Status Banner -->
+          <div id="classStatusBanner" class="class-status-banner inactive">
+            <span id="classStatusText">KELAS BELUM DIMULAI (Siswa tidak bisa bergabung)</span>
+            <div style="display: flex; gap: 8px;">
+              <button id="startClassBtn" class="btn" style="padding: 6px 16px; font-size: 0.85rem; background: linear-gradient(135deg, #00ff88 0%, #00b359 100%);">▶ Mulai Kelas</button>
+              <button id="endClassBtn" class="btn btn-secondary" style="padding: 6px 16px; font-size: 0.85rem; display: none;">🛑 Akhiri & Eject</button>
+            </div>
+          </div>
+
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
               <h2 id="classNameDisplay" style="font-size: 1.5rem; margin-bottom: 4px;">Nama Kelas</h2>
-              <p style="color: var(--text-muted); font-size: 0.9rem;">Dosen: <span id="hostNameDisplay" style="color: #fff; font-weight: 600;">-</span></p>
+              <p style="color: var(--text-muted); font-size: 0.9rem;">Kode Khusus Masuk: <span id="studentEntryCodeDisplay" style="color: var(--secondary); font-weight: 700; letter-spacing: 0.05em;">-</span></p>
             </div>
             <div style="text-align: right;">
               <p style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Kode Kelas</p>
@@ -76,35 +299,44 @@
 
         <!-- Quiz Question Launcher Card -->
         <div class="glass-card">
-          <h3 style="margin-bottom: 20px;">Luncurkan Kuis Interaktif</h3>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3>Luncurkan Kuis atau Tugas</h3>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <!-- Quick Select from Bank Drawer Button -->
+              <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="openQuickSelectDrawer()">📂 Ambil Bank Soal</button>
+            </div>
+          </div>
           
           <div class="input-group">
             <label for="quizQuestionInput">Pertanyaan</label>
             <input type="text" id="quizQuestionInput" class="input-field" placeholder="Masukkan pertanyaan Anda di sini..." value="Protokol manakah yang merupakan Connection-oriented di Layer Transport?">
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-            <div class="input-group" style="margin-bottom: 0;">
-              <label>Opsi A</label>
-              <input type="text" id="optA" class="input-field" value="UDP">
-            </div>
-            <div class="input-group" style="margin-bottom: 0;">
-              <label>Opsi B</label>
-              <input type="text" id="optB" class="input-field" value="TCP">
-            </div>
-            <div class="input-group" style="margin-bottom: 0;">
-              <label>Opsi C</label>
-              <input type="text" id="optC" class="input-field" value="IP">
-            </div>
-            <div class="input-group" style="margin-bottom: 0;">
-              <label>Opsi D</label>
-              <input type="text" id="optD" class="input-field" value="DNS">
+          <!-- Question Options Panel (can be hidden for code assignments) -->
+          <div id="hostQuestionOptionsPanel">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+              <div class="input-group" style="margin-bottom: 0;">
+                <label>Opsi A</label>
+                <input type="text" id="optA" class="input-field" value="UDP">
+              </div>
+              <div class="input-group" style="margin-bottom: 0;">
+                <label>Opsi B</label>
+                <input type="text" id="optB" class="input-field" value="TCP">
+              </div>
+              <div class="input-group" style="margin-bottom: 0;">
+                <label>Opsi C</label>
+                <input type="text" id="optC" class="input-field" value="IP">
+              </div>
+              <div class="input-group" style="margin-bottom: 0;">
+                <label>Opsi D</label>
+                <input type="text" id="optD" class="input-field" value="DNS">
+              </div>
             </div>
           </div>
 
           <div style="display: flex; gap: 16px;">
-            <div class="input-group" style="flex: 1; margin-bottom: 0;">
-              <label for="correctOptionInput">Jawaban Benar</label>
+            <div class="input-group" style="flex: 1.2; margin-bottom: 0;">
+              <label for="correctOptionInput" id="correctInputLabel">Jawaban Benar</label>
               <select id="correctOptionInput" class="input-field">
                 <option value="A">Opsi A</option>
                 <option value="B" selected>Opsi B</option>
@@ -112,13 +344,20 @@
                 <option value="D">Opsi D</option>
               </select>
             </div>
-            <div class="input-group" style="flex: 1; margin-bottom: 0;">
+            <div class="input-group" style="flex: 0.8; margin-bottom: 0;">
               <label for="durationInput">Durasi (Detik)</label>
               <input type="number" id="durationInput" class="input-field" value="15">
             </div>
+            <div class="input-group" style="flex: 1; margin-bottom: 0;">
+              <label for="multiplierInput">Point Multiplier (Kustom)</label>
+              <select id="multiplierInput" class="input-field">
+                <option value="1" selected>Poin Standar (1x)</option>
+                <option value="2">Poin Ganda (2x Poin!) ⚡</option>
+              </select>
+            </div>
           </div>
 
-          <button id="launchQuizBtn" class="btn" style="width: 100%; margin-top: 24px;">🚀 Luncurkan Pertanyaan ke Siswa</button>
+          <button id="launchQuizBtn" class="btn" style="width: 100%; margin-top: 24px;">🚀 Luncurkan Soal ke Siswa</button>
         </div>
       </div>
 
@@ -163,7 +402,7 @@
               <span id="statCountD" class="stat-count">0</span>
             </div>
           </div>
-          <div style="margin-top: 20px; display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted);">
+          <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-muted);">
             <span>Total Siswa Menjawab: <span id="totalAnswersDisplay" style="color: #fff; font-weight: 600;">0</span></span>
             <span id="timerDisplay" style="color: var(--error); font-weight: 700;">--:--</span>
           </div>
@@ -185,9 +424,19 @@
     </div>
   </div>
 
+  <!-- Quick Select Bank Drawer Modal -->
+  <div id="bankDrawer" style="display: none; position: fixed; top: 0; right: 0; width: 420px; height: 100vh; background: #0c0e18; border-left: 1px solid var(--border-glow); box-shadow: -10px 0 30px rgba(0,0,0,0.5); z-index: 1000; padding: 32px; flex-direction: column; gap: 24px; transition: var(--transition-smooth);">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h3>Pilih dari Bank Soal</h3>
+      <button class="btn btn-secondary" style="padding: 6px 12px;" onclick="closeQuickSelectDrawer()">Tutup</button>
+    </div>
+    <div id="drawerList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;">
+      <!-- Populated dynamically -->
+    </div>
+  </div>
+
   <script src="/js/app.js"></script>
   <script>
-    // Specific Host Logic
     window.addEventListener('DOMContentLoaded', () => {
       initHostLogic();
     });
