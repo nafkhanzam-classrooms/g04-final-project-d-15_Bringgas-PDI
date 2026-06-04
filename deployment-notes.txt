@@ -70,10 +70,22 @@ Perintah Kontrol Supervisor:
 
 4. SETUP WEB SERVER & LOAD BALANCER (NGINX)
 ------------------------------------------------------------------------
-Gunakan berkas konfigurasi `/var/www/classroom-bringgas/nginx/lopyta.conf` ke Nginx:
+PENTING: Konfigurasi Nginx (`lopyta.conf`) membutuhkan sertifikat SSL agar dapat berjalan.
+Sebelum memuat ulang Nginx, Anda HARUS membuat sertifikat SSL (self-signed atau asli).
 
+4.1 Buat Direktori dan Sertifikat SSL Sementara (Self-Signed) terlebih dahulu:
+  sudo mkdir -p /etc/ssl/lopyta
+  sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/ssl/lopyta/lopyta.key \
+    -out /etc/ssl/lopyta/lopyta.crt \
+    -subj "/CN=guru.lopyta.org" \
+    -addext "subjectAltName=DNS:guru.lopyta.org,DNS:siswa.lopyta.org"
+
+4.2 Pasang berkas konfigurasi `/var/www/classroom-bringgas/nginx/lopyta.conf` ke Nginx:
   sudo cp /var/www/classroom-bringgas/nginx/lopyta.conf /etc/nginx/sites-available/lopyta.conf
   sudo ln -sf /etc/nginx/sites-available/lopyta.conf /etc/nginx/sites-enabled/lopyta.conf
+
+4.3 Uji dan Reload Nginx:
   sudo nginx -t
   sudo systemctl reload nginx
 
