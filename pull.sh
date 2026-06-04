@@ -1,7 +1,7 @@
 #!/bin/bash
 # pull.sh - Script untuk memperbarui aplikasi Lopyta Classroom dari Git, melakukan kompilasi ulang, dan merestart service.
 
-echo "=== Memulai Pembaruan Aplikasi Lopyta ==="
+echo "=== Memulai Pembaruan Aplikasi BRINGGAS PDI ==="
 
 # 1. Menarik pembaruan dari Git
 echo "1. Menarik pembaruan kode dari GitHub..."
