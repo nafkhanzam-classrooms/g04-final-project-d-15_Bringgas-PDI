@@ -50,6 +50,20 @@ Lakukan build source code Go menjadi biner server:
 ------------------------------------------------------------------------
 Buat berkas `.env` di direktori `/var/www/classroom-bringgas/` dengan konfigurasi berikut:
 
+FORMAT DB_DSN (Database Connection String):
+  DB_DSN=username:password@tcp(host:port)/nama_database?parseTime=true
+         ────────┬───────────────┬──────────┬─────────┬──────────────────┬─────────────────
+                 │               │          │         │                  │
+              Username       Password    Protokol  Host:Port       Nama Database      Parameter
+  
+  Contoh di bawah menggunakan:
+  - Username : lopyta_dbuser
+  - Password : LopytaBringgas2026
+  - Host     : 127.0.0.1 (localhost, database di server yang sama)
+  - Port     : 3306 (port default MariaDB/MySQL)
+  - Database : classroom_bringgas
+  - Parameter: parseTime=true (agar kolom DATETIME/TIMESTAMP otomatis diparsing ke tipe time.Time di Go)
+
 DB_DSN=lopyta_dbuser:LopytaBringgas2026@tcp(127.0.0.1:3306)/classroom_bringgas?parseTime=true
 REDIS_ADDR=127.0.0.1:6379
 REDIS_PASSWORD=
