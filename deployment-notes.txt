@@ -4,6 +4,11 @@ PANDUAN DEPLOYMENT PRODUCTION - LOPYTA CLASSROOM BRINGGAS
 Dokumen ini berisi panduan lengkap untuk melakukan deployment aplikasi Lopyta 
 Classroom Bringgas ke server VPS Ubuntu, baik untuk Production maupun testing/staging.
 
+PERBEDAAN DOMAIN LOKAL vs PRODUCTION:
+- Lokal (development) : guru.lopyta.org / siswa.lopyta.org
+- Production (VPS)     : guru.lopyta.com / siswa.lopyta.com
+Pastikan `.env` di VPS menggunakan domain `.com` dan `.env` di lokal menggunakan `.org`.
+
 DAFTAR ISI:
 1. Persyaratan Server & Instalasi Service
 2. Konfigurasi Environment (.env)
@@ -48,8 +53,8 @@ Buat berkas `.env` di direktori `/var/www/classroom-bringgas/` dengan konfiguras
 DB_DSN=lopyta_dbuser:LopytaBringgas2026@tcp(127.0.0.1:3306)/classroom_bringgas?parseTime=true
 REDIS_ADDR=127.0.0.1:6379
 REDIS_PASSWORD=
-TEACHER_DOMAIN=guru.lopyta.org
-STUDENT_DOMAIN=siswa.lopyta.org
+TEACHER_DOMAIN=guru.lopyta.com
+STUDENT_DOMAIN=siswa.lopyta.com
 PORT=8789
 NODE_NAME=node-1
 SESSION_SECRET=bringgas_lopyta_secret_2026
@@ -57,7 +62,7 @@ SESSION_SECRET=bringgas_lopyta_secret_2026
 # Google OAuth 2.0 Credentials (Isi untuk mengaktifkan login Google asli)
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-GOOGLE_REDIRECT_URL=https://guru.lopyta.org/api/auth/google/callback
+GOOGLE_REDIRECT_URL=https://guru.lopyta.com/api/auth/google/callback
 
 
 ------------------------------------------------------------------------
@@ -73,8 +78,8 @@ Jalankan perintah berikut:
   sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout /etc/ssl/lopyta/lopyta.key \
     -out /etc/ssl/lopyta/lopyta.crt \
-    -subj "/CN=guru.lopyta.org" \
-    -addext "subjectAltName=DNS:guru.lopyta.org,DNS:siswa.lopyta.org"
+    -subj "/CN=guru.lopyta.com" \
+    -addext "subjectAltName=DNS:guru.lopyta.com,DNS:siswa.lopyta.com"
 
 *Catatan: Saat mengakses via browser, akan muncul peringatan "Not Secure", klik Advanced -> Proceed untuk melanjutkan.*
 
@@ -82,7 +87,7 @@ PILIHAN B: SERTIFIKAT SSL RESMI (LET'S ENCRYPT / CERTBOT)
 Hanya gunakan jika domain telah diarahkan (DNS A Record) ke IP Publik server Anda.
 1. Pastikan Anda telah membuat sertifikat SSL sementara di Pilihan A agar Nginx bisa dinyalakan terlebih dahulu.
 2. Jalankan perintah Certbot berikut untuk mengubah sertifikat sementara menjadi sertifikat resmi:
-  sudo certbot --nginx -d guru.lopyta.org -d siswa.lopyta.org
+  sudo certbot --nginx -d guru.lopyta.com -d siswa.lopyta.com
 
 
 ------------------------------------------------------------------------
@@ -131,7 +136,11 @@ Setiap kali Anda meng-update kode kodingan di repositori Git, jalankan urutan in
    go mod tidy
    go build -o lopyta-server main.go
 
-3. Reload Nginx & Restart Service di Supervisor:
+3. Salin ulang konfigurasi Nginx & Reload:
+   sudo cp /var/www/classroom-bringgas/nginx/lopyta.conf /etc/nginx/sites-available/lopyta.conf
+   sudo nginx -t
    sudo systemctl reload nginx
+
+4. Restart Service di Supervisor:
    sudo supervisorctl restart lopyta-node-1 lopyta-node-2
 ========================================================================
