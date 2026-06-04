@@ -1,42 +1,49 @@
 PANDUAN DEPLOYMENT PRODUCTION - LOPYTA CLASSROOM BRINGGAS
-------------------------------------------------------------------------
+========================================================================
 
+Dokumen ini berisi panduan lengkap untuk melakukan deployment aplikasi Lopyta 
+Classroom Bringgas ke server VPS Ubuntu, baik untuk Production maupun testing/staging.
+
+DAFTAR ISI:
+1. Persyaratan Server & Instalasi Service
+2. Konfigurasi Environment (.env)
+3. Persiapan SSL/HTTPS (Wajib Sebelum Konfigurasi Nginx)
+4. Setup Web Server & Load Balancer (Nginx)
+5. Setup Process Monitor (Supervisor)
+6. Urutan Pembaruan Aplikasi (Maintenance/Pull Update)
+
+------------------------------------------------------------------------
 1. PERSYARATAN SERVER & INSTALASI SERVICE
 ------------------------------------------------------------------------
 - OS: Ubuntu 22.04 / 24.04 LTS
 - Web Server & Load Balancer: Nginx (Wajib)
 - Database: MariaDB / MySQL 8.0+
-- Cache / PubSub: Redis Server (Wajib)
+- Cache / State Cache: Redis Server (Wajib)
 - Process Monitor: Supervisor (Wajib)
-- SSL Certificate: Certbot / Let's Encrypt (Wajib untuk HTTPS & Google OAuth)
 - Bahasa/Runtime: Golang 1.24+
 
-1.1 INSTALASI SEMUA DEPENDENSI
-------------------------------------------------------------------------
-Jalankan di terminal server:
+1.1 INSTALASI DEPENDENSI UTAMA
+Jalankan di terminal VPS Anda:
   sudo apt update
   sudo apt install redis-server mariadb-server nginx supervisor certbot python3-certbot-nginx -y
 
-1.2 PILIHAN DEDICATED DATABASE USER SETUP
-------------------------------------------------------------------------
-Jalankan perintah ini di terminal server untuk menginisialisasi database dan hak akses khusus aplikasi Lopyta:
-
+1.2 INISIALISASI DATABASE (MARIADB)
+Jalankan perintah ini untuk membuat database dan user khusus aplikasi Lopyta:
   sudo mysql -e "CREATE DATABASE IF NOT EXISTS classroom_bringgas; CREATE USER IF NOT EXISTS 'lopyta_dbuser'@'127.0.0.1' IDENTIFIED BY 'LopytaBringgas2026'; GRANT ALL PRIVILEGES ON classroom_bringgas.* TO 'lopyta_dbuser'@'127.0.0.1'; FLUSH PRIVILEGES;"
 
-*Catatan: Password sengaja tidak menggunakan tanda seru (!) untuk mencegah error "event not found" pada terminal Bash.*
+*Catatan: Password database sengaja tidak menggunakan tanda seru (!) untuk menghindari masalah interpretasi command-line pada terminal Bash.*
 
-1.3 MEMBANGUN SERVER (COMPILING GO BINARY)
-------------------------------------------------------------------------
-Jalankan kompilasi kode program Go Anda sebelum menjalankan Supervisor:
+1.3 BUILD SERVER (KOMPILASI BINER GOLANG)
+Lakukan build source code Go menjadi biner server:
   cd /var/www/classroom-bringgas
   go mod tidy
   go build -o lopyta-server main.go
 
----
 
-2. KONFIGURASI .ENV (PRODUCTION)
 ------------------------------------------------------------------------
-Buat berkas `.env` di direktori `/var/www/classroom-bringgas/` dengan isi:
+2. KONFIGURASI ENVIRONMENT (.env)
+------------------------------------------------------------------------
+Buat berkas `.env` di direktori `/var/www/classroom-bringgas/` dengan konfigurasi berikut:
 
 DB_DSN=lopyta_dbuser:LopytaBringgas2026@tcp(127.0.0.1:3306)/classroom_bringgas?parseTime=true
 REDIS_ADDR=127.0.0.1:6379
@@ -52,28 +59,16 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URL=https://guru.lopyta.org/api/auth/google/callback
 
----
 
-3. SETUP PROCESS MONITOR (SUPERVISOR)
 ------------------------------------------------------------------------
-Gunakan berkas konfigurasi `/var/www/classroom-bringgas/supervisor/lopyta.conf` dan hubungkan ke Supervisor sistem:
-
-  sudo cp /var/www/classroom-bringgas/supervisor/lopyta.conf /etc/supervisor/conf.d/lopyta.conf
-  sudo supervisorctl reread
-  sudo supervisorctl update
-
-Perintah Kontrol Supervisor:
-- Melihat status proses: `sudo supervisorctl status`
-- Melakukan restart: `sudo supervisorctl restart all`
-
----
-
-4. SETUP WEB SERVER & LOAD BALANCER (NGINX)
+3. PERSIAPAN SSL/HTTPS (WAJIB SEBELUM KONFIGURASI NGINX)
 ------------------------------------------------------------------------
-PENTING: Konfigurasi Nginx (`lopyta.conf`) membutuhkan sertifikat SSL agar dapat berjalan.
-Sebelum memuat ulang Nginx, Anda HARUS membuat sertifikat SSL (self-signed atau asli).
+Nginx dikonfigurasi untuk berjalan di port 443 (HTTPS) dan membutuhkan file sertifikat SSL agar dapat dijalankan/di-reload tanpa error. Anda memiliki dua pilihan:
 
-4.1 Buat Direktori dan Sertifikat SSL Sementara (Self-Signed) terlebih dahulu:
+PILIHAN A: SERTIFIKAT SSL SEMENTARA / LOKAL (SELF-SIGNED)
+Gunakan ini untuk testing, staging, atau sebagai placeholder agar Nginx bisa menyala sebelum diganti dengan SSL resmi.
+Jalankan perintah berikut:
+
   sudo mkdir -p /etc/ssl/lopyta
   sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout /etc/ssl/lopyta/lopyta.key \
@@ -81,78 +76,62 @@ Sebelum memuat ulang Nginx, Anda HARUS membuat sertifikat SSL (self-signed atau 
     -subj "/CN=guru.lopyta.org" \
     -addext "subjectAltName=DNS:guru.lopyta.org,DNS:siswa.lopyta.org"
 
-4.2 Pasang berkas konfigurasi `/var/www/classroom-bringgas/nginx/lopyta.conf` ke Nginx:
+*Catatan: Saat mengakses via browser, akan muncul peringatan "Not Secure", klik Advanced -> Proceed untuk melanjutkan.*
+
+PILIHAN B: SERTIFIKAT SSL RESMI (LET'S ENCRYPT / CERTBOT)
+Hanya gunakan jika domain telah diarahkan (DNS A Record) ke IP Publik server Anda.
+1. Pastikan Anda telah membuat sertifikat SSL sementara di Pilihan A agar Nginx bisa dinyalakan terlebih dahulu.
+2. Jalankan perintah Certbot berikut untuk mengubah sertifikat sementara menjadi sertifikat resmi:
+  sudo certbot --nginx -d guru.lopyta.org -d siswa.lopyta.org
+
+
+------------------------------------------------------------------------
+4. SETUP WEB SERVER & LOAD BALANCER (NGINX)
+------------------------------------------------------------------------
+Setelah file sertifikat SSL siap di `/etc/ssl/lopyta/`, pasang konfigurasi Nginx:
+
+4.1 Pasang berkas konfigurasi lopyta.conf ke direktori Nginx:
   sudo cp /var/www/classroom-bringgas/nginx/lopyta.conf /etc/nginx/sites-available/lopyta.conf
   sudo ln -sf /etc/nginx/sites-available/lopyta.conf /etc/nginx/sites-enabled/lopyta.conf
 
-4.3 Uji dan Reload Nginx:
+4.2 Uji konfigurasi Nginx untuk memastikan tidak ada kesalahan:
   sudo nginx -t
+
+4.3 Muat ulang (reload) Nginx:
   sudo systemctl reload nginx
 
----
 
-5. SETUP SSL/HTTPS (CERTBOT + LET'S ENCRYPT)
 ------------------------------------------------------------------------
-PENTING: Google OAuth 2.0 WAJIB menggunakan HTTPS. Tanpa sertifikat SSL,
-login Google tidak akan berfungsi.
-
-PRASYARAT:
-- DNS A Record untuk `guru.lopyta.org` dan `siswa.lopyta.org` HARUS
-  mengarah ke IP PUBLIK server Anda (bukan localhost/127.0.0.1).
-- Port 80 dan 443 harus terbuka di firewall.
-
-5.1 Cek DNS mengarah ke server:
-  dig guru.lopyta.org +short
-  dig siswa.lopyta.org +short
-  # Output harus menampilkan IP publik server, BUKAN localhost.
-
-5.2 Install Certbot dan plugin Nginx:
-  sudo apt install certbot python3-certbot-nginx -y
-
-5.3 Generate sertifikat SSL (otomatis konfigurasi Nginx):
-  sudo certbot --nginx -d guru.lopyta.org -d siswa.lopyta.org
-
-  # Certbot akan otomatis:
-  # - Memverifikasi kepemilikan domain via HTTP-01 challenge
-  # - Mendownload sertifikat dari Let's Encrypt
-  # - Memodifikasi Nginx config untuk menambahkan ssl_certificate
-  # - Mengaktifkan redirect HTTP → HTTPS
-
-5.4 Verifikasi SSL aktif:
-  sudo nginx -t
-  sudo systemctl reload nginx
-  curl -I https://guru.lopyta.org  # Harus mengembalikan HTTP/2 200
-
-5.5 Auto-renewal (Certbot otomatis menambahkan cron job):
-  sudo certbot renew --dry-run  # Tes apakah renewal berfungsi
-
-CATATAN UNTUK DEVELOPMENT LOKAL:
+5. SETUP PROCESS MONITOR (SUPERVISOR)
 ------------------------------------------------------------------------
-Untuk testing lokal TANPA domain publik, gunakan self-signed certificate:
+Gunakan Supervisor untuk menjaga agar aplikasi Golang tetap berjalan di latar belakang dan melakukan auto-restart jika crash:
 
-  sudo mkdir -p /etc/ssl/lopyta
-  sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /etc/ssl/lopyta/lopyta.key \
-    -out /etc/ssl/lopyta/lopyta.crt \
-    -subj "/CN=guru.lopyta.org" \
-    -addext "subjectAltName=DNS:guru.lopyta.org,DNS:siswa.lopyta.org"
+5.1 Salin konfigurasi Supervisor ke sistem:
+  sudo cp /var/www/classroom-bringgas/supervisor/lopyta.conf /etc/supervisor/conf.d/lopyta.conf
 
-Browser akan menampilkan warning "Not Secure" (klik Advanced → Proceed).
-Google OAuth tetap berfungsi karena URL callback menggunakan https://.
+5.2 Refresh Supervisor untuk mendeteksi perubahan konfigurasi baru:
+  sudo supervisorctl reread
+  sudo supervisorctl update
 
----
+5.3 Perintah Kontrol Supervisor:
+  - Melihat status proses: `sudo supervisorctl status`
+  - Merestart semua node: `sudo supervisorctl restart all`
 
-6. URUTAN UPDATE APLIKASI (PULL TERBARU)
+
 ------------------------------------------------------------------------
-Setiap kali ada pembaruan kode kodingan dari repository Git Anda:
+6. URUTAN PEMBARUAN APLIKASI (MAINTENANCE/PULL UPDATE)
+------------------------------------------------------------------------
+Setiap kali Anda meng-update kode kodingan di repositori Git, jalankan urutan ini di VPS untuk memperbarui aplikasi yang sedang berjalan:
 
-  # 1. Tarik pembaruan
-  git pull origin main
+1. Masuk ke direktori project dan tarik kode terbaru:
+   cd /var/www/classroom-bringgas
+   git pull origin main
 
-  # 2. Build ulang biner Golang
-  go mod tidy
-  go build -o lopyta-server main.go
+2. Build ulang biner server Golang:
+   go mod tidy
+   go build -o lopyta-server main.go
 
-  # 3. Reload Nginx & Restart Supervisor
-  sudo systemctl reload nginx
-  sudo supervisorctl restart lopyta-node-1 lopyta-node-2
+3. Reload Nginx & Restart Service di Supervisor:
+   sudo systemctl reload nginx
+   sudo supervisorctl restart lopyta-node-1 lopyta-node-2
+========================================================================
