@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Teacher Classroom Session View - Bringgas PDI</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#191c1d",
+                        "on-secondary-fixed": "#0f0069",
+                        "on-primary-container": "#f5fff7",
+                        "secondary-fixed": "#e2dfff",
+                        "on-primary-fixed-variant": "#005137",
+                        "on-error": "#ffffff",
+                        "surface-container-low": "#f3f4f5",
+                        "primary": "#006948",
+                        "inverse-surface": "#2e3132",
+                        "on-surface-variant": "#3d4a42",
+                        "on-primary-fixed": "#002114",
+                        "secondary-fixed-dim": "#c3c0ff",
+                        "tertiary-container": "#a36700",
+                        "error": "#ba1a1a",
+                        "surface-container-high": "#e7e8e9",
+                        "surface-bright": "#f8f9fa",
+                        "secondary-container": "#645efb",
+                        "primary-fixed": "#85f8c4",
+                        "error-container": "#ffdad6",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191c1d",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "inverse-on-surface": "#f0f1f2",
+                        "background": "#f8f9fa",
+                        "outline": "#6d7a72",
+                        "on-error-container": "#93000a",
+                        "surface-container": "#edeeef",
+                        "tertiary-fixed": "#ffddb8",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#fffbff",
+                        "tertiary": "#825100",
+                        "on-tertiary-container": "#fffbff",
+                        "primary-fixed-dim": "#68dba9",
+                        "outline-variant": "#bccac0",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#68dba9",
+                        "on-tertiary": "#ffffff",
+                        "primary-container": "#00855d",
+                        "on-secondary-fixed-variant": "#3323cc",
+                        "surface": "#f8f9fa",
+                        "on-tertiary-fixed": "#2a1700",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "surface-variant": "#e1e3e4",
+                        "secondary": "#4b41e1",
+                        "surface-tint": "#006c4a",
+                        "surface-container-highest": "#e1e3e4",
+                        "surface-dim": "#d9dadb",
+                        "destructive": "#F43F5E"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem",
+                        "button": "4px"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "sm": "8px",
+                        "sidebar-width": "280px",
+                        "lg": "24px",
+                        "base": "4px",
+                        "container-max": "1440px",
+                        "xs": "4px",
+                        "xl": "40px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "label-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["24px", { "lineHeight": "1.2", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "label-md": ["14px", { "lineHeight": "1.4", "fontWeight": "500" }],
+                        "label-sm": ["12px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #F9FAFB; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        
+        .ripple {
+            animation: ripple 1.5s linear infinite;
+        }
+        @keyframes ripple {
+            0% { box-shadow: 0 0 0 0 rgba(75, 65, 225, 0.3); }
+            100% { box-shadow: 0 0 0 10px rgba(75, 65, 225, 0); }
+        }
+        
+        /* Input focus styles */
+        .input-glow:focus {
+            outline: none;
+            border-color: #4b41e1;
+            box-shadow: 0 0 0 3px rgba(75, 65, 225, 0.2);
+        }
+    </style>
+</head>
+<body class="text-on-surface bg-background flex h-screen overflow-hidden">
+<!-- SideNavBar -->
+<aside class="w-sidebar-width h-screen fixed left-0 top-0 border-r border-outline-variant bg-surface hidden md:flex flex-col py-lg px-md z-40">
+<div class="mb-xl px-sm">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Bringgas PDI</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1 uppercase tracking-wider">Instructor Portal</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container transition-colors duration-150" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<!-- Active State for Session View -->
+<a class="flex items-center gap-3 px-sm py-2 rounded-lg font-body-md text-body-md text-secondary border-l-4 border-secondary bg-secondary-container/5 scale-[0.98] duration-150" href="#">
+<span class="material-symbols-outlined fill">school</span>
+                My Classes
+            </a>
+<a class="flex items-center gap-3 px-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container transition-colors duration-150" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+                Reports
+            </a>
+<a class="flex items-center gap-3 px-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container transition-colors duration-150" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+</nav>
+<div class="mt-auto">
+<div class="flex items-center gap-3 px-sm py-3 border-t border-outline-variant">
+<img alt="Teacher Profile Picture" class="w-10 h-10 rounded-full" data-alt="Professional headshot of a teacher in a modern, well-lit classroom setting. Bright, clear lighting, modern corporate aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA28k5y53d7iX15VRdbqyZEDs3BOkthRiQ0L_BoqlxGG00Aw8AUyLFcFdLufY902WBWlz0vKnYQRnPFtCewTfPQkmo7ggf7jftZVzhDFuwwskc2IKNikT8dO782EkJgGFI6mICFrAuURTeKlqAMINE8sZFoPokzqxpG_PbMU2GyEGTLZkIuBBHQTAZu9hT3mqq1y_iwY2p-47dFEk3yTqICf1RdK5QCO6osqZqpQTLorzxsDVLra7Ch6a9ijH64z1dZ8K-RAILr_lKb"/>
+<div>
+<p class="font-label-md text-label-md font-medium text-on-surface">Prof. Sarah Jenkins</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Physics Dept</p>
+</div>
+</div>
+<button class="w-full mt-4 bg-primary text-on-primary py-2 px-4 rounded-button font-label-md text-label-md hover:bg-primary-container transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">video_camera_front</span>
+                Start Live Session
+            </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 md:ml-sidebar-width flex flex-col h-screen overflow-hidden bg-background">
+<!-- TopAppBar (Mobile Only - Simplified) -->
+<header class="md:hidden flex justify-between items-center h-16 px-md border-b border-outline-variant bg-surface sticky top-0 z-50">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary">Bringgas PDI</h1>
+<div class="flex gap-4">
+<button class="text-on-surface-variant"><span class="material-symbols-outlined">notifications</span></button>
+<button class="text-on-surface-variant"><span class="material-symbols-outlined">menu</span></button>
+</div>
+</header>
+<div class="flex-1 flex flex-col lg:flex-row overflow-hidden p-md lg:p-lg gap-lg max-w-[1440px] mx-auto w-full">
+<!-- Left Column: Main Stage & Quiz Control -->
+<div class="flex-1 flex flex-col gap-lg min-w-0">
+<!-- Main Stage: Presentation -->
+<div class="bg-surface rounded-xl border border-outline-variant shadow-sm flex flex-col flex-1 overflow-hidden relative group">
+<div class="p-4 border-b border-outline-variant flex justify-between items-center bg-surface">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-destructive animate-pulse"></span>
+<h2 class="font-label-md text-label-md text-on-surface font-medium">Live: Advanced Mechanics 101</h2>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low px-2 py-1 rounded">01:45:22</span>
+</div>
+<div class="flex-1 bg-surface-container-lowest relative flex items-center justify-center p-md">
+<!-- Presentation Slide Placeholder -->
+<div class="w-full h-full max-h-[614px] bg-surface-container-low rounded-lg border border-outline-variant flex flex-col items-center justify-center relative overflow-hidden group-hover:border-secondary transition-colors duration-300">
+<img alt="Physics diagram background" class="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-multiply" data-alt="A clean, minimalist high-contrast line drawing of a complex physics diagram showing vectors, forces, and mathematical equations on a stark white background. Corporate aesthetic, sharp lines, academic focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfRPZRJn-zEa5FKOBmcFWTirlKp1vTW83tqlOzloH-qCB0dFIfH9-a2uKi_BMbL6sRnapJr78a3sv-UKNgr-uiqyCyqXlr6Q-D_x4AtwGGpyi8yCN2g9nTpV-Y4-aWgOsN09NcAy-8OqvPhqm7zKM9lxso4M5kdbgooMghvTH0Exqz6ohY9Race32-evI3mPkjU2jsKYcsAFKDy3MJZltu0ip2NQnG-IErWy2wpFYL3cc2zqrpUp_wowfpO-oWnfYEZ2WPVl3Pabpq"/>
+<div class="z-10 text-center space-y-4">
+<span class="material-symbols-outlined text-6xl text-primary opacity-80">account_tree</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Kinematics &amp; Dynamics</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Slide 12 of 45</p>
+</div>
+</div>
+</div>
+<!-- Slide Controls -->
+<div class="p-4 border-t border-outline-variant bg-surface flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Press space to advance</span>
+<div class="flex gap-4">
+<button class="border border-secondary text-secondary font-label-md text-label-md px-4 py-2 rounded-button hover:bg-secondary-container/10 transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined">arrow_back</span>
+                                Previous
+                            </button>
+<button class="bg-secondary text-on-secondary font-label-md text-label-md px-4 py-2 rounded-button hover:bg-secondary/90 transition-colors flex items-center gap-2">
+                                Next
+                                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Bottom Panel: Quiz Control -->
+<div class="bg-surface rounded-xl border border-outline-variant shadow-sm p-lg">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary">quiz</span>
+                            Quick Quiz Deployment
+                        </h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+<div class="md:col-span-2 space-y-4">
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-1" for="quiz-question">Quiz Question</label>
+<input class="w-full border border-outline-variant rounded p-2 text-on-surface font-body-md input-glow bg-surface-container-lowest" id="quiz-question" placeholder="e.g., What is the terminal velocity of a 5kg mass?" type="text"/>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-1">Option A</label>
+<input class="w-full border border-outline-variant rounded p-2 text-on-surface font-body-md input-glow bg-surface-container-lowest" placeholder="Option A" type="text"/>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-1">Option B</label>
+<input class="w-full border border-outline-variant rounded p-2 text-on-surface font-body-md input-glow bg-surface-container-lowest" placeholder="Option B" type="text"/>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-1">Option C</label>
+<input class="w-full border border-outline-variant rounded p-2 text-on-surface font-body-md input-glow bg-surface-container-lowest" placeholder="Option C" type="text"/>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-1">Option D</label>
+<input class="w-full border border-outline-variant rounded p-2 text-on-surface font-body-md input-glow bg-surface-container-lowest" placeholder="Option D" type="text"/>
+</div>
+</div>
+</div>
+<div class="flex flex-col justify-end">
+<button class="w-full bg-[#F43F5E] text-white font-label-md text-label-md py-3 rounded-button hover:bg-opacity-90 transition-all flex flex-col items-center justify-center gap-1 h-full max-h-[120px] shadow-sm">
+<span class="material-symbols-outlined text-2xl">rocket_launch</span>
+                                Push Quiz to Students
+                            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Participants & Voice Room -->
+<div class="w-full lg:w-[320px] flex flex-col gap-lg flex-shrink-0">
+<!-- Participants List -->
+<div class="bg-surface rounded-xl border border-outline-variant shadow-sm flex-1 flex flex-col overflow-hidden">
+<div class="p-4 border-b border-outline-variant flex justify-between items-center bg-surface">
+<h3 class="font-label-md text-label-md text-on-surface font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant">group</span>
+                            Participants
+                        </h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low px-2 py-1 rounded">24/30</span>
+</div>
+<div class="flex-1 overflow-y-auto p-2 space-y-1">
+<!-- Student Item -->
+<div class="flex items-center justify-between p-2 hover:bg-surface-container-low rounded transition-colors">
+<div class="flex items-center gap-3">
+<div class="relative">
+<img alt="Student" class="w-8 h-8 rounded-full" data-alt="Small circular headshot of a university student looking attentive. Bright modern lighting, simple white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRxngIDVQjT89TsSMUB0drK60o4UgpwMfCziqeOfKsfTN5hm4VEWijbV5jYhWv_4FrlNUAC424qEIX_ZWxBnZqsJajQHKT91bmju1R3w0gurW0fKOtnTSJetF6lx7q1pKJ2Ry04NQCKkxgy2PIPEyM8S5MxYVfVlfEYw2_W9etwN7ZcepJj7gTkU7lNQS9QwalDSUW6mvDTkiBe5-DEn4AlXPWz9kVYpXyPiBRjFqm4MAHL2ksna-sOqwBSbVK-ycHvuDfkccFv2Gn"/>
+<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#10B981] border-2 border-surface rounded-full"></span>
+</div>
+<span class="font-body-md text-body-md text-on-surface">Alex Mercer</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">mic_off</span>
+</div>
+<!-- Student Item -->
+<div class="flex items-center justify-between p-2 hover:bg-surface-container-low rounded transition-colors">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-label-sm">JS</div>
+<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#10B981] border-2 border-surface rounded-full"></span>
+</div>
+<span class="font-body-md text-body-md text-on-surface">Jamie Smith</span>
+</div>
+<span class="material-symbols-outlined text-[#10B981] text-[20px]">mic</span>
+</div>
+<!-- Student Item (Offline) -->
+<div class="flex items-center justify-between p-2 hover:bg-surface-container-low rounded transition-colors opacity-60">
+<div class="flex items-center gap-3">
+<div class="relative">
+<img alt="Student" class="w-8 h-8 rounded-full grayscale" data-alt="Small circular headshot of a university student. Bright modern lighting, simple white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBBpJrQh3bV79EaDKgCIyI8APQoLk-39P_rI6V4NlVP80EhHqBFGur_Su_fGsTfdZe56sKmdjzXNZiH98aO3vsKm7iRvS69_P7A1h44uORX5kKKxJCYBwzHcjzYjpktZIPlsauzWg0o7LtSBNRfi7SrXZA7sn0GZ1PxQvkizelVYNtgQA0AR3wq7WWBLIPHa3wa9kRRzK4LfHUw7tY6NTKvS4noHNOEFS9Syl5qqgpIjZzo0h_p4Lvqv4C5YydN7G69iOa6KA8zIbX"/>
+<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#9CA3AF] border-2 border-surface rounded-full"></span>
+</div>
+<span class="font-body-md text-body-md text-on-surface">Taylor Doe</span>
+</div>
+</div>
+<!-- Add more simulated students to show scroll -->
+<div class="flex items-center justify-between p-2 hover:bg-surface-container-low rounded transition-colors">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="w-8 h-8 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center font-label-sm">MK</div>
+<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#10B981] border-2 border-surface rounded-full"></span>
+</div>
+<span class="font-body-md text-body-md text-on-surface">Morgan King</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">mic_off</span>
+</div>
+</div>
+</div>
+<!-- Voice Room Control -->
+<div class="bg-surface rounded-xl border border-outline-variant shadow-sm p-4 flex flex-col items-center justify-center relative overflow-hidden">
+<div class="absolute inset-0 bg-secondary/5 z-0"></div>
+<div class="z-10 w-full flex flex-col items-center">
+<h3 class="font-label-md text-label-md text-on-surface font-medium mb-4 w-full text-left">Voice Room</h3>
+<div class="w-16 h-16 bg-secondary-container text-on-secondary-container rounded-full flex items-center justify-center mb-4 ripple relative">
+<span class="material-symbols-outlined text-3xl">mic</span>
+<!-- Speaking indicator dots -->
+<div class="absolute -right-2 top-0 flex gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-bounce" style="animation-delay: 0ms;"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-bounce" style="animation-delay: 150ms;"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-bounce" style="animation-delay: 300ms;"></span>
+</div>
+</div>
+<p class="font-label-sm text-label-sm text-secondary mb-4">You are speaking to the class</p>
+<button class="w-full border border-secondary text-secondary font-label-md text-label-md py-2 rounded-button hover:bg-secondary-container/10 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">mic_off</span>
+                            Mute Mic
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 flex justify-around items-center h-16 bg-surface border-t border-outline-variant shadow-md">
+<a class="flex flex-col items-center justify-center text-on-surface-variant w-full h-full active:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">home</span>
+<span class="font-label-sm text-label-sm mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary font-bold w-full h-full active:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px] fill">present_to_all</span>
+<span class="font-label-sm text-label-sm mt-1">Class</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant w-full h-full active:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">quiz</span>
+<span class="font-label-sm text-label-sm mt-1">Quiz</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant w-full h-full active:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">leaderboard</span>
+<span class="font-label-sm text-label-sm mt-1">Stats</span>
+</a>
+</nav>
+</body></html>

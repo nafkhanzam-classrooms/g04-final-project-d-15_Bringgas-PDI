@@ -163,6 +163,7 @@ func main() {
 	// Serve Static Files
 	app.Static("/css", "./public/css")
 	app.Static("/js", "./public/js")
+	app.Static("/images", "./public/images")
 
 	// Helper Authentication Middleware
 	authGuard := func(c *fiber.Ctx) error {
@@ -176,8 +177,8 @@ func main() {
 			isAjax := c.Get("X-Requested-With") == "XMLHttpRequest"
 			path := c.Path()
 			log.Printf("[%s] AuthGuard: Unauthorized request to %s (IP: %s, AJAX: %t). Redirecting or blocking.", nodeName, path, c.IP(), isAjax)
-			if c.Method() == "GET" && !isAjax && (path == "/host" || path == "/host.html") {
-				return c.Redirect("/login")
+			if c.Method() == "GET" && !isAjax && (path == "/host" || path == "/host.html" || (len(path) > 5 && path[:6] == "/host/")) {
+				return c.Redirect("/")
 			}
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized. Mohon login menggunakan Google."})
 		}
@@ -188,14 +189,6 @@ func main() {
 	}
 
 	// 7. Domain / Subdomain separation UI routing ( guru.lopyta.com vs siswa.lopyta.com )
-	// Clean URL handler for login page
-	serveLogin := func(c *fiber.Ctx) error {
-		if c.Hostname() != teacherDomain {
-			return c.Redirect("/")
-		}
-		return c.SendFile("./public/login.html")
-	}
-
 	// Clean URL handler for host dashboard
 	serveHost := func(c *fiber.Ctx) error {
 		if c.Hostname() != teacherDomain {
@@ -212,19 +205,22 @@ func main() {
 			if sess.Get("teacher_id") == nil {
 				return c.SendFile("./public/login.html")
 			}
-			return c.SendFile("./public/host.html")
+			return c.Redirect("/host")
 		}
 		// Default is student join page
 		return c.SendFile("./public/index.html")
 	})
 
 	// Clean URLs (without .html)
-	app.Get("/login", serveLogin)
+	app.Get("/login", func(c *fiber.Ctx) error {
+		return c.Redirect("/")
+	})
 	app.Get("/host", authGuard, serveHost)
+	app.Get("/host/*", authGuard, serveHost)
 
 	// Legacy .html URLs redirect to clean URLs
 	app.Get("/login.html", func(c *fiber.Ctx) error {
-		return c.Redirect("/login", fiber.StatusMovedPermanently)
+		return c.Redirect("/", fiber.StatusMovedPermanently)
 	})
 	app.Get("/host.html", func(c *fiber.Ctx) error {
 		return c.Redirect("/host", fiber.StatusMovedPermanently)

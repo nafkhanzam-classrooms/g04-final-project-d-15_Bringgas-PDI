@@ -1,116 +1,198 @@
 <!DOCTYPE html>
-<html lang="id">
+<html class="light" lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lopyta Interactive Class — Login Guru</title>
-  <link rel="stylesheet" href="/css/app.css">
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Login - Bringgas PDI</title>
+  <meta name="description" content="Masuk ke portal Bringgas PDI untuk memulai sesi kelas interaktif real-time dan mengelola kuis."/>
+  <meta property="og:title" content="Login - Bringgas PDI"/>
+  <meta property="og:description" content="Portal Masuk Guru untuk Bringgas PDI."/>
+  <meta property="og:type" content="website"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
   <style>
-    .login-container {
-      max-width: 440px;
-      margin: 100px auto;
-      width: 100%;
-      text-align: center;
-    }
-    .auth-options {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      margin-top: 32px;
-    }
-    .btn-google {
-      background: #fff;
-      color: #0b0e14;
-      border: 1px solid rgba(0,0,0,0.1);
-      box-shadow: 0 4px 15px rgba(255,255,255,0.05);
-      font-size: 1.05rem;
-      gap: 12px;
-    }
-    .btn-google:hover {
-      background: #f1f1f1;
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(255,255,255,0.1);
-    }
-    .divider {
-      display: flex;
-      align-items: center;
-      text-align: center;
-      margin: 24px 0;
-      color: var(--text-muted);
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .divider::before, .divider::after {
-      content: '';
-      flex: 1;
-      border-bottom: 1px solid var(--border-glow);
-    }
-    .divider:not(:empty)::before {
-      margin-right: .5em;
-    }
-    .divider:not(:empty)::after {
-      margin-left: .5em;
-    }
-    .mock-panel {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px dashed var(--border-glow);
-      border-radius: 16px;
-      padding: 20px;
-      margin-top: 16px;
-      transition: var(--transition-smooth);
-    }
-    .mock-panel:hover {
-      border-color: var(--secondary);
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     }
   </style>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-surface": "#191c1d",
+            "on-secondary-fixed": "#0f0069",
+            "on-primary-container": "#f5fff7",
+            "secondary-fixed": "#e2dfff",
+            "on-primary-fixed-variant": "#005137",
+            "on-error": "#ffffff",
+            "surface-container-low": "#f3f4f5",
+            "primary": "#059669", /* Deep emerald green brand color */
+            "inverse-surface": "#2e3132",
+            "on-surface-variant": "#3d4a42",
+            "on-primary-fixed": "#002114",
+            "secondary-fixed-dim": "#c3c0ff",
+            "tertiary-container": "#a36700",
+            "error": "#ba1a1a",
+            "surface-container-high": "#e7e8e9",
+            "surface-bright": "#f8f9fa",
+            "secondary-container": "#645efb",
+            "primary-fixed": "#85f8c4",
+            "error-container": "#ffdad6",
+            "on-primary": "#ffffff",
+            "on-background": "#191c1d",
+            "tertiary-fixed-dim": "#ffb95f",
+            "inverse-on-surface": "#f0f1f2",
+            "background": "#f8f9fa",
+            "outline": "#6d7a72",
+            "on-error-container": "#93000a",
+            "surface-container": "#edeeef",
+            "tertiary-fixed": "#ffddb8",
+            "surface-container-lowest": "#ffffff",
+            "on-secondary-container": "#fffbff",
+            "tertiary": "#825100",
+            "on-tertiary-container": "#fffbff",
+            "primary-fixed-dim": "#68dba9",
+            "outline-variant": "#bccac0",
+            "on-secondary": "#ffffff",
+            "inverse-primary": "#68dba9",
+            "on-tertiary": "#ffffff",
+            "primary-container": "#00855d",
+            "on-secondary-fixed-variant": "#3323cc",
+            "surface": "#f8f9fa",
+            "on-tertiary-fixed": "#2a1700",
+            "on-tertiary-fixed-variant": "#653e00",
+            "surface-variant": "#e1e3e4",
+            "secondary": "#4F46E5", /* Indigo brand color */
+            "surface-tint": "#006c4a",
+            "surface-container-highest": "#e1e3e4",
+            "surface-dim": "#d9dadb",
+            "emerald-green": "#059669",
+            "indigo-button": "#4F46E5"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "md": "16px",
+            "sm": "8px",
+            "sidebar-width": "280px",
+            "lg": "24px",
+            "base": "4px",
+            "container-max": "1440px",
+            "xs": "4px",
+            "xl": "40px"
+          },
+          "fontFamily": {
+            "headline-lg-mobile": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "display-lg": ["Inter"],
+            "body-md": ["Inter"],
+            "label-md": ["Inter"],
+            "label-sm": ["Inter"]
+          },
+          "fontSize": {
+            "headline-lg-mobile": ["24px", { "lineHeight": "1.2", "fontWeight": "600" }],
+            "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+            "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+            "label-md": ["14px", { "lineHeight": "1.4", "fontWeight": "500" }],
+            "label-sm": ["12px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body>
-  <div class="container">
-    <!-- Header -->
-    <header class="app-header">
-      <div class="logo">
-        <span>🎓</span> Lopyta Guru Dashboard
-      </div>
-      <div class="status-badge">
-        <span class="status-dot"></span>
-        <span>Teacher Portal</span>
-      </div>
-    </header>
-
-    <!-- Login Card -->
-    <div class="glass-card login-container">
-      <h2 class="join-title" style="background: linear-gradient(to right, #fff, var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Panel Masuk Guru</h2>
-      <p class="join-subtitle">Mulai ruang belajar interaktif dan kelola Bank Soal Anda secara permanen.</p>
-      
-      <div class="auth-options">
-        <!-- Main Google OAuth Button -->
-        <a href="/api/auth/google/login" class="btn btn-google">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.85z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.85c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-          Masuk dengan Google
-        </a>
-
-        <div class="divider">atau Developer bypass</div>
-
-        <!-- Offline Mock Authentication for local development -->
-        <div class="mock-panel">
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; text-align: left;">🔧 <strong>Developer Bypass:</strong> Gunakan email apa saja untuk login secara instan tanpa OAuth.</p>
-          <div class="input-group" style="margin-bottom: 12px;">
-            <input type="email" id="mockEmail" class="input-field" placeholder="contoh: pakguru@lopyta.com" value="pakguru@lopyta.com">
-          </div>
-          <button id="mockLoginBtn" class="btn btn-secondary" style="width: 100%;">Masuk Instan (Mock)</button>
+<body class="bg-background min-h-screen flex text-on-background font-body-md">
+  <!-- Split Screen Container -->
+  <div class="flex w-full min-h-screen">
+    <!-- Left Side: Branding (Hidden on mobile) -->
+    <div class="hidden md:flex md:w-1/2 bg-primary flex-col justify-center items-center text-on-primary p-xl relative overflow-hidden">
+      <!-- Minimalist Learning platform illustration as background -->
+      <img alt="Learning illustration" class="absolute inset-0 w-full h-full object-cover opacity-60" src="/images/1_illustration.png"/>
+      <div class="absolute inset-0 bg-gradient-to-br from-[#059669]/90 to-[#4F46E5]/40 mix-blend-multiply"></div>
+      <div class="relative z-10 text-center max-w-md">
+        <div class="mb-lg flex justify-center text-white">
+          <span class="material-symbols-outlined text-[80px]" style="font-variation-settings: 'FILL' 1;">school</span>
         </div>
+        <h1 class="font-display-lg text-display-lg mb-sm text-white font-bold">Bringgas PDI</h1>
+        <p class="font-body-lg text-body-lg text-white opacity-95">Real-Time Interactive Learning Space</p>
+      </div>
+    </div>
+    
+    <!-- Right Side: Login Form -->
+    <div class="w-full md:w-1/2 flex flex-col justify-center items-center p-lg bg-surface relative">
+      <!-- Mobile Logo Header (Only visible on small screens) -->
+      <div class="md:hidden flex flex-col items-center mb-xl text-emerald-green">
+        <span class="material-symbols-outlined text-[48px] mb-sm">school</span>
+        <h2 class="font-headline-lg-mobile text-headline-lg-mobile font-bold">Bringgas PDI</h2>
+      </div>
+      
+      <!-- Form Container -->
+      <div class="w-full max-w-md bg-surface-container-lowest p-xl rounded-lg shadow-sm border border-outline-variant">
+        <h2 class="font-headline-md text-headline-md text-on-surface mb-lg text-center md:text-left">Welcome Back</h2>
+        <p class="font-body-md text-body-md text-on-surface-variant mb-xl text-center md:text-left">Please enter your credentials or use Google OAuth to access your portal.</p>
+        
+        <div class="mb-lg">
+          <!-- Sign in with Google Link -->
+          <a href="/api/auth/google/login" class="w-full flex justify-center items-center gap-sm py-sm px-md border border-outline-variant rounded shadow-sm font-label-md text-label-md text-on-surface bg-surface-container-lowest hover:bg-surface-container-low transition-colors no-underline">
+            <img alt="Google Logo" class="w-5 h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBL9m_XXvPI2pxsNdml2_BsiOx0RtLAQLWB8Z6QljcPvSzVMjT4nyi3Wn3BxpZnSnVldAjYMbPqnSWYyQm768DL2PYxL9qy35qixLUzmmruCP6Gs4UjhX28rVoNRKH272Yy1bwr8k_tvbl7LmQ-N3dzKQJ4GOcSYO90cLZ-g7BfXo3F4K7fn5jdFitLPnyEkIJIadq5FKTAmkKMOYsjXCGQ15ENQbDeV3iJuuiOm14E7oUImHFhKG0dlnQHcJvYR4sMv4wv25sjKmXp"/>
+            Sign in with Google
+          </a>
+          
+          <div class="relative my-lg">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-outline-variant"></div>
+            </div>
+            <div class="relative flex justify-center text-label-sm text-label-sm">
+              <span class="px-md bg-surface-container-lowest text-on-surface-variant uppercase tracking-wider">Or developer bypass</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Offline Mock Login Form -->
+        <form id="mockLoginForm" class="space-y-lg">
+          <!-- Email Input -->
+          <div>
+            <label class="block font-label-md text-label-md text-on-surface-variant mb-sm" for="mockEmail">Email Address</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none text-outline">
+                <span class="material-symbols-outlined text-[20px]">person</span>
+              </div>
+              <input class="block w-full pl-xl pr-sm py-sm border border-outline-variant rounded bg-surface-container-lowest text-on-surface focus:outline-none focus:ring-1 focus:ring-indigo-button focus:border-indigo-button transition-colors font-body-md text-body-md" id="mockEmail" name="email" placeholder="contoh: pakguru@lopyta.com" required="" type="email" value="pakguru@lopyta.com"/>
+            </div>
+            <p class="text-xs text-on-surface-variant/70 mt-1">🔧 Gunakan email mock untuk masuk secara instan tanpa live Google OAuth.</p>
+          </div>
+          
+          <!-- Submit Button -->
+          <div class="pt-sm">
+            <button id="mockLoginBtn" class="w-full flex justify-center py-sm px-md border border-transparent rounded shadow-sm font-label-md text-label-md text-on-error hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-button transition-colors bg-secondary text-white font-semibold" type="submit">
+              Jalankan Mock Login
+            </button>
+          </div>
+        </form>
+      </div>
+      
+      <!-- Footer -->
+      <div class="absolute bottom-lg text-center w-full font-label-sm text-label-sm text-on-surface-variant">
+        © 2026 Bringgas PDI. All rights reserved.
       </div>
     </div>
   </div>
 
   <script>
-    document.getElementById('mockLoginBtn').addEventListener('click', async () => {
+    document.getElementById('mockLoginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
       const email = document.getElementById('mockEmail').value.trim();
       if (!email) {
         alert('Masukkan email mock!');

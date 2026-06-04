@@ -729,6 +729,12 @@ const loadCreatedClasses = async () => {
     const response = await fetch('/api/teacher/classes');
     const data = await response.json();
     
+    // Update dashboard metrics class count if element exists
+    const metricCountEl = document.getElementById('metricClassesCount');
+    if (metricCountEl) {
+      metricCountEl.textContent = data ? data.length : 0;
+    }
+    
     container.innerHTML = "";
     if (!data || data.length === 0) {
       container.innerHTML = "<p style='text-align: center; padding: 20px; color: var(--text-muted);'>Belum ada kelas yang dibuat.</p>";
@@ -760,6 +766,7 @@ const restoreClassDashboard = (code) => {
     // Re-link host to WS session
     ws.send(encodePacket(MsgCreateClass, seqNum++, { code: code, className: "", hostName: "", teacherId: currentTeacherID, studentEntryCode: "" }));
     
+    if (document.getElementById('overviewScreen')) document.getElementById('overviewScreen').style.display = 'none';
     document.getElementById('createScreen').style.display = 'none';
     document.getElementById('dashboardScreen').style.display = 'grid';
   });
@@ -850,6 +857,9 @@ const initHostLogic = async () => {
     document.getElementById('teacherNameDisplay').textContent = teacher.name;
     document.getElementById('teacherEmailDisplay').textContent = teacher.email;
     document.getElementById('avatarDisplay').textContent = teacher.name.charAt(0).toUpperCase();
+    if (document.getElementById('welcomeTeacherName')) {
+      document.getElementById('welcomeTeacherName').textContent = teacher.name;
+    }
   } catch (err) {
     window.location.href = '/login.html';
     return;
@@ -862,7 +872,29 @@ const initHostLogic = async () => {
   });
   
   // Auto-load subcomponents
-  switchMainTab('classes');
+  await loadCreatedClasses();
+  
+  // Read path on load, default to dashboard
+  const path = window.location.pathname;
+  let initialSection = "dashboard";
+  if (path.endsWith("/classes")) {
+    initialSection = "classes";
+  } else if (path.endsWith("/bank")) {
+    initialSection = "bank";
+  }
+  switchHostSection(initialSection, false);
+  
+  // Listen to popstate for back/forward browser navigation
+  window.addEventListener('popstate', () => {
+    const curPath = window.location.pathname;
+    let curSection = "dashboard";
+    if (curPath.endsWith("/classes")) {
+      curSection = "classes";
+    } else if (curPath.endsWith("/bank")) {
+      curSection = "bank";
+    }
+    switchHostSection(curSection, false);
+  });
   
   const createBtn = document.getElementById('createBtn');
   const rollCodeBtn = document.getElementById('rollCodeBtn');
@@ -907,6 +939,7 @@ const initHostLogic = async () => {
       initSocket(() => {
         ws.send(encodePacket(MsgCreateClass, seqNum++, { code: session.code, className: cName, hostName: "", teacherId: currentTeacherID, studentEntryCode: session.studentEntryCode }));
         
+        if (document.getElementById('overviewScreen')) document.getElementById('overviewScreen').style.display = 'none';
         document.getElementById('createScreen').style.display = 'none';
         document.getElementById('dashboardScreen').style.display = 'grid';
       });
@@ -1003,11 +1036,16 @@ const initStudentLogic = () => {
   joinBtn.addEventListener('click', () => {
     const code = document.getElementById('classCodeInput').value.trim().toUpperCase();
     const entryCode = document.getElementById('studentEntryCodeInput').value.trim();
-    const name = document.getElementById('studentNameInput').value.trim();
     
-    if (code === "" || name === "" || entryCode === "") {
-      alert("Kode Kelas, Kode Khusus Siswa, dan Nama Lengkap wajib diisi!");
+    if (code === "" || entryCode === "") {
+      alert("Kode Kelas dan Kode Khusus Siswa wajib diisi!");
       return;
+    }
+    
+    let name = localStorage.getItem('student_name');
+    if (!name) {
+      name = "Siswa-" + Math.floor(1000 + Math.random() * 9000);
+      localStorage.setItem('student_name', name);
     }
     
     studentName = name;
@@ -1022,3 +1060,76 @@ const initStudentLogic = () => {
     });
   });
 };
+
+const switchHostSection = (section, pushState = true) => {
+  const overview = document.getElementById('overviewScreen');
+  const create = document.getElementById('createScreen');
+  const dash = document.getElementById('dashboardScreen');
+  
+  if (overview) overview.style.display = section === 'dashboard' ? 'block' : 'none';
+  if (create) create.style.display = (section === 'classes' || section === 'bank') ? 'grid' : 'none';
+  if (dash) dash.style.display = section === 'live' ? 'grid' : 'none';
+  
+  // Update URL path using HTML5 History API (without hash #)
+  if (pushState) {
+    let url = "/host";
+    if (section === "classes") url = "/host/classes";
+    else if (section === "bank") url = "/host/bank";
+    
+    if (window.location.pathname !== url) {
+      history.pushState(null, '', url);
+    }
+  }
+  
+  // Highlight active sidebar item
+  const desktopBtns = {
+    'dashboard': document.getElementById('nav-dashboard'),
+    'classes': document.getElementById('nav-classes'),
+    'bank': document.getElementById('nav-bank')
+  };
+  
+  Object.keys(desktopBtns).forEach(k => {
+    const btn = desktopBtns[k];
+    if (btn) {
+      if (k === section) {
+        btn.className = "w-full flex items-center gap-3 px-sm py-2 rounded-lg font-body-md text-body-md text-primary bg-primary/5 font-semibold transition-colors duration-150";
+        const icon = btn.querySelector('.material-symbols-outlined');
+        if (icon) icon.classList.add('fill');
+      } else {
+        btn.className = "w-full flex items-center gap-3 px-sm py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container transition-colors duration-150";
+        const icon = btn.querySelector('.material-symbols-outlined');
+        if (icon) icon.classList.remove('fill');
+      }
+    }
+  });
+
+  // Highlight active mobile bottom navbar item
+  const mobileBtns = {
+    'dashboard': document.getElementById('mobile-nav-dashboard'),
+    'classes': document.getElementById('mobile-nav-classes'),
+    'bank': document.getElementById('mobile-nav-bank')
+  };
+  
+  Object.keys(mobileBtns).forEach(k => {
+    const btn = mobileBtns[k];
+    if (btn) {
+      if (k === section) {
+        btn.className = "flex flex-col items-center justify-center text-[#059669] font-bold active:scale-95 duration-100 p-sm";
+        const icon = btn.querySelector('.material-symbols-outlined');
+        if (icon) icon.classList.add('fill');
+      } else {
+        btn.className = "flex flex-col items-center justify-center text-on-surface-variant active:scale-95 duration-100 p-sm";
+        const icon = btn.querySelector('.material-symbols-outlined');
+        if (icon) icon.classList.remove('fill');
+      }
+    }
+  });
+  
+  if (section === 'classes') {
+    switchMainTab('classes');
+  } else if (section === 'bank') {
+    switchMainTab('bank');
+  }
+};
+
+window.switchHostSection = switchHostSection;

@@ -1,257 +1,439 @@
 <!DOCTYPE html>
-<html lang="id">
+<html class="light" lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>Lopyta Interactive Class — Layar Siswa</title>
-  <link rel="stylesheet" href="/css/app.css">
+  <meta name="description" content="Layar Siswa untuk portal Bringgas PDI. Ikuti kelas interaktif, presentasi real-time, kuis live, dan kerjakan tugas kodingan langsung dari web."/>
+  <meta property="og:title" content="Layar Siswa - Bringgas PDI"/>
+  <meta property="og:description" content="Masuk ke kelas interaktif Bringgas PDI secara real-time."/>
+  <meta property="og:type" content="website"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
   <style>
-    /* Premium Compiler Sidebar Styles */
-    .compiler-card {
-      background: rgba(20, 24, 46, 0.85);
-      border: 1px solid var(--border-glow);
-      border-radius: 20px;
-      box-shadow: var(--shadow-main);
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     }
-    .code-editor {
-      width: 100%;
-      height: 240px;
-      background: #070913;
-      border: 1px solid var(--border-glow);
-      border-radius: 12px;
-      color: #00ff88;
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 0.95rem;
-      padding: 16px;
-      resize: vertical;
-      outline: none;
-      line-height: 1.5;
+    .icon-fill {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     }
-    .code-editor:focus {
-      border-color: var(--success);
-      box-shadow: 0 0 15px var(--success-glow);
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
     }
-    .terminal-output {
-      background: #05060b;
-      border: 1px solid #1a2035;
-      border-radius: 12px;
-      padding: 16px;
-      min-height: 120px;
-      max-height: 200px;
-      overflow-y: auto;
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 0.85rem;
-      color: #f0f3ff;
-      white-space: pre-wrap;
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
-    .console-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-family: var(--font-title);
-      font-weight: 600;
-      font-size: 0.9rem;
-      color: var(--text-muted);
+    @keyframes pulse-waiting {
+      from { transform: scale(1); opacity: 0.8; }
+      to { transform: scale(1.1); opacity: 1; }
+    }
+    @keyframes pulse-dot {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    .status-dot-active {
+      animation: pulse-dot 2s infinite;
     }
   </style>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary-fixed-variant": "#005137",
+            "on-secondary": "#ffffff",
+            "on-secondary-fixed": "#0f0069",
+            "surface-dim": "#d9dadb",
+            "on-surface": "#191c1d",
+            "tertiary-fixed": "#ffddb8",
+            "surface-bright": "#f8f9fa",
+            "primary-fixed-dim": "#68dba9",
+            "on-surface-variant": "#3d4a42",
+            "secondary-fixed-dim": "#c3c0ff",
+            "tertiary-container": "#a36700",
+            "on-primary": "#ffffff",
+            "on-secondary-fixed-variant": "#3323cc",
+            "secondary-container": "#645efb",
+            "inverse-on-surface": "#f0f1f2",
+            "inverse-surface": "#2e3132",
+            "surface-container-highest": "#e1e3e4",
+            "on-tertiary-container": "#fffbff",
+            "surface-tint": "#006c4a",
+            "primary-container": "#00855d",
+            "on-error-container": "#93000a",
+            "on-tertiary-fixed": "#2a1700",
+            "on-tertiary": "#ffffff",
+            "surface-container-lowest": "#ffffff",
+            "secondary-fixed": "#e2dfff",
+            "primary-fixed": "#85f8c4",
+            "secondary": "#4b41e1",
+            "on-tertiary-fixed-variant": "#653e00",
+            "surface-variant": "#e1e3e4",
+            "on-primary-fixed": "#002114",
+            "on-error": "#ffffff",
+            "background": "#f8f9fa",
+            "surface-container-high": "#e7e8e9",
+            "on-secondary-container": "#fffbff",
+            "on-background": "#191c1d",
+            "error-container": "#ffdad6",
+            "surface-container-low": "#f3f4f5",
+            "inverse-primary": "#68dba9",
+            "on-primary-container": "#f5fff7",
+            "outline-variant": "#bccac0",
+            "tertiary-fixed-dim": "#ffb95f",
+            "surface-container": "#edeeef",
+            "primary": "#059669", /* Brand emerald */
+            "error": "#ba1a1a",
+            "tertiary": "#825100",
+            "surface": "#f8f9fa",
+            "outline": "#6d7a72"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "container-max": "1440px",
+            "xl": "40px",
+            "sidebar-width": "280px",
+            "md": "16px",
+            "lg": "24px",
+            "xs": "4px",
+            "sm": "8px",
+            "base": "4px"
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body>
-  <div class="container">
-    <!-- Header -->
-    <header class="app-header">
-      <div class="logo">
-        <span>⚡</span> Lopyta Classroom
+<body class="bg-background text-on-background font-body-md antialiased overflow-x-hidden flex flex-col h-screen">
+
+  <!-- Top Header (Dynamic visibility) -->
+  <header class="bg-surface-container-lowest flex justify-between items-center h-16 px-md md:px-lg shrink-0 border-b border-outline-variant z-30">
+    <div class="flex items-center gap-md">
+      <div class="flex items-center gap-sm pr-md border-r border-outline-variant">
+        <span class="material-symbols-outlined text-primary text-2xl icon-fill">school</span>
+        <span class="font-headline-md text-[18px] font-bold text-primary tracking-tight">Bringgas PDI</span>
       </div>
-      <div id="statusBadge" class="status-badge" style="display: none;">
-        <span class="status-dot"></span>
+      <!-- Active Class Meta Info (Visible after join) -->
+      <div id="activeClassMeta" class="hidden flex items-center gap-sm text-on-surface">
+        <span class="material-symbols-outlined text-outline">menu_book</span>
+        <span id="classNameDisplay" class="font-label-md text-label-md font-bold">Nama Kelas</span>
+        <span id="classCodeDisplay" class="px-sm py-xs bg-surface-container rounded-full font-label-sm text-label-sm text-on-surface-variant ml-sm border border-outline-variant">CODE</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-md">
+      <!-- Status Badge -->
+      <div id="statusBadge" class="flex items-center gap-sm bg-surface-container px-3 py-1.5 rounded-full font-label-sm text-label-sm border border-outline-variant">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 status-dot-active inline-block"></span>
         <span id="nodeName">Terhubung</span>
       </div>
-    </header>
-
-    <!-- Join Screen -->
-    <div id="joinScreen" class="glass-card join-container">
-      <h2 class="join-title">Gabung Kelas</h2>
-      <p class="join-subtitle">Masukkan kode kelas beserta Kode Khusus dari Guru untuk bergabung ke sesi belajar.</p>
-      
-      <div class="input-group">
-        <label for="classCodeInput">Kode Kelas</label>
-        <input type="text" id="classCodeInput" class="input-field" placeholder="Contoh: CAFE12" maxlength="6" style="text-transform: uppercase;">
-      </div>
-
-      <div class="input-group">
-        <label for="studentEntryCodeInput">Kode Khusus Siswa (Entry Code)</label>
-        <input type="text" id="studentEntryCodeInput" class="input-field" placeholder="Masukkan 5-10 digit kode dari Dosen...">
-      </div>
-      
-      <div class="input-group">
-        <label for="studentNameInput">Nama Lengkap Anda</label>
-        <input type="text" id="studentNameInput" class="input-field" placeholder="Masukkan nama panggilan Anda...">
-      </div>
-      
-      <button id="joinBtn" class="btn" style="width: 100%;">Masuk Kelas</button>
     </div>
+  </header>
 
-    <!-- Active Class Layout (Hidden by default) -->
-    <div id="classScreen" class="host-grid" style="display: none;">
-      
-      <!-- Left Column: Active Presentation Slide & Online Compiler -->
-      <div style="display: flex; flex-direction: column; gap: 24px;">
-        
-        <!-- Class Metadata Card -->
-        <div class="glass-card" style="padding: 20px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <h3 id="classNameDisplay" style="font-size: 1.2rem; margin-bottom: 2px;">Nama Kelas</h3>
-              <p style="color: var(--text-muted); font-size: 0.85rem;">Pengajar: <span id="hostNameDisplay" style="color: #fff; font-weight: 500;">-</span></p>
-            </div>
-            <div style="text-align: right;">
-              <span id="studentNameDisplay" style="font-family: var(--font-title); font-weight: 700; color: var(--secondary); font-size: 1.1rem;">Nama Siswa</span>
-              <p id="studentScoreDisplay" style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">Skor: 0 poin</p>
-            </div>
-          </div>
+  <!-- Join Screen State -->
+  <main id="joinScreen" class="w-full max-w-md px-md md:px-0 flex-grow flex items-center justify-center z-10 relative mx-auto my-16">
+    <!-- Background SVG Pattern -->
+    <div class="absolute inset-0 pointer-events-none flex items-center justify-center -z-10 opacity-20">
+      <svg fill="none" height="400" viewbox="0 0 400 400" width="400" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="200" cy="200" r="199" stroke="#bccac0" stroke-dasharray="10 10" stroke-width="2"></circle>
+        <circle cx="200" cy="200" r="150" stroke="#bccac0" stroke-dasharray="5 5" stroke-width="1"></circle>
+        <circle cx="200" cy="200" r="100" stroke="#bccac0" stroke-dasharray="2 4" stroke-width="1"></circle>
+      </svg>
+    </div>
+    
+    <div class="w-full bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant p-lg md:p-xl flex flex-col gap-lg">
+      <div class="text-center flex flex-col gap-xs">
+        <div class="mx-auto w-12 h-12 rounded-full bg-primary-container/10 flex items-center justify-center mb-sm">
+          <span class="material-symbols-outlined text-primary text-2xl icon-fill">login</span>
         </div>
-
-        <!-- Sync Slide Viewer Card -->
-        <div id="slideViewerCard" class="glass-card slide-pane" style="min-height: 480px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Layar Presentasi Guru (Sinkron)</h3>
-            <span id="slideIndicator" style="font-family: var(--font-title); font-weight: 700; color: var(--secondary); font-size: 0.9rem;">Halaman 1 / 5</span>
-          </div>
-
-          <div class="slide-content-area" style="background: rgba(255, 255, 255, 0.015); min-height: 320px;">
-            <h2 id="slideTitle" class="slide-title">Menunggu Slide...</h2>
-            <p id="slideBody" class="slide-body">Slide materi yang dibagikan oleh Guru akan muncul secara instan di sini secara real-time.</p>
-          </div>
-          
-          <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">
-            <span>Layar ini dikontrol sepenuhnya oleh Guru.</span>
-          </div>
-        </div>
-
-        <!-- Sandbox Code Compiler Card (Visible during coding tasks) -->
-        <div id="compilerCard" class="compiler-card" style="display: none;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="color: var(--success); font-family: var(--font-title);">💻 Online Code Sandbox Compiler</h3>
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <label for="compilerLangSelect" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">BAHASA:</label>
-              <select id="compilerLangSelect" class="input-field" style="padding: 6px 12px; font-size: 0.85rem; width: auto;" onchange="changeCompilerLanguageTemplate()">
-                <option value="python">Python 3</option>
-                <option value="c">C (GCC)</option>
-                <option value="cpp">C++ (G++)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="input-group" style="margin-bottom: 0;">
-            <label>Tulis Kode Program Anda</label>
-            <textarea id="compilerCodeInput" class="code-editor" spellcheck="false"># Tulis program Python Anda di sini
-print("Hello, Lopyta!")
-</textarea>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-            <div class="input-group" style="margin-bottom: 0;">
-              <label>Input Konsol (Optional Stdin)</label>
-              <input type="text" id="compilerStdinInput" class="input-field" placeholder="Masukkan input baris jika ada...">
-            </div>
-            <div style="display: flex; align-items: flex-end; gap: 8px;">
-              <button id="runCodeBtn" class="btn btn-secondary" style="flex: 1; padding: 12px;" onclick="runCompilerCode()">🛠️ Jalankan & Tes</button>
-              <button id="submitCodeBtn" class="btn" style="flex: 1; padding: 12px; background: linear-gradient(135deg, var(--success) 0%, #00b359 100%); box-shadow: 0 4px 15px var(--success-glow);" onclick="submitCodeAssignment()">🚀 Kirim Tugas</button>
-            </div>
-          </div>
-
-          <div>
-            <div class="console-header" style="margin-bottom: 8px;">
-              <span>🖥️ OUTPUT TERMINAL</span>
-              <span id="compilerStatusText" style="font-size: 0.8rem; color: var(--text-muted);">Ready</span>
-            </div>
-            <div id="compilerOutputTerminal" class="terminal-output">> Menunggu eksekusi kode...</div>
-          </div>
-        </div>
-
+        <h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface">Join a Live Session</h1>
+        <p class="font-body-md text-body-md text-on-surface-variant">Enter the session code and entry credentials to join.</p>
       </div>
 
-      <!-- Right Column: Quiz Action & Leaderboard -->
-      <div style="display: flex; flex-direction: column; gap: 24px;">
+      <div class="flex flex-col gap-md">
+        <!-- Class Code -->
+        <div class="flex flex-col gap-xs">
+          <label class="font-label-md text-label-md text-on-surface" for="classCodeInput">Class Code</label>
+          <div class="relative">
+            <input class="w-full h-12 bg-surface-container-lowest border border-outline-variant rounded focus:border-secondary focus:ring-2 focus:ring-secondary/20 font-body-lg text-body-lg text-center tracking-widest uppercase transition-all duration-200 outline-none placeholder:text-surface-variant" id="classCodeInput" maxlength="6" placeholder="000000" type="text" style="text-transform: uppercase;"/>
+          </div>
+        </div>
+
+        <!-- Entry Code -->
+        <div class="flex flex-col gap-xs">
+          <label class="font-label-md text-label-md text-on-surface" for="studentEntryCodeInput">Kode Khusus Siswa (Entry Code)</label>
+          <div class="relative">
+            <span class="absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">
+              <span class="material-symbols-outlined text-[20px]">key</span>
+            </span>
+            <input class="w-full h-12 bg-surface-container-lowest border border-outline-variant rounded pl-[40px] pr-sm focus:border-secondary focus:ring-2 focus:ring-secondary/20 font-body-md text-body-md transition-all duration-200 outline-none placeholder:text-surface-variant" id="studentEntryCodeInput" placeholder="Masukkan 5-10 digit kode dari Guru" type="text"/>
+          </div>
+        </div>
+
+
+
+        <button id="joinBtn" class="w-full h-12 mt-sm bg-[#059669] hover:bg-[#047857] text-white rounded font-label-md text-label-md font-semibold transition-all duration-200 flex items-center justify-center gap-xs shadow-sm hover:shadow-md active:scale-95" type="button">
+          <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+          Join Classroom
+        </button>
+      </div>
+
+      <div class="text-center mt-xs">
+        <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Having trouble?</p>
+        <a class="font-label-md text-label-md text-secondary hover:text-indigo-800 hover:underline transition-colors mt-xs inline-block" href="#">Contact Administrator</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- Active Class Layout (Hidden by default) -->
+  <div id="classScreen" class="hidden flex-1 overflow-hidden relative flex">
+    <!-- Main Center Stage -->
+    <main class="flex-1 overflow-y-auto bg-background p-md md:p-lg flex flex-col gap-md pb-24 min-w-0">
+      <!-- Simulated Cams / Participants row -->
+      <div class="flex gap-md overflow-x-auto no-scrollbar snap-x pb-xs shrink-0">
+        <!-- Teacher Card -->
+        <div class="min-w-[160px] h-[100px] rounded-xl bg-surface-container-highest overflow-hidden relative border-2 border-primary shadow-sm snap-start shrink-0 flex items-center justify-center">
+          <span class="material-symbols-outlined text-[40px] text-primary opacity-50 absolute">person</span>
+          <div class="absolute bottom-2 left-2 bg-surface-container-lowest/90 px-sm py-xs rounded text-[11px] font-bold text-on-surface shadow-sm">
+            Guru: <span id="hostNameDisplay">-</span>
+          </div>
+          <div class="absolute top-2 right-2 w-2 h-2 rounded-full bg-error animate-pulse"></div>
+        </div>
+        <!-- Simulated student cameras -->
+        <div class="min-w-[160px] h-[100px] rounded-xl bg-surface-container-low overflow-hidden relative border border-outline-variant snap-start shrink-0 flex items-center justify-center">
+          <span class="material-symbols-outlined text-[32px] text-outline">person</span>
+          <div class="absolute bottom-2 left-2 bg-surface-container-lowest/80 px-sm py-xs rounded text-[11px] font-medium text-on-surface backdrop-blur-sm shadow-sm">Alex Mercer (Anda)</div>
+        </div>
+        <div class="min-w-[160px] h-[100px] rounded-xl bg-surface-container overflow-hidden relative border border-outline-variant snap-start shrink-0 flex items-center justify-center">
+          <span class="material-symbols-outlined text-[32px] text-outline">person</span>
+          <div class="absolute bottom-2 left-2 bg-surface-container-lowest/80 px-sm py-xs rounded text-[11px] font-medium text-on-surface backdrop-blur-sm shadow-sm">Sarah Jenkins</div>
+        </div>
+      </div>
+
+      <!-- Sync Slide Viewer Card -->
+      <div id="slideViewerCard" class="flex-1 bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col relative min-h-[400px]">
+        <div class="p-4 border-b border-outline-variant flex justify-between items-center bg-surface">
+          <span class="font-label-sm text-label-sm text-on-surface-variant uppercase font-bold tracking-wider">Layar Presentasi Guru (Sinkron)</span>
+          <span id="slideIndicator" class="font-label-sm text-label-sm text-secondary font-bold">Halaman 1 / 5</span>
+        </div>
+        <div class="flex-1 relative bg-surface-container-low flex flex-col items-center justify-center p-lg min-h-[300px]">
+          <!-- Interactive canvas / dynamic display of slide details -->
+          <div class="text-center max-w-xl space-y-4">
+            <span class="material-symbols-outlined text-6xl text-primary opacity-80">presentation_play</span>
+            <h2 id="slideTitle" class="font-headline-lg text-headline-lg text-on-surface font-semibold leading-tight">Menunggu Slide...</h2>
+            <p id="slideBody" class="font-body-lg text-body-lg text-on-surface-variant">Slide materi yang dibagikan oleh Guru akan muncul secara instan di sini secara real-time.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sandbox Code Compiler Card (Visible during coding tasks, dynamically replaces SlideViewerCard) -->
+      <div id="compilerCard" class="hidden flex-1 bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col min-h-[400px] p-lg gap-md">
+        <div class="flex justify-between items-center border-b border-outline-variant pb-3">
+          <h3 class="font-headline-md text-[18px] text-primary font-bold flex items-center gap-2">
+            <span>💻</span> Online Code Sandbox Compiler
+          </h3>
+          <div class="flex gap-2 items-center">
+            <label class="font-label-sm text-label-sm text-on-surface-variant font-bold" for="compilerLangSelect">BAHASA:</label>
+            <select id="compilerLangSelect" class="border border-outline-variant bg-surface-container-lowest rounded px-2 py-1 text-sm outline-none font-medium" onchange="changeCompilerLanguageTemplate()">
+              <option value="python">Python 3</option>
+              <option value="c">C (GCC)</option>
+              <option value="cpp">C++ (G++)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-xs flex-1">
+          <label class="font-label-md text-label-md text-on-surface font-semibold">Tulis Kode Program Anda</label>
+          <textarea id="compilerCodeInput" class="w-full h-64 bg-[#0a0a0f] text-[#00ff88] p-md rounded-xl font-mono text-sm border border-outline-variant focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none resize-none leading-relaxed" spellcheck="false"># Tulis program Python Anda di sini
+print("Hello, Lopyta!")</textarea>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-md pt-2">
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-md text-label-md text-on-surface" for="compilerStdinInput">Input Konsol (Optional Stdin)</label>
+            <input type="text" id="compilerStdinInput" class="border border-outline-variant bg-surface-container-lowest rounded px-3 h-10 text-sm outline-none w-full" placeholder="Masukkan input baris jika ada...">
+          </div>
+          <div class="flex items-end gap-3">
+            <button id="runCodeBtn" class="flex-1 h-10 border border-outline-variant rounded font-label-md text-label-md font-bold text-on-surface hover:bg-surface-container-low active:scale-95 duration-100" onclick="runCompilerCode()">
+              🛠️ Jalankan & Tes
+            </button>
+            <button id="submitCodeBtn" class="flex-1 h-10 bg-[#059669] hover:bg-[#047857] text-white rounded font-label-md text-label-md font-bold active:scale-95 duration-100 flex items-center justify-center gap-1 shadow-sm" onclick="submitCodeAssignment()">
+              🚀 Kirim Tugas
+            </button>
+          </div>
+        </div>
+
+        <div class="border-t border-outline-variant pt-3 mt-2">
+          <div class="flex justify-between items-center mb-sm">
+            <span class="font-label-sm text-label-sm font-bold text-on-surface-variant uppercase tracking-wider">🖥️ OUTPUT TERMINAL</span>
+            <span id="compilerStatusText" class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low px-2 py-0.5 rounded font-mono">Ready</span>
+          </div>
+          <div id="compilerOutputTerminal" class="bg-[#05060b] text-[#f0f3ff] p-md rounded-xl font-mono text-sm border border-[#1a2035] shadow-inner h-[120px] overflow-y-auto whitespace-pre-wrap">> Menunggu eksekusi kode...</div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Sidebar (Interactive Quiz Panel & Leaderboard) -->
+    <aside class="w-[380px] border-l border-outline-variant bg-surface-container-lowest flex flex-col shrink-0 z-10">
+      <!-- Student Profile & Score stats -->
+      <div class="p-lg border-b border-outline-variant bg-surface-container-lowest">
+        <div class="flex items-center gap-sm">
+          <div class="flex-1 flex flex-col items-center justify-center p-md bg-secondary-container/5 border border-secondary/20 rounded-xl">
+            <div class="flex items-center gap-xs text-secondary mb-xs">
+              <span class="material-symbols-outlined text-[20px] icon-fill">face</span>
+              <span class="font-label-sm text-label-sm uppercase font-bold">Student Profile</span>
+            </div>
+            <span id="studentNameDisplay" class="font-headline-md text-headline-md font-bold text-on-surface truncate max-w-full">Siswa</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center justify-center p-md bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+            <div class="flex items-center gap-xs text-[#059669] mb-xs">
+              <span class="material-symbols-outlined text-[20px] icon-fill text-[#059669]">military_tech</span>
+              <span class="font-label-sm text-label-sm uppercase font-bold">Total Score</span>
+            </div>
+            <div class="flex items-baseline gap-xs">
+              <span id="studentScoreDisplay" class="font-headline-md text-headline-md font-bold text-on-surface">0 pts</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Panel Contents -->
+      <div class="flex-grow overflow-y-auto p-lg flex flex-col gap-lg">
         
-        <!-- Active Quiz Box Card -->
-        <div class="glass-card" style="min-height: 250px; display: flex; flex-direction: column;">
+        <!-- Live Quiz Interaction Card -->
+        <section class="flex flex-col bg-surface border border-outline-variant rounded-xl p-md">
           
-          <!-- State 1: No Active Quiz -->
-          <div id="quizWaitingState" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px;">
-            <div style="font-size: 3rem; margin-bottom: 12px; animation: pulse-waiting 1.5s infinite alternate;">💭</div>
-            <h3>Menunggu Pembelajaran...</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 8px;">Siapkan konsentrasi Anda! Pertanyaan kuis dari Guru akan muncul secara otomatis di layar ini.</p>
+          <!-- State 1: No active Quiz -->
+          <div id="quizWaitingState" class="flex flex-col items-center justify-center text-center py-8">
+            <div class="text-4xl mb-sm animation: pulse-waiting 1.5s infinite alternate;">💭</div>
+            <h3 class="font-label-md text-label-md font-bold text-on-surface">Menunggu Pembelajaran...</h3>
+            <p class="font-label-sm text-label-sm text-on-surface-variant mt-sm">Siapkan konsentrasi! Soal kuis dari Guru akan muncul secara otomatis di sini.</p>
           </div>
 
           <!-- State 2: Active Question Board -->
-          <div id="quizActiveState" style="display: none; flex: 1; flex-direction: column;">
-            <div class="question-header">
-              <h3 style="color: var(--secondary); font-size: 0.9rem; text-transform: uppercase;">Pertanyaan Aktif</h3>
-              <div id="studentTimer" class="timer">
-                <span>⏱️</span>
+          <div id="quizActiveState" class="hidden flex flex-col">
+            <div class="flex justify-between items-center mb-md">
+              <span class="font-label-sm text-label-sm text-[#059669] font-bold uppercase tracking-wider">Pertanyaan Aktif</span>
+              <div id="studentTimer" class="flex items-center gap-1 bg-red-50 text-red-600 px-3 py-1 rounded-full font-mono font-bold text-sm border border-red-200">
+                <span class="material-symbols-outlined text-sm">alarm</span>
                 <span id="studentTimerVal">15</span>s
               </div>
             </div>
-            
-            <h2 id="quizQuestionText" style="font-size: 1.4rem; line-height: 1.5; color: #fff; margin-bottom: 20px;">Isi pertanyaan kuis...</h2>
 
-            <div class="options-grid">
-              <button id="btnOptA" class="option-btn option-a" onclick="submitAnswer('A')">
-                <span class="option-badge">A</span>
-                <span id="lblOptA">Opsi A</span>
+            <h2 id="quizQuestionText" class="font-headline-md text-[18px] font-bold text-on-surface leading-snug mb-md">Pertanyaan kuis aktif di sini...</h2>
+
+            <div class="flex flex-col gap-3">
+              <!-- Option A -->
+              <button id="btnOptA" class="option-btn option-a w-full p-sm text-left bg-surface-container-lowest border border-outline-variant rounded-lg hover:border-emerald-500 hover:bg-emerald-50/10 transition-all duration-200 group" onclick="submitAnswer('A')">
+                <div class="flex items-center gap-md">
+                  <div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center font-bold text-on-surface-variant group-hover:bg-[#059669] group-hover:text-white transition-colors">A</div>
+                  <span id="lblOptA" class="font-body-md text-body-md text-on-surface font-medium">Opsi A</span>
+                </div>
               </button>
-              <button id="btnOptB" class="option-btn option-b" onclick="submitAnswer('B')">
-                <span class="option-badge">B</span>
-                <span id="lblOptB">Opsi B</span>
+              <!-- Option B -->
+              <button id="btnOptB" class="option-btn option-b w-full p-sm text-left bg-surface-container-lowest border border-outline-variant rounded-lg hover:border-emerald-500 hover:bg-emerald-50/10 transition-all duration-200 group" onclick="submitAnswer('B')">
+                <div class="flex items-center gap-md">
+                  <div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center font-bold text-on-surface-variant group-hover:bg-[#059669] group-hover:text-white transition-colors">B</div>
+                  <span id="lblOptB" class="font-body-md text-body-md text-on-surface font-medium">Opsi B</span>
+                </div>
               </button>
-              <button id="btnOptC" class="option-btn option-c" onclick="submitAnswer('C')">
-                <span class="option-badge">C</span>
-                <span id="lblOptC">Opsi C</span>
+              <!-- Option C -->
+              <button id="btnOptC" class="option-btn option-c w-full p-sm text-left bg-surface-container-lowest border border-outline-variant rounded-lg hover:border-emerald-500 hover:bg-emerald-50/10 transition-all duration-200 group" onclick="submitAnswer('C')">
+                <div class="flex items-center gap-md">
+                  <div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center font-bold text-on-surface-variant group-hover:bg-[#059669] group-hover:text-white transition-colors">C</div>
+                  <span id="lblOptC" class="font-body-md text-body-md text-on-surface font-medium">Opsi C</span>
+                </div>
               </button>
-              <button id="btnOptD" class="option-btn option-d" onclick="submitAnswer('D')">
-                <span class="option-badge">D</span>
-                <span id="lblOptD">Opsi D</span>
+              <!-- Option D -->
+              <button id="btnOptD" class="option-btn option-d w-full p-sm text-left bg-surface-container-lowest border border-outline-variant rounded-lg hover:border-emerald-500 hover:bg-emerald-50/10 transition-all duration-200 group" onclick="submitAnswer('D')">
+                <div class="flex items-center gap-md">
+                  <div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center font-bold text-on-surface-variant group-hover:bg-[#059669] group-hover:text-white transition-colors">D</div>
+                  <span id="lblOptD" class="font-body-md text-body-md text-on-surface font-medium">Opsi D</span>
+                </div>
               </button>
             </div>
           </div>
 
-          <!-- State 3: Submitted / Waiting other participants -->
-          <div id="quizSubmittedState" style="display: none; flex: 1; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px;">
-            <div style="font-size: 3rem; margin-bottom: 12px;">✅</div>
-            <h3>Jawaban Terkirim!</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 8px;">Menunggu sisa siswa lainnya selesai menjawab atau waktu berakhir...</p>
+          <!-- State 3: Submitted Quiz State -->
+          <div id="quizSubmittedState" class="hidden flex flex-col items-center justify-center text-center py-8">
+            <div class="text-4xl mb-sm">✅</div>
+            <h3 class="font-label-md text-label-md font-bold text-[#059669]">Jawaban Terkirim!</h3>
+            <p class="font-label-sm text-label-sm text-on-surface-variant mt-sm">Menunggu sisa siswa lainnya selesai menjawab...</p>
           </div>
 
           <!-- State 4: Instant Result Feedback -->
-          <div id="quizResultState" style="display: none; flex: 1; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
-            <div class="feedback-pane">
-              <h2 id="feedbackTitle" class="feedback-title">BENAR!</h2>
-              <p id="feedbackText" style="color: var(--text-muted); font-size: 1rem; margin-bottom: 16px;">Anda menjawab kuis dengan sangat cepat.</p>
-              
-              <div id="feedbackPoints" class="feedback-score">+120 Poin</div>
-              <div id="feedbackStreak" class="feedback-streak">🔥 Streak x3</div>
-            </div>
+          <div id="quizResultState" class="hidden flex flex-col items-center justify-center text-center py-6">
+            <h2 id="feedbackTitle" class="text-2xl font-bold mb-2">BENAR! 🎯</h2>
+            <p id="feedbackText" class="font-body-md text-on-surface-variant">Anda berhasil menjawab soal kuis.</p>
+            <div id="feedbackPoints" class="text-xl font-bold text-secondary mt-3">+100 Poin</div>
+            <div id="feedbackStreak" class="inline-block mt-2 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold">🔥 Streak Active</div>
           </div>
-        </div>
+        </section>
 
         <!-- Leaderboard -->
-        <div class="glass-card" style="flex: 1; display: flex; flex-direction: column;">
-          <h3 style="margin-bottom: 20px;">Peringkat Kelas</h3>
-          <div id="leaderboardList" class="leaderboard-list">
-            <!-- Dynamically populated entries -->
+        <section class="flex-grow flex flex-col">
+          <h3 class="font-label-sm text-label-sm font-bold text-on-surface-variant uppercase tracking-wider mb-sm">Peringkat Kelas</h3>
+          
+          <div id="leaderboardPlaceholder" class="flex-grow flex items-center justify-center text-on-surface-variant text-sm text-center border-2 border-dashed border-outline-variant rounded-xl p-md">
+            Belum ada siswa yang menjawab kuis. Peringkat live akan muncul di sini.
           </div>
-        </div>
+
+          <div id="leaderboardList" class="hidden flex-col gap-2">
+            <!-- Entries injected by app.js -->
+          </div>
+        </section>
       </div>
+    </aside>
+  </div>
+
+  <!-- Bottom Floating Control Bar (Visual redundancy) -->
+  <div id="floatingControlBar" class="hidden fixed bottom-6 left-[50%] lg:left-[calc(50%-190px)] -translate-x-1/2 bg-surface-container-lowest border border-outline-variant rounded-full shadow-lg p-2 flex items-center gap-md z-50">
+    <div class="flex items-center gap-sm px-2">
+      <!-- Mic Toggle -->
+      <button class="w-10 h-10 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface-variant flex items-center justify-center transition-colors border border-outline-variant" onclick="alert('Voice system is integrated in the room.')">
+        <span class="material-symbols-outlined text-md">mic_off</span>
+      </button>
+      <!-- Video Toggle -->
+      <button class="w-10 h-10 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface-variant flex items-center justify-center transition-colors border border-outline-variant" onclick="alert('Camera system is integrated in the room.')">
+        <span class="material-symbols-outlined text-md">videocam_off</span>
+      </button>
+    </div>
+    <div class="w-px h-6 bg-outline-variant"></div>
+    <!-- Raise Hand Action -->
+    <button class="bg-[#059669] hover:bg-[#047857] text-white py-2 px-6 rounded-full font-label-md text-sm font-bold transition-colors flex items-center gap-sm shadow-sm hover:shadow active:scale-95 duration-100" onclick="alert('Hand raised! Instructor notified.')">
+      <span class="material-symbols-outlined text-sm">front_hand</span>
+      Raise Hand
+    </button>
+    <div class="w-px h-6 bg-outline-variant"></div>
+    <!-- Leave Class -->
+    <div class="px-2">
+      <button class="w-10 h-10 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex items-center justify-center transition-colors" onclick="window.location.reload()">
+        <span class="material-symbols-outlined text-md">call_end</span>
+      </button>
     </div>
   </div>
 
   <script src="/js/app.js"></script>
   <script>
+    // Custom wrapper trigger for join UI adjustments
+    document.getElementById('joinBtn').addEventListener('click', () => {
+      // Small visual timer logic to reveal hidden components
+      setTimeout(() => {
+        if(document.getElementById('classScreen').style.display !== 'none' || !document.getElementById('classScreen').classList.contains('hidden')) {
+          document.getElementById('activeClassMeta').classList.remove('hidden');
+          document.getElementById('floatingControlBar').classList.remove('hidden');
+        }
+      }, 500);
+    });
+
     window.addEventListener('DOMContentLoaded', () => {
       initStudentLogic();
     });
