@@ -149,7 +149,7 @@ func main() {
 
 	sessionStore = session.New(session.Config{
 		KeyLookup:      "cookie:lopyta_session",
-		CookieSecure:   true,
+		CookieSecure:   false,
 		CookieHTTPOnly: true,
 		Expiration:     24 * time.Hour,
 	})
@@ -168,12 +168,14 @@ func main() {
 	authGuard := func(c *fiber.Ctx) error {
 		sess, err := sessionStore.Get(c)
 		if err != nil {
+			log.Printf("[%s] AuthGuard Error: Failed to retrieve session: %v", nodeName, err)
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Session error"})
 		}
 		teacherID := sess.Get("teacher_id")
 		if teacherID == nil {
 			isAjax := c.Get("X-Requested-With") == "XMLHttpRequest"
 			path := c.Path()
+			log.Printf("[%s] AuthGuard: Unauthorized request to %s (IP: %s, AJAX: %t). Redirecting or blocking.", nodeName, path, c.IP(), isAjax)
 			if c.Method() == "GET" && !isAjax && (path == "/host" || path == "/host.html") {
 				return c.Redirect("/login")
 			}
@@ -237,17 +239,20 @@ func main() {
 			Email string `json:"email"`
 		}
 		if err := c.BodyParser(&req); err != nil || req.Email == "" {
+			log.Printf("[%s] Mock Auth Error: Invalid payload or empty email", nodeName)
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid email"})
 		}
 
 		teacher, err := classroom.MockLoginTeacher(req.Email)
 		if err != nil {
+			log.Printf("[%s] Mock Auth Error for %s: %v", nodeName, req.Email, err)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 		}
 
 		// Store details in active session
 		sess, err := sessionStore.Get(c)
 		if err != nil {
+			log.Printf("[%s] Mock Auth Session Error: %v", nodeName, err)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Session generation error"})
 		}
 		sess.Set("teacher_id", teacher.ID)
@@ -255,32 +260,38 @@ func main() {
 		sess.Set("teacher_email", teacher.Email)
 		sess.Save()
 
+		log.Printf("[%s] Mock Auth Success: Registered/Logged in teacher %s (ID: %d)", nodeName, teacher.Email, teacher.ID)
 		return c.JSON(fiber.Map{"success": true, "teacher": teacher})
 	})
 
 	app.Get("/api/auth/google/login", func(c *fiber.Ctx) error {
 		if googleOauthConfig.ClientID == "" {
+			log.Printf("[%s] OAuth Login Error: ClientID is empty in environment variables", nodeName)
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Google OAuth is not configured in .env. Use Mock Login."})
 		}
 		// Random state string for protection
 		url := googleOauthConfig.AuthCodeURL("lopyta_state_string")
+		log.Printf("[%s] OAuth Login: Redirecting client %s to Google Auth URL", nodeName, c.IP())
 		return c.Redirect(url)
 	})
 
 	app.Get("/api/auth/google/callback", func(c *fiber.Ctx) error {
 		code := c.Query("code")
 		if code == "" {
+			log.Printf("[%s] OAuth Callback Error: Code parameter is missing", nodeName)
 			return c.Status(fiber.StatusBadRequest).SendString("OAuth code empty")
 		}
 
 		token, err := googleOauthConfig.Exchange(c.Context(), code)
 		if err != nil {
+			log.Printf("[%s] OAuth Callback Error: Token exchange failed: %v", nodeName, err)
 			return c.Status(fiber.StatusInternalServerError).SendString("Token exchange failed: " + err.Error())
 		}
 
 		client := googleOauthConfig.Client(c.Context(), token)
 		resp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
 		if err != nil {
+			log.Printf("[%s] OAuth Callback Error: Failed to fetch Google user info: %v", nodeName, err)
 			return c.Status(fiber.StatusInternalServerError).SendString("Failed fetching user info: " + err.Error())
 		}
 		defer resp.Body.Close()
@@ -291,11 +302,13 @@ func main() {
 			Name  string `json:"name"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+			log.Printf("[%s] OAuth Callback Error: Failed to decode user profile: %v", nodeName, err)
 			return c.Status(fiber.StatusInternalServerError).SendString("Failed decoding user profile")
 		}
 
 		teacher, err := classroom.GetOrCreateTeacher(userInfo.Email, userInfo.Name, userInfo.Sub)
 		if err != nil {
+			log.Printf("[%s] OAuth Callback Error: GetOrCreateTeacher database error for email %s: %v", nodeName, userInfo.Email, err)
 			return c.Status(fiber.StatusInternalServerError).SendString("Database authentication failed: " + err.Error())
 		}
 
@@ -306,6 +319,7 @@ func main() {
 		sess.Set("teacher_email", teacher.Email)
 		sess.Save()
 
+		log.Printf("[%s] OAuth Callback Success: Logged in teacher %s (ID: %d)", nodeName, teacher.Email, teacher.ID)
 		return c.Redirect("/host")
 	})
 
@@ -647,6 +661,7 @@ func handleWebSocket(c *websocket.Conn) {
 		switch msgType {
 		case protocol.MsgCreateClass:
 			var req struct {
+				Code             string `json:"code"`
 				ClassName        string `json:"className"`
 				HostName         string `json:"hostName"`
 				TeacherID        int    `json:"teacherId"`
@@ -657,7 +672,23 @@ func handleWebSocket(c *websocket.Conn) {
 				continue
 			}
 
-			session := sm.CreateSession(req.ClassName, req.HostName, req.TeacherID, req.StudentEntryCode, time.Time{})
+			var session *classroom.ClassSession
+			if req.Code != "" {
+				session = sm.GetSession(req.Code)
+				if session == nil {
+					// Fallback to Redis cache
+					var err error
+					session, err = classroom.GetSessionFromRedis(req.Code)
+					if err == nil && session != nil {
+						sm.AddSession(session)
+					}
+				}
+			}
+
+			if session == nil {
+				session = sm.CreateSession(req.ClassName, req.HostName, req.TeacherID, req.StudentEntryCode, time.Time{})
+			}
+
 			currentCode = session.Code
 			isHost = true
 

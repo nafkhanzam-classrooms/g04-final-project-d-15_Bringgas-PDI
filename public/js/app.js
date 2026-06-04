@@ -758,7 +758,7 @@ const restoreClassDashboard = (code) => {
   
   initSocket(() => {
     // Re-link host to WS session
-    ws.send(encodePacket(MsgCreateClass, seqNum++, { className: "", hostName: "", teacherId: currentTeacherID, studentEntryCode: "" }));
+    ws.send(encodePacket(MsgCreateClass, seqNum++, { code: code, className: "", hostName: "", teacherId: currentTeacherID, studentEntryCode: "" }));
     
     document.getElementById('createScreen').style.display = 'none';
     document.getElementById('dashboardScreen').style.display = 'grid';
@@ -905,7 +905,7 @@ const initHostLogic = async () => {
       
       // Connect to WebSocket dynamically
       initSocket(() => {
-        ws.send(encodePacket(MsgCreateClass, seqNum++, { className: cName, hostName: "", teacherId: currentTeacherID, studentEntryCode: session.studentEntryCode }));
+        ws.send(encodePacket(MsgCreateClass, seqNum++, { code: session.code, className: cName, hostName: "", teacherId: currentTeacherID, studentEntryCode: session.studentEntryCode }));
         
         document.getElementById('createScreen').style.display = 'none';
         document.getElementById('dashboardScreen').style.display = 'grid';
