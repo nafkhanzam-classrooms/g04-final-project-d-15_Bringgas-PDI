@@ -1,4 +1,4 @@
-import { Download, MonitorPlay, Zap, Users } from 'lucide-react';
+import { MonitorPlay, Zap, Users } from 'lucide-react';
 
 export default function DownloadLandingPage() {
   return (
@@ -22,12 +22,11 @@ export default function DownloadLandingPage() {
         </p>
 
         <a 
-          href="/downloads/BringgasPDI-Setup.exe"
-          download
+          href="/login"
           className="group relative inline-flex items-center justify-center gap-4 bg-primary text-surface px-10 py-6 border-4 border-surface-dark font-display font-bold uppercase text-2xl md:text-3xl shadow-[8px_8px_0px_#111827] hover:shadow-none hover:translate-x-[8px] hover:translate-y-[8px] transition-all mb-16"
         >
-          <Download size={36} strokeWidth={3} className="group-hover:animate-bounce" />
-          <span>Download for Windows (.exe)</span>
+          <Users size={36} strokeWidth={3} className="group-hover:animate-bounce" />
+          <span>Login & Present</span>
         </a>
 
         {/* Feature Grid */}

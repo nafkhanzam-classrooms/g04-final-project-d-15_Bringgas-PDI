@@ -153,6 +153,7 @@ func main() {
 	// 6. Initialize Fiber App & Session store
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
+		BodyLimit:             50 * 1024 * 1024, // 50MB
 	})
 
 	sessionStore = session.New(session.Config{

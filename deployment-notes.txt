@@ -46,7 +46,7 @@ Lakukan build source code Go menjadi biner server:
 
 1.4 MIGRASI DATABASE (PENTING SETELAH UPDATE)
 Jalankan file migrasi untuk fitur baru (Roster, Question Sets, Slide Triggers) dengan perintah berikut:
-  mysql -h 127.0.0.1 -u lopyta_dbuser -p'LopytaBringgas2026' classroom_bringgas < /var/www/classroom-bringgas/database/migration_01.sql
+  mysql -h 127.0.0.1 -u lopyta_dbuser -p'LopytaBringgas2026' classroom_bringgas < /var/www/classroom-bringgas/database/migration_02.sql
   
 Jika muncul error "Duplicate column name" saat menjalankan file ini, berarti kolom/tabel tersebut sudah ada dan bisa diabaikan.
 
