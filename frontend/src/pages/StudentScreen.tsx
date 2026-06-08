@@ -42,7 +42,7 @@ export default function StudentScreen() {
       }).then(() => {
         clearError();
         // If class ended or not active, clear session and reload
-        if (error.toLowerCase().includes("diakhiri") || error.toLowerCase().includes("tidak aktif") || error.toLowerCase().includes("not found")) {
+        if (error.toLowerCase().includes("diakhiri") || error.toLowerCase().includes("tidak aktif") || error.toLowerCase().includes("not found") || error.toLowerCase().includes("ditendang")) {
           sessionStorage.removeItem('lopyta_student_code');
           sessionStorage.removeItem('lopyta_student_pin');
           sessionStorage.removeItem('lopyta_student_joined');
