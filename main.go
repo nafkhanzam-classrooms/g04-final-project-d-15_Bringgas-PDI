@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"strconv"
 	"sync"
@@ -160,10 +159,13 @@ func main() {
 		Format: "[${time}] ${status} - ${latency} ${method} ${path}\n",
 	}))
 
-	// Serve Static Files
-	app.Static("/css", "./public/css")
-	app.Static("/js", "./public/js")
-	app.Static("/images", "./public/images")
+	// Serve Static Files from Vite build output
+	app.Static("/assets", "./frontend/dist/assets")
+	app.Static("/images", "./frontend/dist/images")
+	
+	// Explicitly map specific root static files to avoid intercepting / 
+	app.Get("/favicon.svg", func(c *fiber.Ctx) error { return c.SendFile("./frontend/dist/favicon.svg") })
+	app.Get("/icons.svg", func(c *fiber.Ctx) error { return c.SendFile("./frontend/dist/icons.svg") })
 
 	// Helper Authentication Middleware
 	authGuard := func(c *fiber.Ctx) error {
@@ -177,8 +179,8 @@ func main() {
 			isAjax := c.Get("X-Requested-With") == "XMLHttpRequest"
 			path := c.Path()
 			log.Printf("[%s] AuthGuard: Unauthorized request to %s (IP: %s, AJAX: %t). Redirecting or blocking.", nodeName, path, c.IP(), isAjax)
-			if c.Method() == "GET" && !isAjax && (path == "/host" || path == "/host.html" || (len(path) > 5 && path[:6] == "/host/")) {
-				return c.Redirect("/")
+			if c.Method() == "GET" && !isAjax && (path == "/host" || (len(path) > 5 && path[:6] == "/host/")) {
+				return c.Redirect("/login")
 			}
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized. Mohon login menggunakan Google."})
 		}
@@ -189,38 +191,33 @@ func main() {
 	}
 
 	// 7. Domain / Subdomain separation UI routing ( guru.lopyta.com vs siswa.lopyta.com )
-	// Clean URL handler for host dashboard
-	serveHost := func(c *fiber.Ctx) error {
-		if c.Hostname() != teacherDomain {
-			return c.Status(http.StatusForbidden).SendString("Akses ditolak: Hanya Guru yang dapat mengakses panel ini.")
-		}
-		return c.SendFile("./public/host.html")
+	
+	// SPA Handler - Return index.html for React Router
+	serveSPA := func(c *fiber.Ctx) error {
+		return c.SendFile("./frontend/dist/index.html")
 	}
-
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		host := c.Hostname()
+		log.Printf("[%s] Incoming Host: '%s', Expected TeacherDomain: '%s'", nodeName, host, teacherDomain)
 		if host == teacherDomain {
 			sess, _ := sessionStore.Get(c)
 			if sess.Get("teacher_id") == nil {
-				return c.SendFile("./public/login.html")
+				return c.Redirect("/login")
 			}
 			return c.Redirect("/host")
 		}
 		// Default is student join page
-		return c.SendFile("./public/index.html")
+		return serveSPA(c)
 	})
 
-	// Clean URLs (without .html)
-	app.Get("/login", func(c *fiber.Ctx) error {
-		return c.Redirect("/")
-	})
-	app.Get("/host", authGuard, serveHost)
-	app.Get("/host/*", authGuard, serveHost)
+	app.Get("/login", serveSPA)
+	app.Get("/host", authGuard, serveSPA)
+	app.Get("/host/*", authGuard, serveSPA)
 
 	// Legacy .html URLs redirect to clean URLs
 	app.Get("/login.html", func(c *fiber.Ctx) error {
-		return c.Redirect("/", fiber.StatusMovedPermanently)
+		return c.Redirect("/login", fiber.StatusMovedPermanently)
 	})
 	app.Get("/host.html", func(c *fiber.Ctx) error {
 		return c.Redirect("/host", fiber.StatusMovedPermanently)

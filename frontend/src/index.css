@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors - High contrast Crisp Gamified Geometric style */
+  --color-primary: #059669; /* Emerald Green */
+  --color-primary-dark: #047857;
+  --color-secondary: #F43F5E; /* Signal Red */
+  --color-tertiary: #1E1B4B; /* Deep Navy */
+  
+  --color-surface: #FFFFFF;
+  --color-surface-dim: #F3F4F6;
+  --color-surface-dark: #111827;
+  --color-surface-container: #F9FAFB;
+  --color-surface-container-high: #E5E7EB;
+  
+  --color-on-surface: #111827;
+  --color-on-surface-variant: #4B5563;
+  --color-on-primary: #FFFFFF;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Border radius - Geometric and Crisp */
+  --radius-sm: 2px;
+  --radius: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+@layer base {
+  body {
+    @apply bg-surface-dim text-on-surface font-sans antialiased;
+  }
+}
