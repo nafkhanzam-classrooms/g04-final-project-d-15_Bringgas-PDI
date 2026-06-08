@@ -5,14 +5,21 @@ import { useWebSocketStore, MsgJoinClass, MsgSubmitAnswer } from '../store/webso
 export default function StudentScreen() {
   const { isConnected, connect, classState, myName, sendPacket, lastQuizResult, clearLastQuizResult } = useWebSocketStore();
   
-  const [code, setCode] = useState('');
-  const [pin, setPin] = useState('');
-  const [hasJoined, setHasJoined] = useState(false);
+  const [code, setCode] = useState(() => sessionStorage.getItem('lopyta_student_code') || '');
+  const [pin, setPin] = useState(() => sessionStorage.getItem('lopyta_student_pin') || '');
+  const [hasJoined, setHasJoined] = useState(() => sessionStorage.getItem('lopyta_student_joined') === 'true');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   useEffect(() => {
     connect();
   }, [connect]);
+
+  // Auto-join on page refresh
+  useEffect(() => {
+    if (isConnected && hasJoined && code && pin && !classState) {
+      sendPacket(MsgJoinClass, { code, entryCode: pin });
+    }
+  }, [isConnected, hasJoined, code, pin, classState, sendPacket]);
 
   // Handle quiz result clear when question changes
   useEffect(() => {
@@ -26,9 +33,25 @@ export default function StudentScreen() {
     e.preventDefault();
     if (!pin.trim() || !code.trim() || !isConnected) return;
     
+    // Save to session storage
+    sessionStorage.setItem('lopyta_student_code', code.toUpperCase());
+    sessionStorage.setItem('lopyta_student_pin', pin);
+    sessionStorage.setItem('lopyta_student_joined', 'true');
+    
     // Send PIN in entryCode
     sendPacket(MsgJoinClass, { code, entryCode: pin });
     setHasJoined(true);
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('lopyta_student_code');
+    sessionStorage.removeItem('lopyta_student_pin');
+    sessionStorage.removeItem('lopyta_student_joined');
+    setHasJoined(false);
+    setCode('');
+    setPin('');
+    // You could also send a leave message or disconnect, but reloading or clearing state is enough
+    window.location.reload();
   };
 
   const handleAnswer = (option: string) => {
@@ -116,20 +139,33 @@ export default function StudentScreen() {
             <Zap size={20} />
           </div>
           <div>
-            <h2 className="font-display font-bold text-xl leading-tight uppercase truncate max-w-[150px] md:max-w-xs">{classState.className}</h2>
-            <p className="font-mono text-[10px] font-bold text-on-surface-variant uppercase">HOST: {classState.hostName}</p>
+            <h1 className="font-display font-bold text-xl uppercase tracking-widest leading-none text-surface-dark">{classState.className}</h1>
+            <p className="font-mono text-xs font-bold text-on-surface-variant uppercase mt-1">Host: {classState.hostName}</p>
           </div>
         </div>
-        
-        <div className="flex gap-4">
-          <div className="flex flex-col items-end">
-            <span className="font-mono text-xs font-bold uppercase text-on-surface-variant">Score</span>
-            <span className="font-display font-bold text-xl">{myData?.score || 0}</span>
+        <div className="flex items-center gap-4 md:gap-6">
+          <div className="text-right hidden md:block">
+            <span className="font-mono text-xs font-bold uppercase block mb-1">Student</span>
+            <span className="font-display font-bold text-lg">{myName || 'Student'}</span>
           </div>
-          <div className="flex flex-col items-end text-secondary">
-            <span className="font-mono text-xs font-bold uppercase">Streak</span>
-            <span className="font-display font-bold text-xl flex items-center gap-1"><Flame size={16}/> {myData?.streak || 0}</span>
+          <div className="flex items-center gap-4 bg-surface-container-high p-2 px-4 border-2 border-surface-dark shadow-[4px_4px_0px_#111827]">
+            <div className="flex flex-col items-center">
+              <span className="font-mono text-xs font-bold uppercase">Score</span>
+              <span className="font-display font-bold text-xl">{myData?.score || 0}</span>
+            </div>
+            <div className="w-0.5 h-8 bg-surface-dark/20"></div>
+            <div className="flex flex-col items-center text-error">
+              <span className="font-mono text-xs font-bold uppercase">Streak</span>
+              <span className="font-display font-bold text-xl flex items-center gap-1"><Flame size={16}/> {myData?.streak || 0}</span>
+            </div>
           </div>
+          <button 
+            onClick={handleLogout}
+            className="bg-surface-dark text-surface p-2 border-2 border-surface-dark hover:bg-error transition-colors"
+            title="Keluar Kelas"
+          >
+            <LogIn size={20} className="rotate-180" />
+          </button>
         </div>
       </header>
 
@@ -138,18 +174,19 @@ export default function StudentScreen() {
         {!classState.currentQuestion ? (
           // Slide View
           classState?.presentationUrl ? (
-            <div className="flex-1 relative bg-surface-container-high border-b-4 md:border-b-0 md:border-r-4 border-surface-dark overflow-hidden">
+            <div className="flex-1 w-full h-full relative bg-surface-container-high border-b-4 md:border-b-0 md:border-r-4 border-surface-dark overflow-hidden min-h-[80vh] md:min-h-screen">
               {classState.presentationUrl.toLowerCase().endsWith('.pdf') ? (
-                <embed 
+                <iframe 
                   src={classState.presentationUrl + "#toolbar=0&navpanes=0&scrollbar=0&view=FitH&page=" + classState.activeSlide} 
-                  type="application/pdf"
-                  className="w-full h-full object-contain pointer-events-none"
-                  style={{ minHeight: '100%' }}
-                />
+                  width="100%" 
+                  height="100%" 
+                  className="w-full h-full border-0 absolute top-0 left-0"
+                  title="PDF Presentation"
+                ></iframe>
               ) : (
                 <iframe 
                   src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(classState.presentationUrl)}`} 
-                  className="w-full h-full pointer-events-none" 
+                  className="w-full h-full pointer-events-none border-0 absolute top-0 left-0" 
                   title="Presentation"
                   frameBorder="0"
                 />
