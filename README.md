@@ -15,7 +15,7 @@ flowchart TD
     Student(["🧑‍🎓 Siswa / Student"])
 
     %% Klien
-    subgraph Klien [Sisi Klien]
+    subgraph Klien ["Sisi Klien"]
         WailsApp["💻 Wails Desktop App\n(Windows .exe)"]
         WebBrowser["🌐 Web Browser\n(siswa.lopyta.org)"]
         TeacherWeb["🌐 Web Browser\n(guru.lopyta.org)"]
@@ -25,7 +25,7 @@ flowchart TD
     Nginx{"Nginx Reverse Proxy\n& Load Balancer"}
 
     %% Backend Server
-    subgraph Backend [Server Golang (Fiber)]
+    subgraph Backend ["Server Golang (Fiber)"]
         Node1["⚙️ Lopyta Node 1\n(Port 8789)"]
         Node2["⚙️ Lopyta Node 2\n(Port 8790)"]
         SyncBus(("P2P Sync Bus\nWebSocket"))
