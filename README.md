@@ -11,31 +11,31 @@ Berikut adalah alur kerja dan arsitektur dari sistem Lopyta:
 ```mermaid
 flowchart TD
     %% Entitas Pengguna
-    Teacher([👩‍🏫 Guru / Teacher])
-    Student([🧑‍🎓 Siswa / Student])
+    Teacher(["👩‍🏫 Guru / Teacher"])
+    Student(["🧑‍🎓 Siswa / Student"])
 
     %% Klien
     subgraph Klien [Sisi Klien]
-        WailsApp[💻 Wails Desktop App\n(Windows .exe)]
-        WebBrowser[🌐 Web Browser\n(siswa.lopyta.org)]
-        TeacherWeb[🌐 Web Browser\n(guru.lopyta.org)]
+        WailsApp["💻 Wails Desktop App\n(Windows .exe)"]
+        WebBrowser["🌐 Web Browser\n(siswa.lopyta.org)"]
+        TeacherWeb["🌐 Web Browser\n(guru.lopyta.org)"]
     end
 
     %% Web Server / Load Balancer
-    Nginx{Nginx Reverse Proxy\n& Load Balancer}
+    Nginx{"Nginx Reverse Proxy\n& Load Balancer"}
 
     %% Backend Server
     subgraph Backend [Server Golang (Fiber)]
-        Node1[⚙️ Lopyta Node 1\n(Port 8789)]
-        Node2[⚙️ Lopyta Node 2\n(Port 8790)]
-        SyncBus((P2P Sync Bus\nWebSocket))
+        Node1["⚙️ Lopyta Node 1\n(Port 8789)"]
+        Node2["⚙️ Lopyta Node 2\n(Port 8790)"]
+        SyncBus(("P2P Sync Bus\nWebSocket"))
         
         Node1 <-->|Sync State| SyncBus
         Node2 <-->|Sync State| SyncBus
     end
 
     %% Database
-    MariaDB[(🗄️ MariaDB)]
+    MariaDB[("🗄️ MariaDB")]
 
     %% Alur Koneksi
     Teacher -->|Buka Aplikasi| WailsApp
