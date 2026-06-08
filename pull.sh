@@ -7,20 +7,8 @@ echo "=== Memulai Pembaruan Aplikasi BRINGGAS PDI ==="
 echo "1. Menarik pembaruan kode dari GitHub..."
 git pull origin main
 
-# 2. Build ulang biner Golang
-echo "2. Merapikan modul & melakukan kompilasi ulang Golang..."
-go mod tidy
-go build -o lopyta-server .
-
-if [ $? -eq 0 ]; then
-    echo "✅ Kompilasi Golang berhasil!"
-else
-    echo "❌ Gagal melakukan kompilasi Golang! Menghentikan proses pembaruan."
-    exit 1
-fi
-
-# 3. Build ulang Frontend React
-echo "3. Melakukan build ulang Frontend React..."
+# 2. Build ulang Frontend React
+echo "2. Melakukan build ulang Frontend React..."
 cd frontend || exit
 npm install
 npm run build
@@ -32,6 +20,18 @@ else
     exit 1
 fi
 cd ..
+
+# 3. Build ulang biner Golang
+echo "3. Merapikan modul & melakukan kompilasi ulang Golang..."
+go mod tidy
+go build -o lopyta-server .
+
+if [ $? -eq 0 ]; then
+    echo "✅ Kompilasi Golang berhasil!"
+else
+    echo "❌ Gagal melakukan kompilasi Golang! Menghentikan proses pembaruan."
+    exit 1
+fi
 
 # 4. Copy & Reload Nginx
 echo "4. Memvalidasi & memuat ulang konfigurasi Nginx..."
