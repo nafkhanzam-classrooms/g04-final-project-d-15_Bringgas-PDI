@@ -795,6 +795,35 @@ func handleWebSocket(c *websocket.Conn) {
 				}
 			}
 
+			if session == nil && req.Code != "" {
+				// Try to restore from Database
+				db := database.GetDB()
+				if db != nil {
+					var presUrl sql.NullString
+					var isActive int
+					err := db.QueryRow("SELECT presentation_url, is_active FROM classes WHERE code = ?", req.Code).Scan(&presUrl, &isActive)
+					if err == nil {
+						session = &classroom.ClassSession{
+							Code:             req.Code,
+							ClassName:        req.ClassName,
+							HostName:         req.HostName,
+							TeacherID:        req.TeacherID,
+							StudentEntryCode: req.StudentEntryCode,
+							Active:           true,
+							IsActive:         isActive == 1,
+							PointMultiplier:  1,
+							ActiveSlide:      1,
+							TotalSlides:      5,
+							PresentationUrl:  presUrl.String,
+							Participants:     make(map[string]*classroom.Participant),
+							Leaderboard:      []classroom.LeaderboardEntry{},
+							CreatedAt:        time.Now(),
+						}
+						sm.AddSession(session)
+					}
+				}
+			}
+
 			if session == nil {
 				session = sm.CreateSession(req.ClassName, req.HostName, req.TeacherID, req.StudentEntryCode, time.Time{})
 			}

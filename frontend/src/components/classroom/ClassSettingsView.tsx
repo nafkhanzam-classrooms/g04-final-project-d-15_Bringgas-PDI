@@ -129,7 +129,7 @@ export default function ClassSettingsView() {
     }
   };
 
-  const { uploadPresentation, fetchClasses } = useClassStore();
+  const { classes, uploadPresentation, fetchClasses } = useClassStore();
 
   const handleUploadPresentation = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -248,6 +248,18 @@ export default function ClassSettingsView() {
           <h3 className="font-display text-2xl font-bold uppercase mb-4">Upload PPT/PDF</h3>
           <p className="mb-6 font-mono text-sm text-on-surface-variant">Upload your presentation file. This file will be loaded into the viewer when you start the class.</p>
           
+          {classes.find(c => c.code === code)?.presentationUrl ? (
+            <div className="mb-6 p-4 border-2 border-primary bg-primary/10 flex flex-col gap-2">
+              <div className="font-bold text-primary flex items-center gap-2">
+                <FileUp size={20} /> Presentation Uploaded Successfully!
+              </div>
+              <a href={classes.find(c => c.code === code)?.presentationUrl} target="_blank" rel="noreferrer" className="text-sm font-mono hover:underline break-all">
+                {classes.find(c => c.code === code)?.presentationUrl}
+              </a>
+              <p className="text-xs text-on-surface-variant mt-2 font-mono">You can upload a new file below to overwrite the current presentation.</p>
+            </div>
+          ) : null}
+
           <input 
             type="file" 
             ref={fileInputRef}
