@@ -460,10 +460,11 @@ func (s *ClassSession) CopyState() *ClassSession {
 		IsActive:         s.IsActive,
 		PointMultiplier:  s.PointMultiplier,
 		ScheduledTime:    s.ScheduledTime,
-		ActiveSlide:      s.ActiveSlide,
-		TotalSlides:      s.TotalSlides,
-		PresentationUrl:  s.PresentationUrl,
-		CreatedAt:        s.CreatedAt,
+		ActiveSlide:       s.ActiveSlide,
+		TotalSlides:       s.TotalSlides,
+		PresentationUrl:   s.PresentationUrl,
+		IsVideoCallActive: s.IsVideoCallActive,
+		CreatedAt:         s.CreatedAt,
 	}
 
 	copied.Participants = make(map[string]*Participant)
