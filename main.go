@@ -21,6 +21,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/session"
+	redisStorage "github.com/gofiber/storage/redis/v3"
 	"github.com/gofiber/websocket/v2"
 	"github.com/joho/godotenv"
 	"github.com/wailsapp/wails/v2"
@@ -156,7 +157,13 @@ func main() {
 		BodyLimit:             50 * 1024 * 1024, // 50MB
 	})
 
+	store := redisStorage.New(redisStorage.Config{
+		URL:      fmt.Sprintf("redis://:%s@%s/0", redisPassword, redisAddr),
+		Reset:    false,
+	})
+
 	sessionStore = session.New(session.Config{
+		Storage:        store,
 		KeyLookup:      "cookie:lopyta_session",
 		CookieSecure:   false,
 		CookieHTTPOnly: true,
@@ -200,9 +207,20 @@ func main() {
 			}
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized. Mohon login menggunakan Google."})
 		}
-		c.Locals("teacher_id", teacherID)
-		c.Locals("teacher_name", sess.Get("teacher_name"))
-		c.Locals("teacher_email", sess.Get("teacher_email"))
+		var parsedTeacherID int
+		switch v := teacherID.(type) {
+		case int:
+			parsedTeacherID = v
+		case float64:
+			parsedTeacherID = int(v)
+		case string:
+			parsedTeacherID, _ = strconv.Atoi(v)
+		default:
+			parsedTeacherID, _ = strconv.Atoi(fmt.Sprintf("%v", v))
+		}
+		c.Locals("teacher_id", parsedTeacherID)
+		c.Locals("teacher_name", fmt.Sprintf("%v", sess.Get("teacher_name")))
+		c.Locals("teacher_email", fmt.Sprintf("%v", sess.Get("teacher_email")))
 		
 		// Refresh session expiration on activity
 		sess.Save()
@@ -571,7 +589,40 @@ func main() {
 		if session == nil {
 			// Pull from Redis in case it was created on another Node
 			s, err := classroom.GetSessionFromRedis(req.Code)
-			if err != nil {
+			if err != nil || s == nil {
+				// Fallback to Database
+				db := database.GetDB()
+				if db != nil {
+					var className, entryCode, teacherName string
+					var teacherID, isActive int
+					var presUrl sql.NullString
+					errDB := db.QueryRow(`
+						SELECT c.class_name, c.student_entry_code, c.presentation_url, c.is_active, c.teacher_id, t.name 
+						FROM classes c 
+						JOIN teachers t ON c.teacher_id = t.id 
+						WHERE c.code = ?`, req.Code).Scan(&className, &entryCode, &presUrl, &isActive, &teacherID, &teacherName)
+					if errDB == nil {
+						s = &classroom.ClassSession{
+							Code:             req.Code,
+							ClassName:        className,
+							HostName:         teacherName,
+							TeacherID:        teacherID,
+							StudentEntryCode: entryCode,
+							Active:           true,
+							IsActive:         isActive == 1,
+							PointMultiplier:  1,
+							ActiveSlide:      1,
+							TotalSlides:      5,
+							PresentationUrl:  presUrl.String,
+							Participants:     make(map[string]*classroom.Participant),
+							Leaderboard:      []classroom.LeaderboardEntry{},
+							CreatedAt:        time.Now(), // Or fetch from DB
+						}
+					}
+				}
+			}
+
+			if s == nil {
 				return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Kelas tidak ditemukan"})
 			}
 			sm.AddSession(s)
@@ -799,16 +850,21 @@ func handleWebSocket(c *websocket.Conn) {
 				// Try to restore from Database
 				db := database.GetDB()
 				if db != nil {
+					var className, entryCode, teacherName string
+					var teacherID, isActive int
 					var presUrl sql.NullString
-					var isActive int
-					err := db.QueryRow("SELECT presentation_url, is_active FROM classes WHERE code = ?", req.Code).Scan(&presUrl, &isActive)
+					err := db.QueryRow(`
+						SELECT c.class_name, c.student_entry_code, c.presentation_url, c.is_active, c.teacher_id, t.name 
+						FROM classes c 
+						JOIN teachers t ON c.teacher_id = t.id 
+						WHERE c.code = ?`, req.Code).Scan(&className, &entryCode, &presUrl, &isActive, &teacherID, &teacherName)
 					if err == nil {
 						session = &classroom.ClassSession{
 							Code:             req.Code,
-							ClassName:        req.ClassName,
-							HostName:         req.HostName,
-							TeacherID:        req.TeacherID,
-							StudentEntryCode: req.StudentEntryCode,
+							ClassName:        className,
+							HostName:         teacherName,
+							TeacherID:        teacherID,
+							StudentEntryCode: entryCode,
 							Active:           true,
 							IsActive:         isActive == 1,
 							PointMultiplier:  1,

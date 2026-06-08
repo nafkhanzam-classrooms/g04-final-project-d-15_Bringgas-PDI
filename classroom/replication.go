@@ -145,6 +145,11 @@ func (rm *ReplicationManager) ReplicateSessionState(session *ClassSession) {
 	if RedisClient != nil {
 		RedisClient.Publish(ctx, RedisPubSubChannel, payload)
 	}
+
+	// 3. Notify local WebSocket clients since pubsub ignores self
+	if rm.broadcastCB != nil {
+		rm.broadcastCB(session.Code)
+	}
 }
 
 // ReplicateSessionDelete deletes session state from Redis and publishes a delete event

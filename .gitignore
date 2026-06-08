@@ -1,3 +1,4 @@
 /.agents
 .env
 /lopyta-server
+/uploads

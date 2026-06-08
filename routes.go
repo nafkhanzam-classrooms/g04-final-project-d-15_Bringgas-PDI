@@ -1,6 +1,7 @@
 package main
 
 import (
+	"classroom-bringgas/classroom"
 	"classroom-bringgas/database"
 	"fmt"
 	"path/filepath"
@@ -84,16 +85,21 @@ func RegisterNewRoutes(app *fiber.App, authGuard fiber.Handler) {
 
 		// Update database
 		// NOTE: Office Online requires an absolute public URL
-		publicUrl := "https://guru.lopyta.org/uploads/" + filename
+		publicUrl := c.BaseURL() + "/uploads/" + filename
 		_, err = database.DB.Exec("UPDATE classes SET presentation_url = ? WHERE code = ?", publicUrl, code)
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": "Failed to update class record"})
 		}
 
-		// Update memory session if it's currently loaded
+		// Update session in memory and Redis, then notify cluster
 		session := sm.GetSession(code)
+		if session == nil {
+			// If not in memory on this node, try loading from Redis so we can update and replicate it
+			session, _ = classroom.GetSessionFromRedis(code)
+		}
 		if session != nil {
 			session.PresentationUrl = publicUrl
+			sm.AddSession(session) // Ensure it's in memory here too
 			if repManager != nil {
 				repManager.ReplicateSessionState(session)
 			}

@@ -111,15 +111,25 @@ export default function ActiveSessionView() {
               </button>
             </div>
           ) : classState?.presentationUrl ? (
-            <div className="flex-1 w-full h-full">
-              <iframe 
-                src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(classState.presentationUrl)}`}
-                width="100%" 
-                height="100%" 
-                frameBorder="0"
-                className="w-full h-full bg-surface-container"
-                title="PowerPoint Presentation"
-              ></iframe>
+            <div className="flex-1 w-full h-full bg-surface-container">
+              {classState.presentationUrl.toLowerCase().endsWith('.pdf') ? (
+                <iframe 
+                  src={classState.presentationUrl + "#toolbar=0&navpanes=0&scrollbar=0"}
+                  width="100%" 
+                  height="100%" 
+                  className="w-full h-full"
+                  title="PDF Presentation"
+                ></iframe>
+              ) : (
+                <iframe 
+                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(classState.presentationUrl)}`}
+                  width="100%" 
+                  height="100%" 
+                  frameBorder="0"
+                  className="w-full h-full"
+                  title="PowerPoint Presentation"
+                ></iframe>
+              )}
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-surface-container bg-[radial-gradient(#d1d5db_1px,transparent_1px)] [background-size:20px_20px]">

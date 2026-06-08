@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"fmt"
+	"log"
 	"math/big"
 	"sync"
 	"time"
@@ -146,7 +147,10 @@ func (sm *SessionManager) CreateSession(className, hostName string, teacherID in
 		if !schedTime.IsZero() {
 			sched = schedTime
 		}
-		db.Exec(query, session.Code, session.ClassName, session.TeacherID, session.StudentEntryCode, sched, 0)
+		_, err := db.Exec(query, session.Code, session.ClassName, session.TeacherID, session.StudentEntryCode, sched, 0)
+		if err != nil {
+			log.Printf("[Database] Failed to insert new class %s: %v", session.Code, err)
+		}
 	}()
 
 	sm.sessions[code] = session
@@ -457,6 +461,7 @@ func (s *ClassSession) CopyState() *ClassSession {
 		ScheduledTime:    s.ScheduledTime,
 		ActiveSlide:      s.ActiveSlide,
 		TotalSlides:      s.TotalSlides,
+		PresentationUrl:  s.PresentationUrl,
 		CreatedAt:        s.CreatedAt,
 	}
 
