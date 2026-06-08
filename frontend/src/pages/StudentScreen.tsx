@@ -105,7 +105,7 @@ export default function StudentScreen() {
   }
 
   // Active Session View for Student
-  const myData = classState.participants?.find(p => p.name === myName);
+  const myData = Object.values(classState.participants || {}).find(p => p.name === myName);
 
   return (
     <div className="min-h-screen bg-surface-dim flex flex-col font-sans">

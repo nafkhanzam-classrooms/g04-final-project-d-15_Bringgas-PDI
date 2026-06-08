@@ -136,13 +136,13 @@ export default function ActiveSessionView() {
               <Users size={18} />
               Students
             </h3>
-            <span className="font-mono font-bold bg-primary text-surface px-2 py-0.5">{classState?.participants?.length || 0}</span>
+            <span className="font-mono font-bold bg-primary text-surface px-2 py-0.5">{Object.values(classState?.participants || {}).length}</span>
           </div>
           <div className="overflow-y-auto p-0 flex-1">
-            {classState?.participants?.length === 0 && (
+            {Object.values(classState?.participants || {}).length === 0 && (
               <div className="p-6 text-center text-on-surface-variant font-mono text-xs uppercase font-bold">Waiting for students...</div>
             )}
-            {classState?.participants?.map((p, i) => (
+            {Object.values(classState?.participants || {}).map((p, i) => (
               <div key={i} className="px-4 py-3 border-b-2 border-surface-dark/10 flex justify-between items-center hover:bg-surface-dim">
                 <span className="font-bold truncate pr-2">{p.name}</span>
                 <span className="font-mono text-xs bg-surface-dark text-surface px-2 py-0.5">{p.score}pt</span>

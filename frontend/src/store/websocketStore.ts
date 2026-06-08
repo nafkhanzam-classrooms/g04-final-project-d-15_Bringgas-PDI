@@ -48,7 +48,7 @@ export interface ClassState {
   className: string;
   hostName: string;
   isActive: boolean;
-  participants: Participant[];
+  participants: Record<string, Participant>;
   currentQuestion: Question | null;
   questionStartTime: string;
   activeSlide: number;
