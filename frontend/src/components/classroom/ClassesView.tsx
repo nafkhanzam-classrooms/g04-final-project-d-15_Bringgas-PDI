@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play, Search, Dices, Plus, Settings } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { useClassStore } from '../../store/classStore';
 
 export default function ClassesView() {
@@ -37,7 +38,12 @@ export default function ClassesView() {
     if (ok) {
       navigate(`/host/session/${code}`);
     } else {
-      alert('Failed to start class. Please try again.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: 'Gagal memulai kelas. Silakan coba lagi.',
+        confirmButtonColor: '#000000',
+      });
     }
   };
 

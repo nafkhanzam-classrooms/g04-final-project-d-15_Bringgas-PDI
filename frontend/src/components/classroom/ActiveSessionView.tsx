@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgClassState, MsgToggleVideoCall } from '../../store/websocketStore';
 import { useClassStore } from '../../store/classStore';
 import type { QuestionBankItem } from '../../store/classStore';
@@ -9,7 +10,7 @@ import VideoConference from './VideoConference';
 export default function ActiveSessionView() {
   const { code } = useParams();
   const navigate = useNavigate();
-  const { isConnected, classState, connect, disconnect, sendPacket } = useWebSocketStore();
+  const { isConnected, classState, connect, disconnect, sendPacket, error, clearError } = useWebSocketStore();
   const { questionBank, fetchQuestionBank, endClass } = useClassStore();
   const [slideNumber, setSlideNumber] = useState(1);
 
@@ -31,6 +32,20 @@ export default function ActiveSessionView() {
       sendPacket(MsgCreateClass, { code });
     }
   }, [isConnected, code, classState, sendPacket]);
+
+  // Handle WebSocket errors for Host
+  useEffect(() => {
+    if (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Koneksi Bermasalah',
+        text: error,
+        confirmButtonColor: '#000000',
+      }).then(() => {
+        clearError();
+      });
+    }
+  }, [error, clearError]);
 
   const handleEndSession = async () => {
     if (!code) return;
@@ -133,7 +148,8 @@ export default function ActiveSessionView() {
             <div className="flex-1 w-full h-full bg-surface-container">
               {classState.presentationUrl.toLowerCase().endsWith('.pdf') ? (
                 <iframe 
-                  src={classState.presentationUrl + "#toolbar=0&navpanes=0&scrollbar=0"}
+                  key={classState.activeSlide}
+                  src={classState.presentationUrl + "#toolbar=0&navpanes=0&scrollbar=0&view=FitH&page=" + classState.activeSlide}
                   width="100%" 
                   height="100%" 
                   className="w-full h-full"
@@ -141,7 +157,8 @@ export default function ActiveSessionView() {
                 ></iframe>
               ) : (
                 <iframe 
-                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(classState.presentationUrl)}`}
+                  key={classState.activeSlide}
+                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(classState.presentationUrl)}&wdSlideIndex=${classState.activeSlide}`}
                   width="100%" 
                   height="100%" 
                   frameBorder="0"

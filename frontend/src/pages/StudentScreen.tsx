@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { LogIn, User, Hash, Zap, Code, CheckCircle, Flame } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { useWebSocketStore, MsgJoinClass, MsgSubmitAnswer } from '../store/websocketStore';
 import VideoConference from '../components/classroom/VideoConference';
 
 export default function StudentScreen() {
-  const { isConnected, connect, classState, myName, sendPacket, lastQuizResult, clearLastQuizResult } = useWebSocketStore();
+  const { isConnected, connect, classState, myName, sendPacket, lastQuizResult, clearLastQuizResult, error, clearError } = useWebSocketStore();
   
   const [code, setCode] = useState(() => sessionStorage.getItem('lopyta_student_code') || '');
   const [pin, setPin] = useState(() => sessionStorage.getItem('lopyta_student_pin') || '');
@@ -29,6 +30,27 @@ export default function StudentScreen() {
       setSelectedOption(null);
     }
   }, [classState?.currentQuestion, clearLastQuizResult]);
+
+  // Handle WebSocket errors
+  useEffect(() => {
+    if (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Pemberitahuan',
+        text: error,
+        confirmButtonColor: '#000000',
+      }).then(() => {
+        clearError();
+        // If class ended or not active, clear session and reload
+        if (error.toLowerCase().includes("diakhiri") || error.toLowerCase().includes("tidak aktif") || error.toLowerCase().includes("not found")) {
+          sessionStorage.removeItem('lopyta_student_code');
+          sessionStorage.removeItem('lopyta_student_pin');
+          sessionStorage.removeItem('lopyta_student_joined');
+          window.location.reload();
+        }
+      });
+    }
+  }, [error, clearError]);
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,21 +205,25 @@ export default function StudentScreen() {
         {!classState.currentQuestion ? (
           // Slide View
           classState?.presentationUrl ? (
-            <div className="flex-1 w-full h-full relative bg-surface-container-high border-b-4 md:border-b-0 md:border-r-4 border-surface-dark overflow-hidden min-h-[80vh] md:min-h-screen">
+            <div className="flex-1 w-full h-full bg-surface-container">
               {classState.presentationUrl.toLowerCase().endsWith('.pdf') ? (
                 <iframe 
+                  key={classState.activeSlide}
                   src={classState.presentationUrl + "#toolbar=0&navpanes=0&scrollbar=0&view=FitH&page=" + classState.activeSlide} 
                   width="100%" 
                   height="100%" 
-                  className="w-full h-full border-0 absolute top-0 left-0"
+                  className="w-full h-full"
                   title="PDF Presentation"
                 ></iframe>
               ) : (
                 <iframe 
-                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(classState.presentationUrl)}`} 
-                  className="w-full h-full pointer-events-none border-0 absolute top-0 left-0" 
-                  title="Presentation"
+                  key={classState.activeSlide}
+                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(classState.presentationUrl)}&wdSlideIndex=${classState.activeSlide}`} 
+                  width="100%" 
+                  height="100%" 
                   frameBorder="0"
+                  className="w-full h-full"
+                  title="PowerPoint Presentation"
                 />
               )}
             </div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Database, Plus, Trash2, Clock, Folder, ChevronRight, ArrowLeft, Edit2, X } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { useClassStore } from '../../store/classStore';
 
 export default function BankView() {
@@ -98,7 +99,12 @@ export default function BankView() {
     if (activityType === 'quiz') {
       const emptyOpt = options.find(o => !o.trim());
       if (emptyOpt !== undefined) {
-        alert('Please fill all options for a quiz.');
+        Swal.fire({
+          icon: 'warning',
+          title: 'Peringatan',
+          text: 'Harap isi semua opsi untuk mode kuis.',
+          confirmButtonColor: '#000000',
+        });
         return;
       }
     }

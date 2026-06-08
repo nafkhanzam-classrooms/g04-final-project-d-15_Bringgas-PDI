@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, FileUp, Dices, Plus, Trash2, Link } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { useClassStore } from '../../store/classStore';
 
 export default function ClassSettingsView() {
@@ -80,7 +81,12 @@ export default function ClassSettingsView() {
         fetchStudents();
       } else {
         const err = await res.json();
-        alert(err.error || 'Failed to add student');
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal',
+          text: err.error || 'Failed to add student',
+          confirmButtonColor: '#000000',
+        });
       }
     } catch (e) {
       console.error(e);
@@ -140,14 +146,29 @@ export default function ClassSettingsView() {
     try {
       const ok = await uploadPresentation(code, file);
       if (ok) {
-        alert('Presentation uploaded successfully!');
+        Swal.fire({
+          icon: 'success',
+          title: 'Berhasil',
+          text: 'Presentation uploaded successfully!',
+          confirmButtonColor: '#000000',
+        });
         fetchClasses(); // Ensure list is refreshed
       } else {
-        alert('Upload failed');
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal',
+          text: 'Upload failed',
+          confirmButtonColor: '#000000',
+        });
       }
     } catch (err) {
       console.error(err);
-      alert('Upload failed');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Upload failed',
+        confirmButtonColor: '#000000',
+      });
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
