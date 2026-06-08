@@ -159,7 +159,7 @@ func main() {
 		KeyLookup:      "cookie:lopyta_session",
 		CookieSecure:   false,
 		CookieHTTPOnly: true,
-		Expiration:     24 * time.Hour,
+		Expiration:     2 * time.Hour,
 	})
 
 	app.Use(recover.New())
@@ -202,6 +202,10 @@ func main() {
 		c.Locals("teacher_id", teacherID)
 		c.Locals("teacher_name", sess.Get("teacher_name"))
 		c.Locals("teacher_email", sess.Get("teacher_email"))
+		
+		// Refresh session expiration on activity
+		sess.Save()
+		
 		return c.Next()
 	}
 
