@@ -5,6 +5,8 @@ import (
 	"classroom-bringgas/database"
 	"fmt"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -76,8 +78,13 @@ func RegisterNewRoutes(app *fiber.App, authGuard fiber.Handler) {
 			return c.Status(400).JSON(fiber.Map{"error": "Upload failed"})
 		}
 		
-		// Save to ./uploads folder
-		filename := fmt.Sprintf("%s_%s", code, file.Filename)
+		// Sanitize filename to prevent URL issues (replace spaces and special chars)
+		safeName := strings.ReplaceAll(file.Filename, " ", "_")
+		safeName = strings.ReplaceAll(safeName, "(", "")
+		safeName = strings.ReplaceAll(safeName, ")", "")
+		
+		// Format filename: Code_Timestamp_SafeOriginalName
+		filename := fmt.Sprintf("%s_%d_%s", code, time.Now().Unix(), safeName)
 		savePath := filepath.Join("./uploads", filename)
 		if err := c.SaveFile(file, savePath); err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": "Failed to save file"})
