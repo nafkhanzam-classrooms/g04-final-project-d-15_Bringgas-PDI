@@ -69,7 +69,7 @@ export default function VideoConference({ roomName, displayName, onClose, isHost
       {/* Jitsi Iframe Container */}
       <div className="flex-1 bg-black relative">
         <JitsiMeeting
-          domain="meet.ffmuc.net"
+          domain="jitsi.riot.im"
           roomName={safeRoomName}
           configOverwrite={{
             startWithAudioMuted: !isHost,
