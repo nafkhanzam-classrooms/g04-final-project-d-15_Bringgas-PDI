@@ -137,13 +137,33 @@ export default function StudentScreen() {
       <main className="flex-1 relative flex flex-col">
         {!classState.currentQuestion ? (
           // Slide View
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-surface-container bg-[linear-gradient(45deg,#d1d5db_25%,transparent_25%,transparent_75%,#d1d5db_75%,#d1d5db),linear-gradient(45deg,#d1d5db_25%,transparent_25%,transparent_75%,#d1d5db_75%,#d1d5db)] [background-size:20px_20px] [background-position:0_0,10px_10px]">
-            <div className="bg-surface p-12 border-8 border-surface-dark shadow-[12px_12px_0px_#111827] max-w-2xl w-full transform -rotate-1 hover:rotate-0 transition-transform duration-300">
-              <span className="font-mono font-bold bg-primary text-surface px-4 py-1 border-2 border-surface-dark text-sm uppercase absolute -top-4 -left-4 shadow-[4px_4px_0px_#111827]">Slide {classState.activeSlide}</span>
-              <h2 className="font-display text-4xl md:text-5xl font-bold uppercase text-surface-dark">Follow along on the main screen</h2>
-              <p className="mt-6 font-mono font-bold text-on-surface-variant">Waiting for interactive activity...</p>
+          classState?.presentationUrl ? (
+            <div className="flex-1 relative bg-surface-container-high border-b-4 md:border-b-0 md:border-r-4 border-surface-dark overflow-hidden">
+              {classState.presentationUrl.toLowerCase().endsWith('.pdf') ? (
+                <embed 
+                  src={classState.presentationUrl + "#toolbar=0&navpanes=0&scrollbar=0&view=FitH&page=" + classState.activeSlide} 
+                  type="application/pdf"
+                  className="w-full h-full object-contain pointer-events-none"
+                  style={{ minHeight: '100%' }}
+                />
+              ) : (
+                <iframe 
+                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(classState.presentationUrl)}`} 
+                  className="w-full h-full pointer-events-none" 
+                  title="Presentation"
+                  frameBorder="0"
+                />
+              )}
             </div>
-          </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-surface-container bg-[linear-gradient(45deg,#d1d5db_25%,transparent_25%,transparent_75%,#d1d5db_75%,#d1d5db),linear-gradient(45deg,#d1d5db_25%,transparent_25%,transparent_75%,#d1d5db_75%,#d1d5db)] [background-size:20px_20px] [background-position:0_0,10px_10px]">
+              <div className="bg-surface p-12 border-8 border-surface-dark shadow-[12px_12px_0px_#111827] max-w-2xl w-full transform -rotate-1 hover:rotate-0 transition-transform duration-300">
+                <span className="font-mono font-bold bg-primary text-surface px-4 py-1 border-2 border-surface-dark text-sm uppercase absolute -top-4 -left-4 shadow-[4px_4px_0px_#111827]">Slide {classState.activeSlide}</span>
+                <h2 className="font-display text-4xl md:text-5xl font-bold uppercase text-surface-dark">Follow along on the main screen</h2>
+                <p className="mt-6 font-mono font-bold text-on-surface-variant">Waiting for interactive activity...</p>
+              </div>
+            </div>
+          )
         ) : (
           // Quiz/Activity View
           <div className="flex-1 flex flex-col p-4 md:p-8 overflow-y-auto bg-primary">
