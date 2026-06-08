@@ -691,7 +691,7 @@ func main() {
 		// Run Fiber in background for Wails
 		go func() {
 			if err := app.Listen(addr); err != nil {
-				log.Fatal("Fiber Server failed:", err)
+				log.Printf("Fiber Server failed (Port already in use?): %v", err)
 			}
 		}()
 		
