@@ -420,7 +420,7 @@ func main() {
 			CorrectOption   string   `json:"correctOption"`
 			DurationSeconds int      `json:"durationSeconds"`
 			ActivityType    string   `json:"activityType"`
-			SetID           *int     `json:"setId"`
+			SetID           *int     `json:"set_id"`
 		}
 		if err := c.BodyParser(&req); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
@@ -443,6 +443,39 @@ func main() {
 
 		lastID, _ := res.LastInsertId()
 		return c.JSON(fiber.Map{"success": true, "id": lastID})
+	})
+
+	app.Put("/api/bank/:id", authGuard, func(c *fiber.Ctx) error {
+		id := c.Params("id")
+		teacherID := c.Locals("teacher_id").(int)
+		var req struct {
+			Title           string   `json:"title"`
+			QuestionText    string   `json:"questionText"`
+			Options         []string `json:"options"`
+			CorrectOption   string   `json:"correctOption"`
+			DurationSeconds int      `json:"durationSeconds"`
+			ActivityType    string   `json:"activityType"`
+		}
+		if err := c.BodyParser(&req); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
+		}
+		optionsJSON, _ := json.Marshal(req.Options)
+		
+		db := database.GetDB()
+		if db == nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Database offline"})
+		}
+
+		_, err := db.Exec(`
+			UPDATE question_bank 
+			SET title=?, question_text=?, options=?, correct_option=?, duration_seconds=?, activity_type=?
+			WHERE id=? AND teacher_id=?
+		`, req.Title, req.QuestionText, string(optionsJSON), req.CorrectOption, req.DurationSeconds, req.ActivityType, id, teacherID)
+		
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(fiber.Map{"success": true})
 	})
 
 	app.Delete("/api/bank/:id", authGuard, func(c *fiber.Ctx) error {

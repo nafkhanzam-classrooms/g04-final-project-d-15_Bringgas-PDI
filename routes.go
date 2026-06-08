@@ -159,6 +159,35 @@ func RegisterNewRoutes(app *fiber.App, authGuard fiber.Handler) {
 		return c.JSON(fiber.Map{"id": id, "title": req.Title})
 	})
 
+	app.Put("/api/bank/sets/:id", authGuard, func(c *fiber.Ctx) error {
+		teacherID := c.Locals("teacher_id")
+		setID := c.Params("id")
+		var req struct {
+			Title string `json:"title"`
+		}
+		if err := c.BodyParser(&req); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
+		}
+		_, err := database.DB.Exec("UPDATE question_sets SET title = ? WHERE id = ? AND teacher_id = ?", req.Title, setID, teacherID)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(fiber.Map{"success": true})
+	})
+
+	app.Delete("/api/bank/sets/:id", authGuard, func(c *fiber.Ctx) error {
+		teacherID := c.Locals("teacher_id")
+		setID := c.Params("id")
+		
+		// Optional: Cascade delete questions in the set, or let DB handle if ON DELETE CASCADE is set
+		// Currently we assume the UI will warn them.
+		_, err := database.DB.Exec("DELETE FROM question_sets WHERE id = ? AND teacher_id = ?", setID, teacherID)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(fiber.Map{"success": true})
+	})
+
 	// ==========================================
 	// SLIDE TRIGGERS API
 	// ==========================================

@@ -1,5 +1,16 @@
 import { create } from 'zustand';
 
+// Helper to intercept 401 Unauthorized responses and redirect to login
+async function fetchWithAuth(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const res = await fetch(input, init);
+  if (res.status === 401) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+  }
+  return res;
+}
+
 export interface TeacherClass {
   code: string;
   className: string;
@@ -38,10 +49,11 @@ interface ClassState {
   
   fetchQuestionSets: () => Promise<void>;
   createQuestionSet: (title: string) => Promise<boolean>;
-  
+  editQuestionSet: (id: number, title: string) => Promise<boolean>;
   fetchQuestionBank: (setId?: number) => Promise<void>;
-  addToQuestionBank: (item: Omit<QuestionBankItem, 'id'>) => Promise<boolean>;
-  deleteFromQuestionBank: (id: number) => Promise<boolean>;
+  addToQuestionBank: (item: any) => Promise<boolean>;
+  editQuestionBankItem: (id: number, item: any) => Promise<boolean>;
+  deleteFromQuestionBank: (id: number, setId?: number) => Promise<boolean>;
 }
 
 export const useClassStore = create<ClassState>((set, get) => ({
@@ -53,7 +65,7 @@ export const useClassStore = create<ClassState>((set, get) => ({
   fetchClasses: async () => {
     set({ isLoading: true });
     try {
-      const res = await fetch('/api/teacher/classes');
+      const res = await fetchWithAuth('/api/teacher/classes');
       if (res.ok) {
         const classes = await res.json();
         set({ classes: classes || [] });
@@ -68,7 +80,7 @@ export const useClassStore = create<ClassState>((set, get) => ({
   createClass: async (className, studentEntryCode) => {
     set({ isLoading: true });
     try {
-      const res = await fetch('/api/teacher/classes', {
+      const res = await fetchWithAuth('/api/teacher/classes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ className, studentEntryCode })
@@ -89,7 +101,7 @@ export const useClassStore = create<ClassState>((set, get) => ({
   
   startClass: async (code) => {
     try {
-      const res = await fetch('/api/class/start', {
+      const res = await fetchWithAuth('/api/class/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code })
@@ -103,7 +115,7 @@ export const useClassStore = create<ClassState>((set, get) => ({
   
   endClass: async (code) => {
     try {
-      const res = await fetch('/api/class/end', {
+      const res = await fetchWithAuth('/api/class/end', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code })
@@ -118,7 +130,7 @@ export const useClassStore = create<ClassState>((set, get) => ({
   fetchQuestionSets: async () => {
     set({ isLoading: true });
     try {
-      const res = await fetch('/api/bank/sets');
+      const res = await fetchWithAuth('/api/bank/sets');
       if (res.ok) {
         const sets = await res.json();
         set({ questionSets: sets || [] });
@@ -132,7 +144,7 @@ export const useClassStore = create<ClassState>((set, get) => ({
 
   createQuestionSet: async (title) => {
     try {
-      const res = await fetch('/api/bank/sets', {
+      const res = await fetchWithAuth('/api/bank/sets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title })
@@ -148,11 +160,29 @@ export const useClassStore = create<ClassState>((set, get) => ({
     }
   },
 
+  editQuestionSet: async (id, title) => {
+    try {
+      const res = await fetchWithAuth(`/api/bank/sets/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title })
+      });
+      if (res.ok) {
+        await get().fetchQuestionSets();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to edit question set', err);
+      return false;
+    }
+  },
+
   fetchQuestionBank: async (setId?: number) => {
     set({ isLoading: true });
     try {
       const url = setId ? `/api/bank?set_id=${setId}` : '/api/bank';
-      const res = await fetch(url);
+      const res = await fetchWithAuth(url);
       if (res.ok) {
         const items = await res.json();
         set({ questionBank: items || [] });
@@ -166,7 +196,7 @@ export const useClassStore = create<ClassState>((set, get) => ({
   
   addToQuestionBank: async (item) => {
     try {
-      const res = await fetch('/api/bank', {
+      const res = await fetchWithAuth('/api/bank', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(item)
@@ -182,11 +212,29 @@ export const useClassStore = create<ClassState>((set, get) => ({
     }
   },
   
-  deleteFromQuestionBank: async (id) => {
+  editQuestionBankItem: async (id, item) => {
     try {
-      const res = await fetch(`/api/bank/${id}`, { method: 'DELETE' });
+      const res = await fetchWithAuth(`/api/bank/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      });
       if (res.ok) {
-        await get().fetchQuestionBank(); // Usually called from a view where we can refetch easily
+        await get().fetchQuestionBank(item.set_id);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to edit question bank item', err);
+      return false;
+    }
+  },
+  
+  deleteFromQuestionBank: async (id, setId) => {
+    try {
+      const res = await fetchWithAuth(`/api/bank/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        await get().fetchQuestionBank(setId); // Refetch specific set
         return true;
       }
       return false;
