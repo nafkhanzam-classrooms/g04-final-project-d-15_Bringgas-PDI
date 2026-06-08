@@ -16,6 +16,7 @@ export interface TeacherClass {
   className: string;
   studentEntryCode: string;
   isActive: boolean;
+  presentationUrl?: string;
   createdAt: string;
 }
 
@@ -46,6 +47,7 @@ interface ClassState {
   createClass: (className: string, studentEntryCode: string) => Promise<TeacherClass | null>;
   startClass: (code: string) => Promise<boolean>;
   endClass: (code: string) => Promise<boolean>;
+  uploadPresentation: (code: string, file: File) => Promise<boolean>;
   
   fetchQuestionSets: () => Promise<void>;
   createQuestionSet: (title: string) => Promise<boolean>;
@@ -113,19 +115,38 @@ export const useClassStore = create<ClassState>((set, get) => ({
     }
   },
   
-  endClass: async (code) => {
-    try {
-      const res = await fetchWithAuth('/api/class/end', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
-      });
-      return res.ok;
-    } catch (err) {
-      console.error('Failed to end class', err);
-      return false;
-    }
-  },
+	endClass: async (code) => {
+		try {
+			const res = await fetchWithAuth('/api/class/end', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ code })
+			});
+			return res.ok;
+		} catch (err) {
+			console.error('Failed to end class', err);
+			return false;
+		}
+	},
+
+	uploadPresentation: async (code, file) => {
+		try {
+			const formData = new FormData();
+			formData.append('presentation', file);
+			const res = await fetchWithAuth(`/api/teacher/classes/${code}/upload`, {
+				method: 'POST',
+				body: formData
+			});
+			if (res.ok) {
+				await get().fetchClasses(); // Refresh to get the presentationUrl
+				return true;
+			}
+			return false;
+		} catch (err) {
+			console.error('Failed to upload presentation', err);
+			return false;
+		}
+	},
   
   fetchQuestionSets: async () => {
     set({ isLoading: true });

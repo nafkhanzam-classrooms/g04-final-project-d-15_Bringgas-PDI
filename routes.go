@@ -83,10 +83,20 @@ func RegisterNewRoutes(app *fiber.App, authGuard fiber.Handler) {
 		}
 
 		// Update database
-		publicUrl := "/uploads/" + filename
-		_, err = database.DB.Exec("UPDATE classes SET presentation_file_path = ? WHERE code = ?", publicUrl, code)
+		// NOTE: Office Online requires an absolute public URL
+		publicUrl := "https://guru.lopyta.org/uploads/" + filename
+		_, err = database.DB.Exec("UPDATE classes SET presentation_url = ? WHERE code = ?", publicUrl, code)
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": "Failed to update class record"})
+		}
+
+		// Update memory session if it's currently loaded
+		session := sm.GetSession(code)
+		if session != nil {
+			session.PresentationUrl = publicUrl
+			if repManager != nil {
+				repManager.ReplicateSessionState(session)
+			}
 		}
 
 		return c.JSON(fiber.Map{"url": publicUrl})

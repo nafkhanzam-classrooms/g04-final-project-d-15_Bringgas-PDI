@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, FileUp, Dices, Plus, Trash2, Link } from 'lucide-react';
+import { useClassStore } from '../../store/classStore';
 
 export default function ClassSettingsView() {
   const { code } = useParams();
@@ -128,21 +129,19 @@ export default function ClassSettingsView() {
     }
   };
 
+  const { uploadPresentation, fetchClasses } = useClassStore();
+
   const handleUploadPresentation = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !code) return;
 
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('presentation', file);
 
     try {
-      const res = await fetch(`/api/teacher/classes/${code}/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-      if (res.ok) {
+      const ok = await uploadPresentation(code, file);
+      if (ok) {
         alert('Presentation uploaded successfully!');
+        fetchClasses(); // Ensure list is refreshed
       } else {
         alert('Upload failed');
       }

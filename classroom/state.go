@@ -56,6 +56,7 @@ type ClassSession struct {
 	ScheduledTime     time.Time               `json:"scheduledTime"`
 	ActiveSlide       int                     `json:"activeSlide"`
 	TotalSlides       int                     `json:"totalSlides"`
+	PresentationUrl   string                  `json:"presentationUrl"`
 	Participants      map[string]*Participant `json:"participants"`
 	CurrentQuestion   *QuizQuestion           `json:"currentQuestion"`
 	Leaderboard       []LeaderboardEntry      `json:"leaderboard"`

@@ -506,7 +506,7 @@ func main() {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Database offline"})
 		}
 
-		rows, err := db.Query("SELECT code, class_name, student_entry_code, is_active, created_at FROM classes WHERE teacher_id = ? ORDER BY created_at DESC", teacherID)
+		rows, err := db.Query("SELECT code, class_name, student_entry_code, is_active, presentation_url, created_at FROM classes WHERE teacher_id = ? ORDER BY created_at DESC", teacherID)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 		}
@@ -516,13 +516,15 @@ func main() {
 		for rows.Next() {
 			var code, className, entryCode string
 			var isActive int
+			var presentationUrl sql.NullString
 			var createdAt time.Time
-			if err := rows.Scan(&code, &className, &entryCode, &isActive, &createdAt); err == nil {
+			if err := rows.Scan(&code, &className, &entryCode, &isActive, &presentationUrl, &createdAt); err == nil {
 				list = append(list, fiber.Map{
 					"code":             code,
 					"className":        className,
 					"studentEntryCode": entryCode,
 					"isActive":         isActive == 1,
+					"presentationUrl":  presentationUrl.String,
 					"createdAt":        createdAt,
 				})
 			}

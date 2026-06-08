@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS classes (
     student_entry_code VARCHAR(100) NOT NULL,
     scheduled_time DATETIME NULL,
     is_active TINYINT DEFAULT 0,
+    presentation_url VARCHAR(500) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

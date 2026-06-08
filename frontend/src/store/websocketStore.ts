@@ -52,6 +52,7 @@ export interface ClassState {
   currentQuestion: Question | null;
   questionStartTime: string;
   activeSlide: number;
+  presentationUrl?: string;
 }
 
 interface WebSocketState {

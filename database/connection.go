@@ -33,6 +33,10 @@ func InitDB(dsn string) error {
 		log.Printf("[Database] Migration warning: %v", err)
 	}
 
+	if err := RunMigrations("./database/migration_02.sql"); err != nil {
+		log.Printf("[Database] Migration 02 warning: %v", err)
+	}
+
 	return nil
 }
 
@@ -52,8 +56,8 @@ func RunMigrations(schemaPath string) error {
 
 		_, err := DB.Exec(trimmedQuery)
 		if err != nil {
-			// Ignore database already exists warnings or similar non-critical issues
-			if !strings.Contains(err.Error(), "already exists") {
+			// Ignore database already exists warnings or duplicate columns
+			if !strings.Contains(err.Error(), "already exists") && !strings.Contains(err.Error(), "Duplicate column name") {
 				return fmt.Errorf("migration query execution failed: %v\nQuery: %s", err, trimmedQuery)
 			}
 		}
