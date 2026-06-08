@@ -1,13 +1,29 @@
 import { create } from 'zustand';
 
 // Protocol msg types from Go backend
-export const MsgJoinClass = 0x01;
-export const MsgClassState = 0x02;
-export const MsgSubmitAnswer = 0x03;
-export const MsgQuizResult = 0x04;
-export const MsgCreateClass = 0x05;
-export const MsgSlideChange = 0x06;
-export const MsgError = 0x0F;
+export const MsgCreateClass = 0x0001;
+export const MsgJoinClass = 0x0002;
+export const MsgClassState = 0x0003;
+export const MsgJoinSuccess = 0x0008; // Custom for our PIN login
+export const MsgSendQuestion = 0x0010;
+export const MsgSubmitAnswer = 0x0011;
+export const MsgQuizResult = 0x0012;
+export const MsgSlideChange = 0x0020;
+export const MsgError = 0x00FF;
+
+const MAGIC_NUMBER = 0xCAFE;
+const VERSION = 0x01;
+
+function crc32(buf: Uint8Array): number {
+  let crc = 0 ^ (-1);
+  for (let i = 0; i < buf.length; i++) {
+    crc ^= buf[i];
+    for (let j = 0; j < 8; j++) {
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xEDB88320 : 0);
+    }
+  }
+  return (crc ^ (-1)) >>> 0;
+}
 
 export interface Participant {
   name: string;
@@ -44,6 +60,7 @@ interface WebSocketState {
   isConnecting: boolean;
   error: string | null;
   classState: ClassState | null;
+  myName: string | null;
   lastQuizResult: { isCorrect: boolean; pointsEarned: number; correct: string } | null;
   
   connect: () => void;
@@ -62,6 +79,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
     isConnecting: false,
     error: null,
     classState: null,
+    myName: null,
     lastQuizResult: null,
 
     connect: () => {
@@ -86,12 +104,16 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
         if (!(event.data instanceof ArrayBuffer)) return;
         
         const data = new Uint8Array(event.data);
-        if (data.length < 5) return;
+        if (data.length < 17) return; // Header 13 + Checksum 4
         
-        const msgType = data[0];
-        // data[1] to data[4] is sequence
+        const view = new DataView(data.buffer);
+        const magic = view.getUint16(0, false);
+        if (magic !== MAGIC_NUMBER) return;
         
-        const payloadBytes = data.slice(5);
+        const msgType = view.getUint16(3, false);
+        const payloadLen = view.getUint32(9, false);
+        
+        const payloadBytes = data.slice(13, 13 + payloadLen);
         const payloadStr = new TextDecoder().decode(payloadBytes);
         
         try {
@@ -99,6 +121,8 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
           
           if (msgType === MsgClassState) {
             set({ classState: payload });
+          } else if (msgType === MsgJoinSuccess) {
+            set({ myName: payload.name });
           } else if (msgType === MsgQuizResult) {
             set({ lastQuizResult: payload });
           } else if (msgType === MsgError) {
@@ -152,17 +176,21 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
       const payloadStr = JSON.stringify(payload);
       const payloadBytes = new TextEncoder().encode(payloadStr);
       
-      const buffer = new Uint8Array(5 + payloadBytes.length);
-      buffer[0] = msgType;
+      const buffer = new Uint8Array(13 + payloadBytes.length + 4);
+      const view = new DataView(buffer.buffer);
       
-      // We can just use a dummy sequence number for client -> server
+      view.setUint16(0, MAGIC_NUMBER, false);
+      view.setUint8(2, VERSION);
+      view.setUint16(3, msgType, false);
+      
       const seq = Math.floor(Math.random() * 1000000);
-      buffer[1] = (seq >> 24) & 0xFF;
-      buffer[2] = (seq >> 16) & 0xFF;
-      buffer[3] = (seq >> 8) & 0xFF;
-      buffer[4] = seq & 0xFF;
+      view.setUint32(5, seq, false);
+      view.setUint32(9, payloadBytes.length, false);
       
-      buffer.set(payloadBytes, 5);
+      buffer.set(payloadBytes, 13);
+      
+      const checksum = crc32(payloadBytes);
+      view.setUint32(13 + payloadBytes.length, checksum, false);
       
       ws.send(buffer.buffer);
     },

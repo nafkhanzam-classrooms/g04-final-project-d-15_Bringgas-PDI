@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Search, Dices, Plus } from 'lucide-react';
+import { Play, Search, Dices, Plus, Settings } from 'lucide-react';
 import { useClassStore } from '../../store/classStore';
 
 export default function ClassesView() {
@@ -129,12 +129,22 @@ export default function ClassesView() {
                   <div className="font-mono font-bold text-sm bg-surface-container-high px-2 py-1 border border-surface-dark">
                     KEY: {cls.studentEntryCode || 'NONE'}
                   </div>
-                  <button 
-                    onClick={() => handleStartSession(cls.code)}
-                    className="bg-secondary text-surface w-10 h-10 border-2 border-surface-dark shadow-[2px_2px_0px_#111827] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] flex items-center justify-center transition-all"
-                  >
-                    <Play size={18} strokeWidth={3} className="ml-1" />
-                  </button>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => navigate(`/host/classes/${cls.code}/settings`)}
+                      className="bg-surface-container-high text-surface-dark w-10 h-10 border-2 border-surface-dark shadow-[2px_2px_0px_#111827] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] flex items-center justify-center transition-all"
+                      title="Settings"
+                    >
+                      <Settings size={18} strokeWidth={2.5} />
+                    </button>
+                    <button 
+                      onClick={() => handleStartSession(cls.code)}
+                      className="bg-secondary text-surface w-10 h-10 border-2 border-surface-dark shadow-[2px_2px_0px_#111827] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] flex items-center justify-center transition-all"
+                      title="Start Class"
+                    >
+                      <Play size={18} strokeWidth={3} className="ml-1" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))

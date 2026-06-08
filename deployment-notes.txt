@@ -44,6 +44,11 @@ Lakukan build source code Go menjadi biner server:
   go mod tidy
   go build -o lopyta-server main.go
 
+1.4 MIGRASI DATABASE (PENTING SETELAH UPDATE)
+Jalankan file migrasi untuk fitur baru (Roster, Question Sets, Slide Triggers) dengan perintah berikut:
+  mysql -h 127.0.0.1 -u lopyta_dbuser -p'LopytaBringgas2026' classroom_bringgas < /var/www/classroom-bringgas/database/migration_01.sql
+  
+Jika muncul error "Duplicate column name" saat menjalankan file ini, berarti kolom/tabel tersebut sudah ada dan bisa diabaikan.
 
 ------------------------------------------------------------------------
 2. KONFIGURASI ENVIRONMENT (.env)
@@ -71,6 +76,7 @@ TEACHER_DOMAIN=guru.lopyta.com
 STUDENT_DOMAIN=siswa.lopyta.com
 PORT=8789
 NODE_NAME=node-1
+WAILS_MODE=server
 SESSION_SECRET=bringgas_lopyta_secret_2026
 
 # Google OAuth 2.0 Credentials (Isi untuk mengaktifkan login Google asli)
@@ -128,7 +134,11 @@ Gunakan Supervisor untuk menjaga agar aplikasi Golang tetap berjalan di latar be
 5.1 Salin konfigurasi Supervisor ke sistem:
   sudo cp /var/www/classroom-bringgas/supervisor/lopyta.conf /etc/supervisor/conf.d/lopyta.conf
 
-5.2 Refresh Supervisor untuk mendeteksi perubahan konfigurasi baru:
+5.2 Penting: Pastikan `WAILS_MODE=server` ada di dalam konfigurasi lopyta.conf!
+Nginx akan memunculkan error 502 (Bad Gateway) dan log memunculkan "Wails error" jika variabel ini tidak ada. Buka file `/etc/supervisor/conf.d/lopyta-node-1.conf` (dan node-2) lalu tambahkan variabel berikut di bagian `environment`:
+  environment=PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",WAILS_MODE="server"
+
+5.3 Refresh Supervisor untuk mendeteksi perubahan konfigurasi baru:
   sudo supervisorctl reread
   sudo supervisorctl update
 

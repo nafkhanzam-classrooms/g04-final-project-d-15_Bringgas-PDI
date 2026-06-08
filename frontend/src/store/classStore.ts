@@ -8,6 +8,12 @@ export interface TeacherClass {
   createdAt: string;
 }
 
+export interface QuestionSet {
+  id: number;
+  title: string;
+  created_at: string;
+}
+
 export interface QuestionBankItem {
   id: number;
   title: string;
@@ -16,10 +22,12 @@ export interface QuestionBankItem {
   correctOption: string;
   durationSeconds: number;
   activityType: 'quiz' | 'code';
+  set_id?: number;
 }
 
 interface ClassState {
   classes: TeacherClass[];
+  questionSets: QuestionSet[];
   questionBank: QuestionBankItem[];
   isLoading: boolean;
   
@@ -28,13 +36,17 @@ interface ClassState {
   startClass: (code: string) => Promise<boolean>;
   endClass: (code: string) => Promise<boolean>;
   
-  fetchQuestionBank: () => Promise<void>;
+  fetchQuestionSets: () => Promise<void>;
+  createQuestionSet: (title: string) => Promise<boolean>;
+  
+  fetchQuestionBank: (setId?: number) => Promise<void>;
   addToQuestionBank: (item: Omit<QuestionBankItem, 'id'>) => Promise<boolean>;
   deleteFromQuestionBank: (id: number) => Promise<boolean>;
 }
 
 export const useClassStore = create<ClassState>((set, get) => ({
   classes: [],
+  questionSets: [],
   questionBank: [],
   isLoading: false,
   
@@ -103,10 +115,44 @@ export const useClassStore = create<ClassState>((set, get) => ({
     }
   },
   
-  fetchQuestionBank: async () => {
+  fetchQuestionSets: async () => {
     set({ isLoading: true });
     try {
-      const res = await fetch('/api/bank');
+      const res = await fetch('/api/bank/sets');
+      if (res.ok) {
+        const sets = await res.json();
+        set({ questionSets: sets || [] });
+      }
+    } catch (err) {
+      console.error('Failed to fetch question sets', err);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  createQuestionSet: async (title) => {
+    try {
+      const res = await fetch('/api/bank/sets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title })
+      });
+      if (res.ok) {
+        await get().fetchQuestionSets();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to create question set', err);
+      return false;
+    }
+  },
+
+  fetchQuestionBank: async (setId?: number) => {
+    set({ isLoading: true });
+    try {
+      const url = setId ? `/api/bank?set_id=${setId}` : '/api/bank';
+      const res = await fetch(url);
       if (res.ok) {
         const items = await res.json();
         set({ questionBank: items || [] });
@@ -126,7 +172,7 @@ export const useClassStore = create<ClassState>((set, get) => ({
         body: JSON.stringify(item)
       });
       if (res.ok) {
-        await get().fetchQuestionBank();
+        await get().fetchQuestionBank(item.set_id);
         return true;
       }
       return false;
@@ -140,7 +186,7 @@ export const useClassStore = create<ClassState>((set, get) => ({
     try {
       const res = await fetch(`/api/bank/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        await get().fetchQuestionBank();
+        await get().fetchQuestionBank(); // Usually called from a view where we can refetch easily
         return true;
       }
       return false;

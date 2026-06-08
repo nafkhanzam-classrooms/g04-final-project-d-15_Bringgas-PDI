@@ -6,6 +6,13 @@ import { useAuthStore } from './store/authStore';
 import TeacherLogin from './pages/TeacherLogin';
 import TeacherDashboard from './pages/TeacherDashboard';
 import StudentScreen from './pages/StudentScreen';
+import DownloadLandingPage from './pages/DownloadLandingPage';
+
+declare global {
+  interface Window {
+    go?: any;
+  }
+}
 
 function ProtectedRoute({ children }: { children: any }) {
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
@@ -32,23 +39,40 @@ function App() {
     checkAuth();
   }, [checkAuth]);
 
+  // Determine environment
+  const hostname = window.location.hostname;
+  const isTeacherDomain = hostname.includes('guru');
+  const isWails = typeof window.go !== 'undefined';
+  const isRootPath = window.location.pathname === '/';
+
+  // 1. If accessed via web browser on the teacher domain exactly at the root path, show the Landing Page
+  if (isTeacherDomain && !isWails && isRootPath) {
+    return <DownloadLandingPage />;
+  }
+
+  // 2. If inside Wails Desktop App, or Student Domain, or accessing specific routes like /login
   return (
     <Routes>
-      {/* Student View (Default) */}
+      {/* Student View (Default for siswa.lopyta.org) */}
       <Route path="/" element={<StudentScreen />} />
       
-      {/* Teacher Authentication */}
+      {/* Teacher Authentication (Inside Wails) */}
       <Route path="/login" element={<TeacherLogin />} />
-      
-      {/* Teacher Dashboard */}
-      <Route 
-        path="/host/*" 
+
+      {/* Teacher Dashboard (Inside Wails) */}
+      <Route
+        path="/host/*"
         element={
           <ProtectedRoute>
             <TeacherDashboard />
           </ProtectedRoute>
-        } 
+        }
       />
+      
+      {/* Inside Wails, the default / path could be redirected to /host if logged in */}
+      {isWails && (
+        <Route path="/" element={<Navigate to="/host" replace />} />
+      )}
     </Routes>
   );
 }

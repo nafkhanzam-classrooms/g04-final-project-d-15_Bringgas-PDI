@@ -41,3 +41,19 @@ CREATE TABLE IF NOT EXISTS submissions (
     streak INT DEFAULT 0,
     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Feature: Student Roster
+CREATE TABLE IF NOT EXISTS class_students (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    class_code VARCHAR(6) NOT NULL,
+    student_name VARCHAR(100) NOT NULL,
+    pin_code VARCHAR(20) NOT NULL,
+    FOREIGN KEY (class_code) REFERENCES classes(code) ON DELETE CASCADE,
+    UNIQUE(class_code, pin_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Feature: Presentation Files
+-- Add presentation_file_path to classes if it doesn't exist
+-- Note: MariaDB doesn't have IF NOT EXISTS for columns, we'll handle this in a separate migration script or check in Go, but let's just write the ALTER TABLE statement and catch errors.
+-- However, for schema.sql we can just let Go run it. If it fails, we need to handle it. A safer way is to just add it here for future fresh installs. But since it's already running, we need a migration script.
+

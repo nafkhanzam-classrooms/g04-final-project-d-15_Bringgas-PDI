@@ -174,7 +174,7 @@ func (sm *SessionManager) RemoveSession(code string) {
 }
 
 // JoinParticipant joins a student to a class session, handling registration/reconnection
-func (s *ClassSession) JoinParticipant(name string, entryCode string) (*Participant, string, error) {
+func (s *ClassSession) JoinParticipant(entryCode string) (*Participant, string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -183,10 +183,24 @@ func (s *ClassSession) JoinParticipant(name string, entryCode string) (*Particip
 		return nil, "", fmt.Errorf("Sesi kelas belum dimulai oleh Guru.")
 	}
 
-	// 2. Validate Student Entry Code (Kode Khusus)
-	if s.StudentEntryCode != "" && entryCode != s.StudentEntryCode {
-		return nil, "", fmt.Errorf("Kode Khusus (Entry Code) salah.")
+	// 2. Validate Student Entry Code (Kode Khusus / PIN) from database
+	db := database.GetDB()
+	var studentName string
+	if db != nil {
+		err := db.QueryRow("SELECT student_name FROM class_students WHERE class_code = ? AND pin_code = ?", s.Code, entryCode).Scan(&studentName)
+		if err != nil {
+			return nil, "", fmt.Errorf("PIN salah atau Anda tidak terdaftar di kelas ini.")
+		}
+	} else {
+		// Fallback for missing DB (should rarely happen in prod, but safety first)
+		if s.StudentEntryCode != "" && entryCode != s.StudentEntryCode {
+			return nil, "", fmt.Errorf("Kode Khusus (Entry Code) salah.")
+		}
+		// If DB is missing and PIN matches global code, we need a name. Since we removed name input, we just use a generic name.
+		studentName = "Siswa_" + entryCode
 	}
+
+	name := studentName
 
 	p, exists := s.Participants[name]
 	if exists {

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"database/sql"
+	"embed"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -21,9 +23,16 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/gofiber/websocket/v2"
 	"github.com/joho/godotenv"
+	"github.com/wailsapp/wails/v2"
+	"github.com/wailsapp/wails/v2/pkg/options"
+	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
+
+//go:embed all:frontend/dist
+var assets embed.FS
+
 
 // Active Client Connection registry
 type ConnectionRegistry struct {
@@ -159,7 +168,13 @@ func main() {
 		Format: "[${time}] ${status} - ${latency} ${method} ${path}\n",
 	}))
 
-	// Serve Static Files from Vite build output
+	// Ensure upload/download dirs exist
+	os.MkdirAll("./uploads", 0755)
+	os.MkdirAll("./bin_releases", 0755)
+
+	// Serve Static Files
+	app.Static("/uploads", "./uploads")
+	app.Static("/downloads", "./bin_releases")
 	app.Static("/assets", "./frontend/dist/assets")
 	app.Static("/images", "./frontend/dist/images")
 	
@@ -199,8 +214,17 @@ func main() {
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		host := c.Hostname()
-		log.Printf("[%s] Incoming Host: '%s', Expected TeacherDomain: '%s'", nodeName, host, teacherDomain)
+		mode := os.Getenv("WAILS_MODE")
+		log.Printf("[%s] Incoming Host: '%s', Expected TeacherDomain: '%s', Mode: '%s'", nodeName, host, teacherDomain, mode)
+		
 		if host == teacherDomain {
+			// Serve the React App. The React App itself will check if window.go exists
+			// to determine whether to show the Download Landing Page or the Teacher App.
+			if mode == "server" {
+				return c.SendFile("./frontend/dist/index.html")
+			}
+			
+			// If not in server mode (local desktop), redirect to login/host
 			sess, _ := sessionStore.Get(c)
 			if sess.Get("teacher_id") == nil {
 				return c.Redirect("/login")
@@ -227,6 +251,7 @@ func main() {
 	})
 
 	// 8. Authentication & Google OAuth REST endpoints
+	RegisterNewRoutes(app, authGuard)
 	app.Post("/api/auth/google/mock", func(c *fiber.Ctx) error {
 		var req struct {
 			Email string `json:"email"`
@@ -335,12 +360,21 @@ func main() {
 	// 9. Reusable Question Bank REST endpoints
 	app.Get("/api/bank", authGuard, func(c *fiber.Ctx) error {
 		teacherID := c.Locals("teacher_id").(int)
+		setID := c.Query("set_id") // Optional filter by set
+
 		db := database.GetDB()
 		if db == nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Database offline"})
 		}
 
-		rows, err := db.Query("SELECT id, title, question_text, options, correct_option, duration_seconds, activity_type FROM question_bank WHERE teacher_id = ? ORDER BY created_at DESC", teacherID)
+		var rows *sql.Rows
+		var err error
+		if setID != "" {
+			rows, err = db.Query("SELECT id, title, question_text, options, correct_option, duration_seconds, activity_type, set_id FROM question_bank WHERE teacher_id = ? AND set_id = ? ORDER BY created_at DESC", teacherID, setID)
+		} else {
+			rows, err = db.Query("SELECT id, title, question_text, options, correct_option, duration_seconds, activity_type, set_id FROM question_bank WHERE teacher_id = ? ORDER BY created_at DESC", teacherID)
+		}
+
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 		}
@@ -350,20 +384,28 @@ func main() {
 		for rows.Next() {
 			var id, duration int
 			var title, text, optStr, correct, actType string
-			if err := rows.Scan(&id, &title, &text, &optStr, &correct, &duration, &actType); err != nil {
+			var sid sql.NullInt64
+			if err := rows.Scan(&id, &title, &text, &optStr, &correct, &duration, &actType, &sid); err != nil {
 				continue
 			}
 			var options []string
 			json.Unmarshal([]byte(optStr), &options)
 
+			var setIDVal *int
+			if sid.Valid {
+				v := int(sid.Int64)
+				setIDVal = &v
+			}
+
 			list = append(list, fiber.Map{
 				"id":              id,
 				"title":           title,
-				"questionText":    text,
+				"question_text":   text,
 				"options":         options,
-				"correctOption":   correct,
+				"correct_option":  correct,
 				"durationSeconds": duration,
 				"activityType":    actType,
+				"set_id":          setIDVal,
 			})
 		}
 		return c.JSON(list)
@@ -378,6 +420,7 @@ func main() {
 			CorrectOption   string   `json:"correctOption"`
 			DurationSeconds int      `json:"durationSeconds"`
 			ActivityType    string   `json:"activityType"`
+			SetID           *int     `json:"setId"`
 		}
 		if err := c.BodyParser(&req); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
@@ -390,8 +433,10 @@ func main() {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Database offline"})
 		}
 
-		res, err := db.Exec("INSERT INTO question_bank (teacher_id, title, question_text, options, correct_option, duration_seconds, activity_type) VALUES (?, ?, ?, ?, ?, ?, ?)",
-			teacherID, req.Title, req.QuestionText, string(optionsJSON), req.CorrectOption, req.DurationSeconds, req.ActivityType)
+		res, err := db.Exec(`
+			INSERT INTO question_bank (teacher_id, set_id, title, question_text, options, correct_option, duration_seconds, activity_type)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		`, teacherID, req.SetID, req.Title, req.QuestionText, string(optionsJSON), req.CorrectOption, req.DurationSeconds, req.ActivityType)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 		}
@@ -600,7 +645,39 @@ func main() {
 	// Start Listening
 	addr := fmt.Sprintf("127.0.0.1:%d", *port)
 	log.Printf("[%s] Web Server listening on http://%s", nodeName, addr)
-	log.Fatal(app.Listen(addr))
+	
+	mode := os.Getenv("WAILS_MODE")
+	if mode == "server" {
+		log.Println("Running in SERVER mode. Wails UI disabled.")
+		log.Fatal(app.Listen(addr))
+	} else {
+		// Run Fiber in background for Wails
+		go func() {
+			if err := app.Listen(addr); err != nil {
+				log.Fatal("Fiber Server failed:", err)
+			}
+		}()
+		
+		// Run Wails Desktop App
+		wailsApp := NewApp()
+		err := wails.Run(&options.App{
+			Title:  "Bringgas PDI",
+			Width:  1280,
+			Height: 800,
+			AssetServer: &assetserver.Options{
+				Assets: assets,
+			},
+			BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
+			OnStartup:        wailsApp.startup,
+			Bind: []interface{}{
+				wailsApp,
+			},
+		})
+
+		if err != nil {
+			log.Fatal("Wails error:", err)
+		}
+	}
 }
 
 // handleWebSocket processes incoming custom binary packets over websocket connections
@@ -717,16 +794,20 @@ func handleWebSocket(c *websocket.Conn) {
 				session = s
 			}
 
-			// Validate secret student code and active state in one go
-			participant, status, err := session.JoinParticipant(req.Name, req.EntryCode)
+			// Validate secret student PIN code and active state in one go
+			participant, status, err := session.JoinParticipant(req.EntryCode)
 			if err != nil {
 				sendError(c, err.Error())
 				continue
 			}
 
 			currentCode = req.Code
-			currentName = req.Name
+			currentName = participant.Name
 			isHost = false
+			
+			// Send personalized success response so frontend knows their name
+			joinSuccessPayload, _ := json.Marshal(map[string]string{"name": participant.Name})
+			c.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(0x0008, seq, joinSuccessPayload))
 
 			// Handle duplicate login (Evict/Kick older browser tab to save resources!)
 			if status == "kick" {
@@ -806,6 +887,26 @@ func handleWebSocket(c *websocket.Conn) {
 
 			session.ChangeSlide(req.Slide)
 			log.Printf("[%s] Host changed slide of %s to page %d", nodeName, req.Code, req.Slide)
+
+			// Check for slide triggers in database
+			var qText, optionsJSON, correctOpt string
+			var duration int
+			err := database.DB.QueryRow(`
+				SELECT q.question_text, q.options, q.correct_option, q.duration_seconds 
+				FROM slide_triggers t
+				JOIN question_bank q ON t.question_id = q.id
+				WHERE t.class_code = ? AND t.slide_number = ?
+			`, req.Code, req.Slide).Scan(&qText, &optionsJSON, &correctOpt, &duration)
+
+			if err == nil {
+				// We have a mapped question for this slide! Trigger it automatically.
+				var opts []string
+				json.Unmarshal([]byte(optionsJSON), &opts)
+				
+				session.PointMultiplier = 1
+				session.StartQuestion(qText, opts, correctOpt, duration)
+				log.Printf("[%s] Auto-triggered Quiz on Slide %d: %s", nodeName, req.Slide, qText)
+			}
 
 			repManager.ReplicateSessionState(session)
 			BroadcastClassState(req.Code)

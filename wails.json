@@ -1,0 +1,17 @@
+{
+  "name": "bringgas-classroom",
+  "outputfilename": "BringgasSetup",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Lopyta",
+    "email": "hello@lopyta.org"
+  },
+  "info": {
+    "productName": "Bringgas PDI",
+    "productVersion": "1.0.0",
+    "productCompany": "Lopyta"
+  }
+}

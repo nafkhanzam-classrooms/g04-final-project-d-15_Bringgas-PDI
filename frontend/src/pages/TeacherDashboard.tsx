@@ -6,6 +6,7 @@ import { useAuthStore } from '../store/authStore';
 // We will create these components next
 import OverviewView from '../components/classroom/OverviewView';
 import ClassesView from '../components/classroom/ClassesView';
+import ClassSettingsView from '../components/classroom/ClassSettingsView';
 import BankView from '../components/classroom/BankView';
 import ActiveSessionView from '../components/classroom/ActiveSessionView';
 
@@ -89,6 +90,7 @@ export default function TeacherDashboard() {
           <Routes>
             <Route path="/" element={<OverviewView />} />
             <Route path="/classes" element={<ClassesView />} />
+            <Route path="/classes/:code/settings" element={<ClassSettingsView />} />
             <Route path="/bank" element={<BankView />} />
             <Route path="/session/:code" element={<ActiveSessionView />} />
             <Route path="/session" element={<ActiveSessionView />} />

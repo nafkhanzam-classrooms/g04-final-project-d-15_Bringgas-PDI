@@ -3,10 +3,10 @@ import { LogIn, User, Hash, Zap, Code, CheckCircle, Flame } from 'lucide-react';
 import { useWebSocketStore, MsgJoinClass, MsgSubmitAnswer } from '../store/websocketStore';
 
 export default function StudentScreen() {
-  const { isConnected, connect, classState, sendPacket, lastQuizResult, clearLastQuizResult } = useWebSocketStore();
+  const { isConnected, connect, classState, myName, sendPacket, lastQuizResult, clearLastQuizResult } = useWebSocketStore();
   
-  const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  const [pin, setPin] = useState('');
   const [hasJoined, setHasJoined] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
@@ -24,9 +24,10 @@ export default function StudentScreen() {
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !code.trim() || !isConnected) return;
+    if (!pin.trim() || !code.trim() || !isConnected) return;
     
-    sendPacket(MsgJoinClass, { name, code });
+    // Send PIN in entryCode
+    sendPacket(MsgJoinClass, { code, entryCode: pin });
     setHasJoined(true);
   };
 
@@ -56,23 +57,6 @@ export default function StudentScreen() {
 
           <form onSubmit={handleJoin} className="space-y-6">
             <div>
-              <label className="block font-mono text-xs font-bold uppercase mb-2">Student Name</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-surface-dark">
-                  <User size={20} />
-                </div>
-                <input 
-                  type="text" 
-                  value={name} 
-                  onChange={e => setName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-4 border-4 border-surface-dark bg-surface focus:outline-none focus:ring-4 focus:ring-secondary/50 font-bold text-lg transition-all"
-                  placeholder="John Doe"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div>
               <label className="block font-mono text-xs font-bold uppercase mb-2">Class Code</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-surface-dark">
@@ -81,9 +65,26 @@ export default function StudentScreen() {
                 <input 
                   type="text" 
                   value={code} 
-                  onChange={e => setCode(e.target.value)}
+                  onChange={e => setCode(e.target.value.toUpperCase())}
                   className="w-full pl-10 pr-4 py-4 border-4 border-surface-dark bg-surface focus:outline-none focus:ring-4 focus:ring-secondary/50 font-bold font-mono text-xl uppercase tracking-widest transition-all"
                   placeholder="CODE"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block font-mono text-xs font-bold uppercase mb-2">Your PIN Code</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-surface-dark">
+                  <User size={20} />
+                </div>
+                <input 
+                  type="password" 
+                  value={pin} 
+                  onChange={e => setPin(e.target.value)}
+                  className="w-full pl-10 pr-4 py-4 border-4 border-surface-dark bg-surface focus:outline-none focus:ring-4 focus:ring-secondary/50 font-bold text-lg transition-all tracking-[0.5em]"
+                  placeholder="••••"
                   required
                 />
               </div>
@@ -104,7 +105,7 @@ export default function StudentScreen() {
   }
 
   // Active Session View for Student
-  const myData = classState.participants?.find(p => p.name === name);
+  const myData = classState.participants?.find(p => p.name === myName);
 
   return (
     <div className="min-h-screen bg-surface-dim flex flex-col font-sans">

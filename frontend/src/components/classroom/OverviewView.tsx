@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Users, CheckCircle, Calendar, Zap, Activity } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
@@ -6,6 +7,18 @@ import { useAuthStore } from '../../store/authStore';
 export default function OverviewView() {
   const { teacher } = useAuthStore();
   const navigate = useNavigate();
+  const [stats, setStats] = useState({ active_classes: 0, total_students: 0 });
+
+  useEffect(() => {
+    fetch('/api/teacher/stats')
+      .then(res => res.json())
+      .then(data => {
+        if (data && typeof data.active_classes !== 'undefined') {
+          setStats(data);
+        }
+      })
+      .catch(err => console.error(err));
+  }, []);
 
   const StatCard = ({ title, value, icon: Icon, colorClass }: { title: string, value: string, icon: any, colorClass: string }) => (
     <div className="bg-surface border-4 border-surface-dark p-6 shadow-[6px_6px_0px_#111827] flex flex-col justify-between">
@@ -34,10 +47,10 @@ export default function OverviewView() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Active Classes" value="0" icon={Zap} colorClass="text-primary" />
-        <StatCard title="Total Students" value="120" icon={Users} colorClass="text-secondary" />
-        <StatCard title="Avg. Attendance" value="94%" icon={CheckCircle} colorClass="text-blue-600" />
-        <StatCard title="Upcoming" value="3" icon={Calendar} colorClass="text-purple-600" />
+        <StatCard title="Active Classes" value={stats.active_classes.toString()} icon={Zap} colorClass="text-primary" />
+        <StatCard title="Total Students" value={stats.total_students.toString()} icon={Users} colorClass="text-secondary" />
+        <StatCard title="Avg. Attendance" value="100%" icon={CheckCircle} colorClass="text-blue-600" />
+        <StatCard title="Upcoming" value="0" icon={Calendar} colorClass="text-purple-600" />
       </div>
 
       <div className="bg-surface border-4 border-surface-dark shadow-[8px_8px_0px_#111827]">

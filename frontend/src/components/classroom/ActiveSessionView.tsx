@@ -44,6 +44,11 @@ export default function ActiveSessionView() {
     const newSlide = Math.max(1, slideNumber + delta);
     setSlideNumber(newSlide);
     sendPacket(MsgSlideChange, { activeSlide: newSlide });
+
+    // Call Wails if available
+    if (window.go?.main?.App?.ChangeSlide) {
+      window.go.main.App.ChangeSlide(delta);
+    }
   };
 
   const launchQuiz = (q: QuestionBankItem) => {
