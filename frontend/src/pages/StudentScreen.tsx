@@ -3,6 +3,7 @@ import { LogIn, User, Hash, Zap, Code, CheckCircle, Flame } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useWebSocketStore, MsgJoinClass, MsgSubmitAnswer } from '../store/websocketStore';
 import VideoConference from '../components/classroom/VideoConference';
+import PdfSlideViewer from '../components/classroom/PdfSlideViewer';
 
 export default function StudentScreen() {
   const { isConnected, connect, classState, myName, sendPacket, lastQuizResult, clearLastQuizResult, error, clearError } = useWebSocketStore();
@@ -207,14 +208,12 @@ export default function StudentScreen() {
           classState?.presentationUrl ? (
             <div className="flex-1 w-full h-full relative bg-surface-container-high border-b-4 md:border-b-0 md:border-r-4 border-surface-dark overflow-hidden min-h-[80vh] md:min-h-screen">
               {classState.presentationUrl.toLowerCase().endsWith('.pdf') ? (
-                <iframe 
-                  key={classState.activeSlide}
-                  src={classState.presentationUrl + "#toolbar=0&navpanes=0&scrollbar=0&view=FitH&page=" + classState.activeSlide} 
-                  width="100%" 
-                  height="100%" 
-                  className="w-full h-full border-0 absolute top-0 left-0"
-                  title="PDF Presentation"
-                ></iframe>
+                <div className="absolute inset-0 z-10 bg-surface-container">
+                  <PdfSlideViewer 
+                    url={classState.presentationUrl} 
+                    slideNumber={classState.activeSlide} 
+                  />
+                </div>
               ) : (
                 <iframe 
                   src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(classState.presentationUrl)}`} 
