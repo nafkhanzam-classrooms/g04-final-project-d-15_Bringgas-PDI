@@ -1,159 +1,148 @@
-# Sistem Kelas Interaktif Terdistribusi — Lopyta
+# Lopyta Classroom (Bringgas PDI)
 
-Proyek ini adalah implementasi sistem kelas interaktif real-time (serupa dengan Kahoot, ClassPoint, atau Quizizz) yang dikembangkan untuk mata kuliah **Jaringan Komputer — Institut Teknologi Sepuluh Nopember**.
-
-Sistem ini memiliki arsitektur **Distributed Cluster** dengan **2 Node Server** yang tersinkronisasi secara real-time via TCP melintasi terowongan VPN, ditangani di depan oleh **Nginx Reverse Proxy & Load Balancer**. Seluruh komunikasi real-time menggunakan **Custom Network Protocol** biner yang dikirim melalui WebSocket.
+Aplikasi manajemen kelas interaktif hybrid yang menggabungkan kemampuan **Desktop App (Wails)** untuk guru dengan **Web App** untuk siswa. Dirancang untuk dapat berjalan sebagai jembatan antara aplikasi desktop offline dan sinkronisasi server terpusat.
 
 ---
 
-## 🚀 Fitur yang Diimplementasikan
-1. **Classroom Session**: Pembuatan sesi kelas unik (6 karakter) oleh Guru, dan Join kelas secara instan oleh Siswa.
-2. **Real-time Quiz**: Pertanyaan pilihan ganda interaktif dengan batas waktu countdown, live chart jawaban masuk di layar guru, dan sistem penilai otomatis.
-3. **Slide Control**: Presentasi slide materi guru yang disinkronkan secara instan (real-time) ke seluruh layar siswa.
-4. **Gamifikasi**: Poin dihitung berdasarkan ketepatan dan kecepatan menjawab (*Speed Bonus*), indikator beruntun (*Streak Bonus*), serta pergerakan peringkat leaderboard dinamis (naik/turun).
-5. **Distributed Active-Active Cluster**: Sinkronisasi data antar-server (Node 1 & Node 2) via TCP Replication Channel.
-6. **Role Separation Subdomain**: Nginx memisahkan akses: `guru.lopyta.org` untuk Guru dan `siswa.lopyta.org` untuk Siswa.
+## 🏗️ Flowchart Arsitektur Sistem
 
----
+Berikut adalah alur kerja dan arsitektur dari sistem Lopyta:
 
-## 🛠️ Persyaratan Sistem (Prerequisites)
-Sebelum memulai, pastikan Ubuntu Anda telah terpasang:
-* **Golang v1.21+**
-* **Nginx**
+```mermaid
+flowchart TD
+    %% Entitas Pengguna
+    Teacher([👩‍🏫 Guru / Teacher])
+    Student([🧑‍🎓 Siswa / Student])
 
-Untuk memasang Nginx jika belum ada:
-```bash
-sudo apt update && sudo apt install -y nginx
+    %% Klien
+    subgraph Klien [Sisi Klien]
+        WailsApp[💻 Wails Desktop App\n(Windows .exe)]
+        WebBrowser[🌐 Web Browser\n(siswa.lopyta.org)]
+        TeacherWeb[🌐 Web Browser\n(guru.lopyta.org)]
+    end
+
+    %% Web Server / Load Balancer
+    Nginx{Nginx Reverse Proxy\n& Load Balancer}
+
+    %% Backend Server
+    subgraph Backend [Server Golang (Fiber)]
+        Node1[⚙️ Lopyta Node 1\n(Port 8789)]
+        Node2[⚙️ Lopyta Node 2\n(Port 8790)]
+        SyncBus((P2P Sync Bus\nWebSocket))
+        
+        Node1 <-->|Sync State| SyncBus
+        Node2 <-->|Sync State| SyncBus
+    end
+
+    %% Database
+    MariaDB[(🗄️ MariaDB)]
+
+    %% Alur Koneksi
+    Teacher -->|Buka Aplikasi| WailsApp
+    Teacher -->|Akses Panel Publik| TeacherWeb
+    Student -->|Akses Kelas| WebBrowser
+
+    WailsApp -->|REST & WebSocket| Nginx
+    TeacherWeb -->|REST & WebSocket| Nginx
+    WebBrowser -->|REST & WebSocket| Nginx
+
+    Nginx -->|IP Hash Load Balancing| Node1
+    Nginx -->|IP Hash Load Balancing| Node2
+
+    Node1 -->|Query & Save| MariaDB
+    Node2 -->|Query & Save| MariaDB
 ```
 
 ---
 
-## ⚙️ Langkah Instalasi & Konfigurasi
+## 📁 Struktur Direktori & Program
 
-### Langkah 1: Konfigurasi DNS Lokal (`/etc/hosts`)
-Tambahkan pemetaan domain kustom agar siswa dan guru dapat mengakses server secara lokal tanpa mencari ke internet. Jalankan perintah berikut:
-```bash
-sudo sh -c 'echo "127.0.0.1 siswa.lopyta.org guru.lopyta.org" >> /etc/hosts'
-```
+Sistem ini memadukan **Golang** sebagai bahasa *backend* dan **React + TypeScript** sebagai antarmuka pengguna (*frontend*).
 
-### Langkah 2: Konfigurasi Nginx
-Salin konfigurasi virtual host Nginx yang telah disediakan ke direktori konfigurasi sistem Nginx Anda, lalu aktifkan:
-```bash
-# Salin file konfigurasi
-sudo cp nginx/lopyta.conf /etc/nginx/sites-available/lopyta.conf
+### 1. Root & Konfigurasi Utama
+- `go.mod` & `go.sum`: Konfigurasi *dependency* (modul) Golang yang digunakan (Fiber, Wails, Gorilla WebSocket, dll).
+- `main.go`: File pusat aplikasi Golang. Berisi inisialisasi server **Fiber**, registrasi *middleware* (CORS, Logger), koneksi ke *database*, *state manager*, dan titik masuk (entry point) aplikasi Wails. Seluruh routing utama dan sinkronisasi P2P antar-node juga diinisialisasi di sini.
+- `routes.go`: Pemisahan _routing_ REST API tambahan (contohnya Question Bank Sets) agar `main.go` tidak terlalu panjang.
+- `app.go`: Siklus hidup (lifecycle) dari aplikasi Wails desktop. Mengontrol *startup*, *shutdown*, dan interaksi _bridge_ khusus dengan sistem operasi klien.
+- `wails.json`: File konfigurasi *build* untuk framework Wails (nama aplikasi, output, perintah build).
+- `pull.sh`: *Shell script* otomatis untuk menarik pembaruan dari GitHub, melakukan kompilasi *frontend* dan *backend*, hingga memuat ulang (*restart*) layanan VPS.
 
-# Aktifkan konfigurasi dengan membuat symlink
-sudo ln -sf /etc/nginx/sites-available/lopyta.conf /etc/nginx/sites-enabled/
+### 2. `/frontend` (Antarmuka Pengguna)
+Aplikasi _Single Page Application_ (SPA) berbasis **React**, **Vite**, dan **TailwindCSS**.
+- `index.html` & `vite.config.ts`: Entry point Vite.
+- `src/App.tsx`: Routing halaman antarmuka (Login, Host/Teacher Dashboard, Public Landing Page, Layar Siswa).
+- `src/components/`: Komponen React terpisah (UI modular). Terdapat sub-folder seperti `classroom/` untuk komponen panel kelas, Bank Soal, dll.
+- `src/store/`: State management di sisi frontend menggunakan **Zustand** (contoh: `classStore.ts` untuk REST API, `websocketStore.ts` untuk sinkronisasi Real-Time).
 
-# Uji sintaks konfigurasi Nginx
-sudo nginx -t
+### 3. `/classroom` (Logika Inti / State Manager)
+Paket Golang yang mengatur *business logic* kelas secara **Real-Time**.
+- `state.go`: Mengatur memori kelas yang sedang aktif (Active Classes), menyimpan data siswa yang terhubung, dan skor.
+- `websocket.go` & `hub.go`: Logika koneksi WebSocket. Mengelola `Upgrader`, _Broadcast_ pesan ke siswa/guru, serta _Ping/Pong_ untuk mendeteksi klien yang terputus (Disconnect).
+- `auth.go`: Logika pembuatan sesi autentikasi dan validasi PIN unik siswa.
+- `p2p.go`: Mengatur komunikasi sinkronisasi state antar-node (misal: Lopyta Node-1 dan Node-2) melalui WebSocket khusus server-to-server agar data siswa tetap sinkron meski terhubung di node yang berbeda.
 
-# Muat ulang (restart) layanan Nginx
-sudo systemctl restart nginx
-```
+### 4. `/database` (Manajemen Basis Data)
+- Berisi file `.sql` (seperti `migration_01.sql`) untuk skema dan struktur tabel database MariaDB. Skema meliputi tabel `teachers`, `classes`, `students`, `question_bank`, `question_sets`, dan `roster`.
 
-### Langkah 3: Jalankan Kluster Server Go
+### 5. `/nginx` & `/supervisor` (DevOps & Deployment)
+- `nginx/lopyta.conf`: Konfigurasi *Reverse Proxy* dan *Load Balancer* Nginx. Mengatur rute HTTPS, pemetaan domain (guru.lopyta.org & siswa.lopyta.org), dan pengaturan khusus WebSocket.
+- `supervisor/lopyta.conf`: Konfigurasi untuk aplikasi **Supervisor** yang menjaga proses Golang tetap berjalan (*Daemon*) di VPS, otomatis me-*restart* jika terjadi *crash*, dan menyuntikkan *environment variables* seperti `WAILS_MODE="server"`.
 
-Ada dua opsi untuk menjalankan kedua server node Anda:
+---
 
-#### Opsi A: Menjalankan Secara Manual (Menggunakan 2 Terminal Terpisah)
-Buka **Terminal 1** dan jalankan **Node 1** (Web port: `8789`, Sync port: `8889`):
-```bash
-go run main.go -port 8789 -sync-port 8889 -peer-sync 127.0.0.1:8890 -node node-1
-```
+## 🛠️ Cara Membangun (Build) & Menjalankan
 
-Buka **Terminal 2** dan jalankan **Node 2** (Web port: `8790`, Sync port: `8890`):
-```bash
-go run main.go -port 8790 -sync-port 8890 -peer-sync 127.0.0.1:8889 -node node-2
-```
+### A. Sebagai Web Server di VPS (Production)
 
-#### Opsi B: Menjalankan di Background Menggunakan Supervisor (Sangat Direkomendasikan)
-Supervisor akan secara otomatis memantau, menjalankan, dan merestart kedua server node di latar belakang (*daemonize*) tanpa perlu membuka terminal aktif.
+Saat berjalan di server VPS yang tidak memiliki layar antarmuka (Headless), aplikasi dijalankan dalam mode Web Server murni.
 
-1. **Pasang Supervisor di Ubuntu Anda:**
+1. **Jalankan Skrip Otomatis**
+   Cukup jalankan `pull.sh` untuk melakukan _pull_, kompilasi _frontend_ dan _backend_, serta melakukan _restart_.
    ```bash
-   sudo apt update && sudo apt install -y supervisor
+   ./pull.sh
    ```
 
-2. **Kompilasi Aplikasi Go Terlebih Dahulu (Sudah Dibuatkan):**
+2. **Proses Manual (Jika diperlukan)**
    ```bash
-   go build -o lopyta-server main.go
+   # Build Frontend
+   cd frontend
+   npm install && npm run build
+   cd ..
+
+   # Build Backend
+   go mod tidy
+   go build -o lopyta-server .
+
+   # Restart Node (melalui Supervisor)
+   sudo supervisorctl restart lopyta-node-1 lopyta-node-2
    ```
+   *Catatan Penting*: Server akan gagal berjalan di VPS tanpa variabel `WAILS_MODE="server"` pada environment Supervisor, karena framework Wails secara default akan mencoba membuka UI Desktop.
 
-3. **Pasang File Konfigurasi Supervisor:**
-   Salin file konfigurasi kustom yang telah dibuat ke direktori Supervisor:
-   ```bash
-   sudo cp supervisor/lopyta.conf /etc/supervisor/conf.d/lopyta.conf
-   ```
+### B. Sebagai Aplikasi Desktop (Windows/Mac)
 
-4. **Muat Ulang & Jalankan Supervisor:**
-   Perintahkan Supervisor untuk mendeteksi berkas baru dan menjalankannya:
-   ```bash
-   sudo supervisorctl reread
-   sudo supervisorctl update
-   ```
+Untuk membuat file eksekusi ganda (`.exe` di Windows) yang bertindak sebagai server lokal sekaligus memunculkan UI aplikasi desktop bagi Guru:
 
-5. **Periksa Status Proses:**
-   Untuk memastikan kedua node berjalan sukses di background:
-   ```bash
-   sudo supervisorctl status
-   ```
-   *(Output akan menampilkan lopyta-node-1 dan lopyta-node-2 dalam status `RUNNING`).*
-
-6. **Mengendalikan Layanan (Opsional):**
-   * Restart: `sudo supervisorctl restart lopyta-node-1`
-   * Stop: `sudo supervisorctl stop all`
-   * Monitor Log secara langsung:
-     * Node 1: `tail -f /var/log/supervisor/lopyta-node-1-stdout.log`
-     * Node 2: `tail -f /var/log/supervisor/lopyta-node-2-stdout.log`
-
-*(Catatan: Dalam lingkungan produksi sesungguhnya, parameter `-peer-sync` akan diisi oleh IP VPN Wireguard dari VPS lawan).*
-
----
-
-## 💻 Cara Pengujian Sesi Kelas (Demo)
-
-1. **Akses Dashboard Guru:**
-   Buka browser Anda dan akses **`http://guru.lopyta.org`**. Masukkan nama kelas ("Jaringan Komputer A") dan nama Anda ("Pak Dosen"), lalu klik **Buat Kelas**. Anda akan mendapatkan Kode Kelas unik (misal: `CAFE12`).
-2. **Akses Dashboard Siswa (Minimal 5 Tab):**
-   Buka **`http://siswa.lopyta.org`** di minimal 5 tab browser terpisah (merepresentasikan 5 siswa). Masukkan Kode Kelas unik tersebut dan nama yang berbeda (Siswa A, Siswa B, dst) untuk masuk ke kelas.
-3. **Uji Slide Sync:**
-   Ubah slide presentasi di panel guru (klik *Selanjutnya* / *Sebelumnya*). Layar seluruh siswa di subdomain `siswa.lopyta.org` akan berganti halaman secara real-time!
-4. **Uji Kuis Real-time:**
-   Klik **Luncurkan Pertanyaan** di panel guru. Layar seluruh siswa akan menampilkan tombol kuis (A, B, C, D) dengan timer countdown. Siswa yang menjawab benar akan mendapat skor berdasarkan kebenaran dan waktu respon.
-5. **Uji Leaderboard:**
-   Setelah kuis selesai, papan peringkat (leaderboard) akan diperbarui secara otomatis dan dibroadcast ke semua layar guru dan siswa dengan animasi peningkatan/penurunan peringkat!
-
----
-
-## 📡 Spesifikasi Protokol Biner Kustom
-
-Seluruh pertukaran data real-time menggunakan frame biner yang dibungkus di dalam WebSocket dengan layout header sebagai berikut:
-
-```
-Struktur Frame Paket Custom (Biner):
-+--------------------+------------------+------------------+-----------------------+----------------------+--------------------------+-----------------------+
-| Magic (2B: 0xCAFE) | Version (1B: 01) | MsgType (2B: 00) | Sequence Number (4B)  | Payload Length (4B)  | Payload (JSON/String Var)| Checksum (4B: CRC32)  |
-+--------------------+------------------+------------------+-----------------------+----------------------+--------------------------+-----------------------+
+```bash
+# Pastikan wails CLI sudah terinstall
+wails build -clean -o lopyta_guru.exe
 ```
 
-### Tipe Pesan (Message Type Codes)
-* `0x0001` (`CREATE_CLASS`): Host membuat sesi baru.
-* `0x0002` (`JOIN_CLASS`): Peserta bergabung dengan kode kelas.
-* `0x0003` (`CLASS_STATE`): Broadcast state lengkap dari server ke client.
-* `0x0010` (`SEND_QUESTION`): Guru meluncurkan kuis pilihan ganda.
-* `0x0011` (`SUBMIT_ANSWER`): Siswa mengirimkan jawaban.
-* `0x0012` (`QUIZ_RESULT`): Hasil jawaban instan bagi siswa.
-* `0x0020` (`SLIDE_CHANGE`): Guru berpindah halaman slide.
-* `0x00F0` (`HEARTBEAT`): Heartbeat ping/pong.
-* `0x00FF` (`ERROR`): Mengirim error terstruktur.
-* `0x0100` (`REPLICATE_STATE`): Sinkronisasi data kluster antar-server.
+File hasil *build* akan tersedia di dalam direktori `build/bin/`.
 
 ---
 
-## 🛡️ Penanganan Kasus Khusus (Edge Cases)
+## 🌐 Endpoints Utama
 
-* **Duplicate Login (Login Ganda):** Jika siswa masuk dengan nama yang sudah aktif di sesi tersebut, server secara otomatis akan memutuskan koneksi siswa lama (*kick existing session*) dan mengizinkan koneksi baru masuk, menyelesaikan masalah tab tertinggal.
-* **Reconnect Otomatis:** Jika client kehilangan koneksi WebSocket secara tidak sengaja, script JS di sisi client akan terus mencoba menghubungkan kembali secara background setiap 3 detik. Begitu terhubung, ia akan melakukan re-join otomatis untuk memulihkan skor dan status kuis tanpa merusak sesi.
-* **Heartbeat Timeout:** Server memantau keaktifan koneksi client setiap 15 detik melalui ping/pong. Jika client tidak merespons dalam durasi tersebut, server secara aman memutus koneksi dan menandai siswa sebagai *inactive* di leaderboard tanpa merusak program.
-* **Malformed Packet (Paket Rusak):** Server memvalidasi Magic Number (`0xCAFE`), Version (`0x01`), Payload Length, dan mencocokkan CRC32 checksum. Jika paket rusak/tidak dikenal, server membuangnya dan mengirim pesan error kembali tanpa mengalami *crash*.
+- **GET `/`**: Landing Page Publik (Download Aplikasi)
+- **GET `/host/*`**: Teacher Dashboard (Membutuhkan Login)
+- **GET `/play/*`**: Ruang Kelas Siswa (Membutuhkan PIN / Auth)
+- **GET `/ws`**: Koneksi WebSocket Real-Time
+- **REST API `/api/*`**: Endpoint untuk mengambil kelas aktif, manipulasi bank soal, dsb.
+
+---
+
+## 🛡️ Teknologi yang Digunakan
+- **Backend:** Golang, Fiber (Web Framework), Wails (Desktop Bridge), Gorilla WebSocket.
+- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS v3, Zustand, Lucide Icons.
+- **Database:** MariaDB / MySQL.
+- **Infrastruktur:** Nginx (Load Balancer & SSL Terminator), Supervisor (Process Monitor).
