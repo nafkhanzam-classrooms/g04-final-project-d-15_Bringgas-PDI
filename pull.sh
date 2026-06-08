@@ -10,7 +10,7 @@ git pull origin main
 # 2. Build ulang Frontend React
 echo "2. Melakukan build ulang Frontend React..."
 cd frontend || exit
-npm install
+npm ci
 npm run build
 
 if [ $? -eq 0 ]; then
