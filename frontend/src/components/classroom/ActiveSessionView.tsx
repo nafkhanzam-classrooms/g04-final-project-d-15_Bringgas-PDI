@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle } from 'lucide-react';
-import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgClassState } from '../../store/websocketStore';
+import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgClassState, MsgToggleVideoCall } from '../../store/websocketStore';
 import { useClassStore } from '../../store/classStore';
 import type { QuestionBankItem } from '../../store/classStore';
+import VideoConference from './VideoConference';
 
 export default function ActiveSessionView() {
   const { code } = useParams();
@@ -89,14 +90,32 @@ export default function ActiveSessionView() {
               CODE: <span className="text-primary">{code}</span>
             </div>
           </div>
-          <button 
-            onClick={handleEndSession}
-            className="bg-surface hover:bg-red-50 text-secondary px-4 py-3 border-4 border-surface-dark font-bold uppercase flex items-center gap-2 shadow-[4px_4px_0px_#111827] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
-          >
-            <StopCircle size={20} strokeWidth={3} />
-            <span className="hidden md:inline">End Session</span>
-          </button>
+          <div className="flex gap-4">
+            <button 
+              onClick={() => sendPacket(MsgToggleVideoCall, { code, active: !classState?.isVideoCallActive })}
+              className={`px-4 py-3 border-4 border-surface-dark font-bold uppercase flex items-center gap-2 shadow-[4px_4px_0px_#111827] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all ${classState?.isVideoCallActive ? 'bg-primary text-surface' : 'bg-surface hover:bg-surface-container'}`}
+            >
+              <span className="hidden md:inline">{classState?.isVideoCallActive ? 'End Video Call' : 'Start Video Call'}</span>
+            </button>
+            <button 
+              onClick={handleEndSession}
+              className="bg-surface hover:bg-error/20 text-error px-4 py-3 border-4 border-surface-dark font-bold uppercase flex items-center gap-2 shadow-[4px_4px_0px_#111827] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+            >
+              <StopCircle size={20} strokeWidth={3} />
+              <span className="hidden md:inline">End Session</span>
+            </button>
+          </div>
         </div>
+
+        {/* Video Conference Overlay */}
+        {classState?.isVideoCallActive && (
+          <VideoConference 
+            roomName={classState.code} 
+            displayName={classState.hostName} 
+            isHost={true} 
+            onClose={() => sendPacket(MsgToggleVideoCall, { code, active: false })}
+          />
+        )}
 
         {/* Presentation Area */}
         <div className="flex-1 bg-surface border-4 border-surface-dark shadow-[6px_6px_0px_#111827] flex flex-col relative overflow-hidden min-h-[400px]">

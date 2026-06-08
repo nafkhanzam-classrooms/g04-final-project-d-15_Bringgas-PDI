@@ -1069,6 +1069,29 @@ func handleWebSocket(c *websocket.Conn) {
 			repManager.ReplicateSessionState(session)
 			BroadcastClassState(req.Code)
 
+		case protocol.MsgToggleVideoCall:
+			var req struct {
+				Code   string `json:"code"`
+				Active bool   `json:"active"`
+			}
+			if err := json.Unmarshal(payload, &req); err != nil {
+				sendError(c, "Invalid JSON payload for TOGGLE_VIDEO_CALL")
+				continue
+			}
+
+			session := sm.GetSession(req.Code)
+			if session == nil {
+				sendError(c, "Kelas tidak aktif.")
+				continue
+			}
+
+			session.SetVideoCallActive(req.Active)
+
+			log.Printf("[%s] Host toggled Video Call in %s: %v", nodeName, req.Code, req.Active)
+
+			repManager.ReplicateSessionState(session)
+			BroadcastClassState(req.Code)
+
 		case protocol.MsgHeartbeat:
 			c.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(protocol.MsgHeartbeat, seq, []byte(`{"status": "pong"}`)))
 			

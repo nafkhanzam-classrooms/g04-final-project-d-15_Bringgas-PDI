@@ -58,6 +58,7 @@ type ClassSession struct {
 	ActiveSlide       int                     `json:"activeSlide"`
 	TotalSlides       int                     `json:"totalSlides"`
 	PresentationUrl   string                  `json:"presentationUrl"`
+	IsVideoCallActive bool                    `json:"isVideoCallActive"`
 	Participants      map[string]*Participant `json:"participants"`
 	CurrentQuestion   *QuizQuestion           `json:"currentQuestion"`
 	Leaderboard       []LeaderboardEntry      `json:"leaderboard"`
@@ -541,4 +542,11 @@ func (s *ClassSession) PruneInactiveParticipants(timeout time.Duration) ([]strin
 	}
 
 	return prunedNames, changed
+}
+
+// SetVideoCallActive safely toggles the video call state
+func (s *ClassSession) SetVideoCallActive(active bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.IsVideoCallActive = active
 }

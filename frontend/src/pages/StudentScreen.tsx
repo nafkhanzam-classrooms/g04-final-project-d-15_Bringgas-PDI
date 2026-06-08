@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LogIn, User, Hash, Zap, Code, CheckCircle, Flame } from 'lucide-react';
 import { useWebSocketStore, MsgJoinClass, MsgSubmitAnswer } from '../store/websocketStore';
+import VideoConference from '../components/classroom/VideoConference';
 
 export default function StudentScreen() {
   const { isConnected, connect, classState, myName, sendPacket, lastQuizResult, clearLastQuizResult } = useWebSocketStore();
@@ -171,6 +172,14 @@ export default function StudentScreen() {
 
       {/* Main Content Area */}
       <main className="flex-1 relative flex flex-col">
+        {/* Video Conference Overlay for Student */}
+        {classState?.isVideoCallActive && (
+          <VideoConference 
+            roomName={classState.code} 
+            displayName={myName || 'Student'} 
+            isHost={false} 
+          />
+        )}
         {!classState.currentQuestion ? (
           // Slide View
           classState?.presentationUrl ? (

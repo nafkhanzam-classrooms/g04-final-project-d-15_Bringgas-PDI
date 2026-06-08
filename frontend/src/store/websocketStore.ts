@@ -9,6 +9,7 @@ export const MsgSendQuestion = 0x0010;
 export const MsgSubmitAnswer = 0x0011;
 export const MsgQuizResult = 0x0012;
 export const MsgSlideChange = 0x0020;
+export const MsgToggleVideoCall = 0x0040;
 export const MsgError = 0x00FF;
 
 const MAGIC_NUMBER = 0xCAFE;
@@ -39,8 +40,9 @@ export interface Question {
   questionText: string;
   options: string[];
   correctOption: string;
+  activityType: 'quiz' | 'poll' | 'essay';
   durationSeconds: number;
-  activityType: string;
+  pointMultiplier: number;
 }
 
 export interface ClassState {
@@ -48,11 +50,14 @@ export interface ClassState {
   className: string;
   hostName: string;
   isActive: boolean;
-  participants: Record<string, Participant>;
-  currentQuestion: Question | null;
-  questionStartTime: string;
   activeSlide: number;
-  presentationUrl?: string;
+  totalSlides: number;
+  presentationUrl: string;
+  isVideoCallActive: boolean;
+  pointMultiplier: number;
+  currentQuestion: Question | null;
+  participants: Record<string, Participant>;
+  leaderboard: { name: string, score: number, streak: number, rank: number, change: number, lastRank: number }[];
 }
 
 interface WebSocketState {

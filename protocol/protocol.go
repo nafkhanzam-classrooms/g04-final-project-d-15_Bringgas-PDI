@@ -24,6 +24,7 @@ const (
 	MsgSlideChange     uint16 = 0x0020
 	MsgSlideBroadcast  uint16 = 0x0021
 	MsgLeaderboard     uint16 = 0x0030
+	MsgToggleVideoCall uint16 = 0x0040
 	MsgHeartbeat       uint16 = 0x00F0
 	MsgError           uint16 = 0x00FF
 	MsgReplicateState  uint16 = 0x0100
