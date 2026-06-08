@@ -145,24 +145,23 @@ export default function ActiveSessionView() {
               </button>
             </div>
           ) : classState?.presentationUrl ? (
-            <div className="flex-1 w-full h-full bg-surface-container">
+            <div className="flex-1 w-full h-full relative bg-surface-container-high border-b-4 md:border-b-0 md:border-r-4 border-surface-dark overflow-hidden min-h-[80vh] md:min-h-screen">
               {classState.presentationUrl.toLowerCase().endsWith('.pdf') ? (
                 <iframe 
                   key={classState.activeSlide}
                   src={classState.presentationUrl + "#toolbar=0&navpanes=0&scrollbar=0&view=FitH&page=" + classState.activeSlide}
                   width="100%" 
                   height="100%" 
-                  className="w-full h-full"
+                  className="w-full h-full border-0 absolute top-0 left-0"
                   title="PDF Presentation"
                 ></iframe>
               ) : (
                 <iframe 
-                  key={classState.activeSlide}
-                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(classState.presentationUrl)}&wdSlideIndex=${classState.activeSlide}`}
+                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(classState.presentationUrl)}`}
                   width="100%" 
                   height="100%" 
                   frameBorder="0"
-                  className="w-full h-full"
+                  className="w-full h-full border-0 absolute top-0 left-0"
                   title="PowerPoint Presentation"
                 ></iframe>
               )}
