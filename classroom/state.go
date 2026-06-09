@@ -268,6 +268,13 @@ func (s *ClassSession) StartQuestion(qText string, options []string, correct str
 	return question
 }
 
+// StopQuestion manually clears the active question from the session
+func (s *ClassSession) StopQuestion() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.CurrentQuestion = nil
+}
+
 // SubmitAnswer processes a student's answer submission, updating points and streaks
 func (s *ClassSession) SubmitAnswer(name, answer string) (bool, int, error) {
 	s.mu.Lock()

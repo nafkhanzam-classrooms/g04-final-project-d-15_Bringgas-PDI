@@ -8,6 +8,7 @@ export const MsgJoinSuccess = 0x0008; // Custom for our PIN login
 export const MsgSendQuestion = 0x0010;
 export const MsgSubmitAnswer = 0x0011;
 export const MsgQuizResult = 0x0012;
+export const MsgStopQuestion = 0x0013;
 export const MsgSlideChange = 0x0020;
 export const MsgToggleVideoCall = 0x0040;
 export const MsgError = 0x00FF;

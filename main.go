@@ -1069,6 +1069,27 @@ func handleWebSocket(c *websocket.Conn) {
 			repManager.ReplicateSessionState(session)
 			BroadcastClassState(req.Code)
 
+		case protocol.MsgStopQuestion:
+			var req struct {
+				Code string `json:"code"`
+			}
+			if err := json.Unmarshal(payload, &req); err != nil {
+				sendError(c, "Invalid JSON payload for STOP_QUESTION")
+				continue
+			}
+
+			session := sm.GetSession(req.Code)
+			if session == nil {
+				sendError(c, "Kelas tidak aktif.")
+				continue
+			}
+
+			session.StopQuestion()
+			log.Printf("[%s] Host stopped active Quiz in %s", nodeName, req.Code)
+
+			repManager.ReplicateSessionState(session)
+			BroadcastClassState(req.Code)
+
 		case protocol.MsgToggleVideoCall:
 			var req struct {
 				Code   string `json:"code"`

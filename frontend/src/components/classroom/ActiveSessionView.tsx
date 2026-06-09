@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgClassState, MsgToggleVideoCall, MsgSendQuestion } from '../../store/websocketStore';
+import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgClassState, MsgToggleVideoCall, MsgSendQuestion, MsgStopQuestion } from '../../store/websocketStore';
 import { useClassStore } from '../../store/classStore';
 import type { QuestionBankItem } from '../../store/classStore';
 import VideoConference from './VideoConference';
@@ -20,7 +20,15 @@ export default function ActiveSessionView() {
     if (!isConnected) {
       connect();
     }
+    
+    // Refresh question bank when returning to this tab
+    const handleFocus = () => {
+      fetchQuestionBank();
+    };
+    window.addEventListener('focus', handleFocus);
+    
     return () => {
+      window.removeEventListener('focus', handleFocus);
       // Don't disconnect on unmount if we want background connection, 
       // but for this simple SPA we disconnect if they leave the active session page.
       // Actually let's keep it connected but we will need to re-join if needed.
@@ -80,7 +88,7 @@ export default function ActiveSessionView() {
   };
 
   const stopQuiz = () => {
-    sendPacket(MsgClassState, { currentQuestion: null });
+    sendPacket(MsgStopQuestion, { code });
   };
 
   if (!code) {
