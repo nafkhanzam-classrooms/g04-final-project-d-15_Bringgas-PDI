@@ -785,19 +785,26 @@ func handleWebSocket(c *websocket.Conn) {
 			registry.mu.Unlock()
 			log.Printf("[%s] Host disconnected from session %s", nodeName, currentCode)
 		} else if currentCode != "" && currentName != "" {
+			var wasSuperseded bool
 			registry.mu.Lock()
 			if clients, ok := registry.participants[currentCode]; ok {
-				delete(clients, currentName)
+				if activeConn, exists := clients[currentName]; exists && activeConn == c {
+					delete(clients, currentName)
+				} else if exists && activeConn != c {
+					wasSuperseded = true
+				}
 			}
 			registry.mu.Unlock()
 
-			session := sm.GetSession(currentCode)
-			if session != nil {
-				session.DisconnectParticipant(currentName)
-				repManager.ReplicateSessionState(session)
-				BroadcastClassState(currentCode)
+			if !wasSuperseded {
+				session := sm.GetSession(currentCode)
+				if session != nil {
+					session.DisconnectParticipant(currentName)
+					repManager.ReplicateSessionState(session)
+					BroadcastClassState(currentCode)
+				}
+				log.Printf("[%s] Participant %s disconnected from session %s", nodeName, currentName, currentCode)
 			}
-			log.Printf("[%s] Participant %s disconnected from session %s", nodeName, currentName, currentCode)
 		}
 	}()
 
