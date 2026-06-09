@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgClassState, MsgToggleVideoCall, MsgSendQuestion, MsgStopQuestion } from '../../store/websocketStore';
+import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgToggleVideoCall, MsgSendQuestion, MsgStopQuestion } from '../../store/websocketStore';
 import { useClassStore } from '../../store/classStore';
 import type { QuestionBankItem } from '../../store/classStore';
 import VideoConference from './VideoConference';
