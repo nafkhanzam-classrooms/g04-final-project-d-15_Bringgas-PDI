@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgClassState, MsgToggleVideoCall } from '../../store/websocketStore';
+import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgClassState, MsgToggleVideoCall, MsgSendQuestion } from '../../store/websocketStore';
 import { useClassStore } from '../../store/classStore';
 import type { QuestionBankItem } from '../../store/classStore';
 import VideoConference from './VideoConference';
@@ -60,7 +60,7 @@ export default function ActiveSessionView() {
   const changeSlide = (delta: number) => {
     const newSlide = Math.max(1, slideNumber + delta);
     setSlideNumber(newSlide);
-    sendPacket(MsgSlideChange, { activeSlide: newSlide });
+    sendPacket(MsgSlideChange, { code, slide: newSlide });
 
     // Call Wails if available
     if (window.go?.main?.App?.ChangeSlide) {
@@ -69,9 +69,13 @@ export default function ActiveSessionView() {
   };
 
   const launchQuiz = (q: QuestionBankItem) => {
-    sendPacket(MsgClassState, {
-      currentQuestion: q,
-      questionStartTime: new Date().toISOString()
+    sendPacket(MsgSendQuestion, {
+      code,
+      questionText: q.questionText,
+      options: q.options,
+      correctOption: q.correctOption,
+      durationSeconds: q.durationSeconds,
+      pointMultiplier: 1
     });
   };
 
