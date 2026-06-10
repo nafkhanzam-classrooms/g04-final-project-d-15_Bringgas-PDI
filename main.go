@@ -945,7 +945,7 @@ func handleWebSocket(c *websocket.Conn) {
 			if status == "kick" {
 				registry.mu.Lock()
 				if clients, ok := registry.participants[currentCode]; ok {
-					if oldConn, exists := clients[currentName]; exists {
+					if oldConn, exists := clients[currentName]; exists && oldConn != c {
 						oldPayload, _ := json.Marshal(map[string]string{"message": "Sesi Anda ditendang karena login ganda dari tab lain."})
 						oldConn.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(protocol.MsgError, 0, oldPayload))
 						oldConn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Kicked"))

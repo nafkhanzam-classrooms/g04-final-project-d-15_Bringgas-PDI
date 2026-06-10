@@ -63,7 +63,7 @@ export default function StudentScreen() {
     sessionStorage.setItem('lopyta_student_joined', 'true');
     
     // Send PIN in entryCode
-    sendPacket(MsgJoinClass, { code, entryCode: pin });
+    // We don't send the packet here to avoid double sending, as the useEffect below will handle it
     setHasJoined(true);
   };
 
@@ -216,7 +216,9 @@ export default function StudentScreen() {
                 </div>
               ) : (
                 <iframe 
-                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(classState.presentationUrl)}`} 
+                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
+                    classState.presentationUrl.startsWith('http') ? classState.presentationUrl : window.location.origin + classState.presentationUrl
+                  )}`} 
                   width="100%" 
                   height="100%" 
                   frameBorder="0"

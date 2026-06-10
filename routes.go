@@ -92,7 +92,7 @@ func RegisterNewRoutes(app *fiber.App, authGuard fiber.Handler) {
 
 		// Update database
 		// NOTE: Office Online requires an absolute public URL
-		publicUrl := c.BaseURL() + "/uploads/" + filename
+		publicUrl := "/uploads/" + filename
 		_, err = database.DB.Exec("UPDATE classes SET presentation_url = ? WHERE code = ?", publicUrl, code)
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": "Failed to update class record"})
