@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, User, Hash, Zap, Code, CheckCircle, Flame } from 'lucide-react';
+import { LogIn, User, Hash, Zap, Code, CheckCircle, Flame, Trophy } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useWebSocketStore, MsgJoinClass, MsgSubmitAnswer } from '../store/websocketStore';
 import VideoConference from '../components/classroom/VideoConference';
