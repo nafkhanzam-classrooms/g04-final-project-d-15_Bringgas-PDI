@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle, Trophy } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -11,9 +11,10 @@ import PdfSlideViewer from './PdfSlideViewer';
 export default function ActiveSessionView() {
   const { code } = useParams();
   const navigate = useNavigate();
-  const { isConnected, classState, connect, disconnect, sendPacket, error, clearError } = useWebSocketStore();
+  const { isConnected, classState, connect, disconnect, sendPacket, sendWithRetry, error, clearError } = useWebSocketStore();
   const { questionBank, fetchQuestionBank, endClass } = useClassStore();
   const [slideNumber, setSlideNumber] = useState(1);
+  const requestedSlide = useRef(1);
 
   useEffect(() => {
     fetchQuestionBank();
@@ -42,6 +43,16 @@ export default function ActiveSessionView() {
     }
   }, [isConnected, code, classState, sendPacket]);
 
+  // Sync initial slide or handle remote slide changes without snapping back
+  useEffect(() => {
+    if (classState?.activeSlide) {
+      if (classState.activeSlide !== requestedSlide.current) {
+        setSlideNumber(classState.activeSlide);
+        requestedSlide.current = classState.activeSlide;
+      }
+    }
+  }, [classState?.activeSlide]);
+
   // Handle WebSocket errors for Host
   useEffect(() => {
     if (error) {
@@ -68,7 +79,12 @@ export default function ActiveSessionView() {
   const changeSlide = (delta: number) => {
     const newSlide = Math.max(1, slideNumber + delta);
     setSlideNumber(newSlide);
-    sendPacket(MsgSlideChange, { code, slide: newSlide });
+    requestedSlide.current = newSlide;
+    sendWithRetry(
+      MsgSlideChange, 
+      { code, slide: newSlide },
+      (state) => state.classState?.activeSlide === newSlide
+    );
 
     // Call Wails if available
     if (window.go?.main?.App?.ChangeSlide) {
@@ -77,19 +93,27 @@ export default function ActiveSessionView() {
   };
 
   const launchQuiz = (q: QuestionBankItem) => {
-    sendPacket(MsgSendQuestion, {
-      code,
-      questionText: q.questionText,
-      options: q.options,
-      correctOption: q.correctOption,
-      durationSeconds: q.durationSeconds,
-      pointMultiplier: 1,
-      activityType: q.activityType
-    });
+    sendWithRetry(
+      MsgSendQuestion, 
+      {
+        code,
+        questionText: q.questionText,
+        options: q.options,
+        correctOption: q.correctOption,
+        durationSeconds: q.durationSeconds,
+        pointMultiplier: 1,
+        activityType: q.activityType
+      },
+      (state) => state.classState?.currentQuestion?.questionText === q.questionText
+    );
   };
 
   const stopQuiz = () => {
-    sendPacket(MsgStopQuestion, { code });
+    sendWithRetry(
+      MsgStopQuestion, 
+      { code },
+      (state) => state.classState?.currentQuestion === null
+    );
   };
 
   if (!code) {
@@ -121,14 +145,28 @@ export default function ActiveSessionView() {
           </div>
           <div className="flex gap-4">
             <button 
-              onClick={() => sendPacket(MsgLeaderboard, { code, active: !classState?.isShowingLeaderboard })}
+              onClick={() => {
+                const desiredState = !classState?.isShowingLeaderboard;
+                sendWithRetry(
+                  MsgLeaderboard, 
+                  { code, active: desiredState },
+                  (state) => state.classState?.isShowingLeaderboard === desiredState
+                );
+              }}
               className={`px-4 py-3 border-4 border-surface-dark font-bold uppercase flex items-center gap-2 shadow-[4px_4px_0px_#111827] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all ${classState?.isShowingLeaderboard ? 'bg-secondary text-surface' : 'bg-surface hover:bg-surface-container'}`}
             >
               <Trophy size={20} strokeWidth={3} />
               <span className="hidden md:inline">{classState?.isShowingLeaderboard ? 'Hide Leaderboard' : 'Show Leaderboard'}</span>
             </button>
             <button 
-              onClick={() => sendPacket(MsgToggleVideoCall, { code, active: !classState?.isVideoCallActive })}
+              onClick={() => {
+                const desiredState = !classState?.isVideoCallActive;
+                sendWithRetry(
+                  MsgToggleVideoCall, 
+                  { code, active: desiredState },
+                  (state) => state.classState?.isVideoCallActive === desiredState
+                );
+              }}
               className={`px-4 py-3 border-4 border-surface-dark font-bold uppercase flex items-center gap-2 shadow-[4px_4px_0px_#111827] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all ${classState?.isVideoCallActive ? 'bg-primary text-surface' : 'bg-surface hover:bg-surface-container'}`}
             >
               <span className="hidden md:inline">{classState?.isVideoCallActive ? 'End Video Call' : 'Start Video Call'}</span>
@@ -149,7 +187,7 @@ export default function ActiveSessionView() {
             roomName={classState.code} 
             displayName={classState.hostName} 
             isHost={true} 
-            onClose={() => sendPacket(MsgToggleVideoCall, { code, active: false })}
+            onClose={() => sendWithRetry(MsgToggleVideoCall, { code, active: false }, (state) => state.classState?.isVideoCallActive === false)}
           />
         )}
 

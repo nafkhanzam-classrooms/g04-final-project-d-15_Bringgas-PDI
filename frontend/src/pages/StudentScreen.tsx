@@ -6,7 +6,7 @@ import VideoConference from '../components/classroom/VideoConference';
 import PdfSlideViewer from '../components/classroom/PdfSlideViewer';
 
 export default function StudentScreen() {
-  const { isConnected, connect, classState, myName, sendPacket, lastQuizResult, clearLastQuizResult, error, clearError } = useWebSocketStore();
+  const { isConnected, connect, classState, myName, sendPacket, sendWithRetry, lastQuizResult, clearLastQuizResult, error, clearError } = useWebSocketStore();
   const [localScore, setLocalScore] = useState(0);
   const [localStreak, setLocalStreak] = useState(0);
   const [showStreakAnim, setShowStreakAnim] = useState(false);
@@ -115,7 +115,14 @@ export default function StudentScreen() {
 
   const handleAnswer = (option: string) => {
     setSelectedOption(option);
-    sendPacket(MsgSubmitAnswer, { answer: option });
+    sendWithRetry(
+      MsgSubmitAnswer, 
+      { answer: option },
+      (state) => {
+        const myData = state.classState?.participants?.[state.myName || ''];
+        return !!state.lastQuizResult || !!myData?.hasAnsweredCurrent;
+      }
+    );
   };
 
   if (!hasJoined || !classState) {

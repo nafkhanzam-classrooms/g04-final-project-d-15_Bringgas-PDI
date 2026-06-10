@@ -63,6 +63,12 @@ export interface ClassState {
   leaderboard: { name: string, score: number, streak: number, rank: number, change: number, lastRank: number }[];
 }
 
+interface PendingAction {
+  payload: any;
+  checkAck: (state: WebSocketState) => boolean;
+  intervalId: number;
+}
+
 interface WebSocketState {
   ws: WebSocket | null;
   isConnected: boolean;
@@ -71,10 +77,13 @@ interface WebSocketState {
   classState: ClassState | null;
   myName: string | null;
   lastQuizResult: { isCorrect: boolean; pointsEarned: number; correct: string } | null;
+  pendingActions: Record<number, PendingAction>;
   
   connect: () => void;
   disconnect: () => void;
   sendPacket: (msgType: number, payload: any) => void;
+  sendWithRetry: (msgType: number, payload: any, checkAck: (state: WebSocketState) => boolean) => void;
+  cancelRetry: (msgType: number) => void;
   clearError: () => void;
   clearLastQuizResult: () => void;
 }
@@ -90,6 +99,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
     classState: null,
     myName: null,
     lastQuizResult: null,
+    pendingActions: {},
 
     connect: () => {
       const { ws, isConnecting, isConnected } = get();
@@ -167,11 +177,12 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
       if (reconnectTimeout) {
         window.clearTimeout(reconnectTimeout);
       }
-      const { ws } = get();
+      const { ws, pendingActions } = get();
+      Object.values(pendingActions).forEach(action => window.clearInterval(action.intervalId));
       if (ws) {
         ws.close(1000, 'User triggered disconnect');
       }
-      set({ ws: null, isConnected: false, isConnecting: false, classState: null, error: null });
+      set({ ws: null, isConnected: false, isConnecting: false, classState: null, error: null, pendingActions: {} });
     },
 
     sendPacket: (msgType: number, payload: any) => {
@@ -204,6 +215,40 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
       ws.send(buffer.buffer);
     },
     
+    sendWithRetry: (msgType: number, payload: any, checkAck: (state: WebSocketState) => boolean) => {
+      const { sendPacket, cancelRetry } = get();
+      
+      cancelRetry(msgType);
+      
+      sendPacket(msgType, payload);
+      
+      const intervalId = window.setInterval(() => {
+        const state = get();
+        if (checkAck(state)) {
+          state.cancelRetry(msgType);
+        } else if (state.isConnected && state.ws) {
+          state.sendPacket(msgType, payload);
+        }
+      }, 2000);
+      
+      set(state => ({
+        pendingActions: {
+          ...state.pendingActions,
+          [msgType]: { payload, checkAck, intervalId }
+        }
+      }));
+    },
+
+    cancelRetry: (msgType: number) => {
+      const { pendingActions } = get();
+      if (pendingActions[msgType]) {
+        window.clearInterval(pendingActions[msgType].intervalId);
+        const newActions = { ...pendingActions };
+        delete newActions[msgType];
+        set({ pendingActions: newActions });
+      }
+    },
+
     clearError: () => set({ error: null }),
     clearLastQuizResult: () => set({ lastQuizResult: null }),
   };

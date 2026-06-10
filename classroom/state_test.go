@@ -51,7 +51,7 @@ func TestScoreAndLeaderboardCalculation(t *testing.T) {
 	s.Participants["Siswa_Charlie"] = &Participant{Name: "Siswa_Charlie", Active: true}
 
 	// Start Quiz
-	s.StartQuestion("Protokol UDP?", []string{"TCP", "UDP", "IP", "DNS"}, "B", 10)
+	s.StartQuestion("Protokol UDP?", []string{"TCP", "UDP", "IP", "DNS"}, "B", 10, "quiz")
 
 	// Since we mock, let's inject manually to verify score math
 	s.CurrentQuestion.EndTime = time.Now().Add(10 * time.Second) // 10s total duration
@@ -91,21 +91,21 @@ func TestAnswerStreaks(t *testing.T) {
 	s.Participants["Siswa_Alice"] = &Participant{Name: "Siswa_Alice", Active: true}
 
 	// Question 1 Correct
-	s.StartQuestion("Q1", []string{"A", "B"}, "A", 10)
+	s.StartQuestion("Q1", []string{"A", "B"}, "A", 10, "quiz")
 	s.SubmitAnswer("Siswa_Alice", "A")
 	if s.Participants["Siswa_Alice"].Streak != 1 {
 		t.Errorf("Expected streak 1, got %d", s.Participants["Siswa_Alice"].Streak)
 	}
 
 	// Question 2 Correct
-	s.StartQuestion("Q2", []string{"A", "B"}, "A", 10)
+	s.StartQuestion("Q2", []string{"A", "B"}, "A", 10, "quiz")
 	s.SubmitAnswer("Siswa_Alice", "A")
 	if s.Participants["Siswa_Alice"].Streak != 2 {
 		t.Errorf("Expected streak 2, got %d", s.Participants["Siswa_Alice"].Streak)
 	}
 
 	// Question 3 Incorrect
-	s.StartQuestion("Q3", []string{"A", "B"}, "A", 10)
+	s.StartQuestion("Q3", []string{"A", "B"}, "A", 10, "quiz")
 	s.SubmitAnswer("Siswa_Alice", "B")
 	if s.Participants["Siswa_Alice"].Streak != 0 {
 		t.Errorf("Expected streak to reset to 0 after wrong answer, got %d", s.Participants["Siswa_Alice"].Streak)

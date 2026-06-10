@@ -895,6 +895,17 @@ func handleWebSocket(c *websocket.Conn) {
 			isHost = true
 
 			registry.mu.Lock()
+			// Evict older host connections for this teacher across all sessions
+			for code, oldConn := range registry.hosts {
+				oldSession := sm.GetSession(code)
+				if oldSession != nil && oldSession.TeacherID == req.TeacherID && oldConn != c {
+					oldPayload, _ := json.Marshal(map[string]string{"message": "Sesi sebelumnya ditutup karena Anda membuka sesi baru."})
+					oldConn.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(protocol.MsgError, 0, oldPayload))
+					oldConn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Kicked"))
+					oldConn.Close()
+					delete(registry.hosts, code)
+				}
+			}
 			registry.hosts[session.Code] = c
 			registry.mu.Unlock()
 
