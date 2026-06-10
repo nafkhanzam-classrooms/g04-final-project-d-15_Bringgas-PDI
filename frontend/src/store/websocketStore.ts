@@ -12,6 +12,9 @@ export const MsgStopQuestion = 0x0013;
 export const MsgSlideChange = 0x0020;
 export const MsgLeaderboard = 0x0030;
 export const MsgToggleVideoCall = 0x0040;
+export const MsgWhiteboardDraw = 0x0050;
+export const MsgWhiteboardClear = 0x0051;
+export const MsgWhiteboardPermit = 0x0052;
 export const MsgError = 0x00FF;
 
 const MAGIC_NUMBER = 0xCAFE;
@@ -47,6 +50,14 @@ export interface Question {
   pointMultiplier: number;
 }
 
+export interface WhiteboardLine {
+  points: number[];
+  color: string;
+  size: number;
+  tool: string;
+  student?: string;
+}
+
 export interface ClassState {
   code: string;
   className: string;
@@ -57,6 +68,8 @@ export interface ClassState {
   presentationUrl: string;
   isVideoCallActive: boolean;
   isShowingLeaderboard: boolean;
+  whiteboardPermit: string;
+  whiteboardLines: WhiteboardLine[];
   pointMultiplier: number;
   currentQuestion: Question | null;
   participants: Record<string, Participant>;
@@ -140,6 +153,31 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
           
           if (msgType === MsgClassState) {
             set({ classState: payload });
+          } else if (msgType === MsgWhiteboardDraw) {
+            const line = payload;
+            set((state) => {
+              if (state.classState) {
+                return {
+                  classState: {
+                    ...state.classState,
+                    whiteboardLines: [...state.classState.whiteboardLines, line]
+                  }
+                };
+              }
+              return state;
+            });
+          } else if (msgType === MsgWhiteboardClear) {
+            set((state) => {
+              if (state.classState) {
+                return {
+                  classState: {
+                    ...state.classState,
+                    whiteboardLines: []
+                  }
+                };
+              }
+              return state;
+            });
           } else if (msgType === MsgJoinSuccess) {
             set({ myName: payload.name });
           } else if (msgType === MsgQuizResult) {

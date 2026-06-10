@@ -1182,6 +1182,82 @@ func handleWebSocket(c *websocket.Conn) {
 			repManager.ReplicateSessionState(session)
 			BroadcastClassState(req.Code)
 
+		case protocol.MsgWhiteboardDraw:
+			var req struct {
+				Code    string    `json:"code"`
+				Points  []float64 `json:"points"`
+				Color   string    `json:"color"`
+				Size    float64   `json:"size"`
+				Tool    string    `json:"tool"`
+			}
+			if err := json.Unmarshal(payload, &req); err == nil {
+				session := sm.GetSession(req.Code)
+				if session != nil {
+					// Check permissions
+					canDraw := isHost || session.WhiteboardPermit == "all"
+					if canDraw {
+						line := classroom.WhiteboardLine{
+							Points:  req.Points,
+							Color:   req.Color,
+							Size:    req.Size,
+							Tool:    req.Tool,
+							Student: currentName,
+						}
+						session.AddWhiteboardLine(line)
+						
+						broadcastPayload, _ := json.Marshal(line)
+						packet := protocol.EncodePacket(protocol.MsgWhiteboardDraw, 0, broadcastPayload)
+						
+						registry.mu.RLock()
+						if hostConn, exists := registry.hosts[req.Code]; exists && !isHost {
+							hostConn.WriteMessage(websocket.BinaryMessage, packet)
+						}
+						if students, exists := registry.participants[req.Code]; exists {
+							for name, studentConn := range students {
+								if isHost || name != currentName {
+									studentConn.WriteMessage(websocket.BinaryMessage, packet)
+								}
+							}
+						}
+						registry.mu.RUnlock()
+					}
+				}
+			}
+
+		case protocol.MsgWhiteboardClear:
+			var req struct {
+				Code string `json:"code"`
+			}
+			if err := json.Unmarshal(payload, &req); err == nil {
+				session := sm.GetSession(req.Code)
+				if session != nil && isHost {
+					session.ClearWhiteboard()
+					packet := protocol.EncodePacket(protocol.MsgWhiteboardClear, 0, []byte("{}"))
+					
+					registry.mu.RLock()
+					if students, exists := registry.participants[req.Code]; exists {
+						for _, studentConn := range students {
+							studentConn.WriteMessage(websocket.BinaryMessage, packet)
+						}
+					}
+					registry.mu.RUnlock()
+				}
+			}
+
+		case protocol.MsgWhiteboardPermit:
+			var req struct {
+				Code   string `json:"code"`
+				Permit string `json:"permit"`
+			}
+			if err := json.Unmarshal(payload, &req); err == nil {
+				session := sm.GetSession(req.Code)
+				if session != nil && isHost {
+					session.SetWhiteboardPermit(req.Permit)
+					repManager.ReplicateSessionState(session)
+					BroadcastClassState(req.Code)
+				}
+			}
+
 		case protocol.MsgHeartbeat:
 			c.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(protocol.MsgHeartbeat, seq, []byte(`{"status": "pong"}`)))
 			

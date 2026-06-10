@@ -18,38 +18,38 @@ export default function VideoConference({ roomName, displayName, onClose, isHost
 
   if (isMinimized) {
     return (
-      <div className="fixed bottom-6 right-6 z-50 bg-surface-dark text-surface p-4 border-4 border-primary shadow-[8px_8px_0px_#111827] flex items-center gap-4 cursor-pointer hover:bg-primary transition-colors"
+      <div className="fixed bottom-6 right-6 z-50 bg-white-dark text-white p-4 border-4 border-primary shadow-sm flex items-center gap-4 cursor-pointer hover:bg-blue-600 transition-colors"
            onClick={() => setIsMinimized(false)}>
         <div className="w-3 h-3 rounded-full bg-error animate-pulse"></div>
-        <span className="font-display font-bold uppercase tracking-widest">Video Call Active</span>
+        <span className="font-sans font-bold tracking-wide">Video Call Active</span>
         <Maximize2 size={20} />
       </div>
     );
   }
 
   const containerClasses = isMaximized 
-    ? "fixed inset-4 z-50 bg-surface border-4 border-surface-dark shadow-[16px_16px_0px_#111827] flex flex-col"
-    : "fixed bottom-6 right-6 z-50 w-[400px] md:w-[600px] h-[400px] md:h-[450px] bg-surface border-4 border-surface-dark shadow-[12px_12px_0px_#111827] flex flex-col";
+    ? "fixed inset-4 z-50 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col"
+    : "fixed bottom-6 right-6 z-50 w-[400px] md:w-[600px] h-[400px] md:h-[450px] bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col";
 
   return (
     <div className={containerClasses}>
       {/* Header / Draggable handle area */}
-      <div className="bg-surface-dark text-surface p-2 flex justify-between items-center cursor-move">
+      <div className="bg-white-dark text-white p-2 flex justify-between items-center cursor-move">
         <div className="flex items-center gap-2 px-2">
           <div className="w-2 h-2 rounded-full bg-error animate-pulse"></div>
-          <span className="font-mono text-xs font-bold uppercase tracking-widest">Live Class</span>
+          <span className="font-sans text-xs font-bold tracking-wide">Live Class</span>
         </div>
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setIsMinimized(true)}
-            className="p-1 hover:bg-surface/20 transition-colors"
+            className="p-1 hover:bg-white/20 transition-colors"
             title="Minimize"
           >
             <Minimize2 size={16} />
           </button>
           <button 
             onClick={() => setIsMaximized(!isMaximized)}
-            className="p-1 hover:bg-surface/20 transition-colors hidden md:block"
+            className="p-1 hover:bg-white/20 transition-colors hidden md:block"
             title="Maximize"
           >
             <Maximize2 size={16} />

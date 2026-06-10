@@ -1,4 +1,3 @@
-
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { School, LayoutDashboard, Presentation, Database, LogOut, Activity } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
@@ -27,10 +26,10 @@ export default function TeacherDashboard() {
     return (
       <button 
         onClick={() => navigate(to)}
-        className={`w-full flex items-center gap-3 px-4 py-3 border-2 transition-all font-bold text-sm uppercase ${
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${
           isActive 
-            ? 'bg-primary text-surface border-surface-dark shadow-[4px_4px_0px_#111827] translate-x-[-2px] translate-y-[-2px]' 
-            : 'bg-transparent text-surface-dark border-transparent hover:border-surface-dark hover:bg-surface-container'
+            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' 
+            : 'bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900'
         }`}
       >
         <Icon size={20} />
@@ -40,52 +39,51 @@ export default function TeacherDashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-surface-container text-surface-dark overflow-hidden font-sans">
+    <div className="flex h-screen bg-slate-50 text-slate-800 overflow-hidden font-sans">
       {/* Sidebar */}
-      <aside className="w-72 bg-surface border-r-4 border-surface-dark flex flex-col z-20">
-        <div className="p-6 border-b-4 border-surface-dark bg-primary text-surface flex items-center gap-3">
-          <School size={32} />
+      <aside className="w-72 bg-white border-r border-slate-200 flex flex-col z-20 shadow-sm relative">
+        <div className="p-6 border-b border-slate-100 flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-inner">
+            <School size={20} />
+          </div>
           <div>
-            <h1 className="font-display font-bold text-xl tracking-tight uppercase">Bringgas PDI</h1>
-            <p className="font-mono text-[10px] tracking-widest font-bold opacity-90">COMMAND CENTER</p>
+            <h1 className="font-bold text-xl tracking-tight text-slate-800">Bringgas <span className="text-blue-600">PDI</span></h1>
+            <p className="text-[10px] tracking-widest font-bold text-slate-400 uppercase">Command Center</p>
           </div>
         </div>
 
-        <div className="p-6 border-b-4 border-surface-dark">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-secondary text-surface border-2 border-surface-dark shadow-[2px_2px_0px_#111827] flex items-center justify-center font-display font-bold text-xl">
+        <div className="p-6 border-b border-slate-100">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-violet-100 text-violet-600 rounded-2xl flex items-center justify-center font-bold text-xl shadow-inner border border-violet-200">
               {teacher?.name?.charAt(0).toUpperCase() || 'G'}
             </div>
-            <div className="overflow-hidden">
-              <p className="font-bold truncate uppercase">{teacher?.name}</p>
-              <p className="font-mono text-xs text-on-surface-variant truncate">{teacher?.email}</p>
+            <div className="overflow-hidden flex-1">
+              <p className="font-bold truncate text-slate-800">{teacher?.name}</p>
+              <p className="text-xs text-slate-500 truncate">{teacher?.email}</p>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           <NavItem to="/host" icon={LayoutDashboard} label="Overview" />
           <NavItem to="/host/classes" icon={Presentation} label="My Classes" />
           <NavItem to="/host/bank" icon={Database} label="Question Bank" />
           <NavItem to="/host/session" icon={Activity} label="Active Session" />
         </nav>
 
-        <div className="p-4 border-t-4 border-surface-dark">
+        <div className="p-4 border-t border-slate-100">
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 border-2 border-surface-dark bg-surface hover:bg-red-50 text-secondary hover:text-red-700 transition-colors font-bold uppercase text-sm"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors font-bold text-sm"
           >
             <LogOut size={18} />
-            System Logout
+            Logout
           </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto relative bg-surface-container">
-        {/* Abstract background elements */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] border-8 border-surface-dark/5 rounded-full translate-x-[20%] translate-y-[-20%] pointer-events-none" />
-        
+      <main className="flex-1 overflow-y-auto relative bg-slate-50">
         <div className="p-8 max-w-7xl mx-auto min-h-full">
           <Routes>
             <Route path="/" element={<OverviewView />} />
