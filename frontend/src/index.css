@@ -36,4 +36,13 @@
   body {
     @apply bg-surface-dim text-on-surface font-sans antialiased selection:bg-primary/20 selection:text-primary-dark;
   }
+  
+  /* Global button interactive UI/UX press effect */
+  button, [role="button"], a.btn {
+    @apply cursor-pointer transition-all active:scale-95 active:opacity-90;
+  }
+  
+  button:disabled, [role="button"]:disabled, a.btn:disabled {
+    @apply active:scale-100 active:opacity-100 cursor-not-allowed;
+  }
 }
