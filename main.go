@@ -927,7 +927,7 @@ func handleWebSocket(c *websocket.Conn) {
 			}
 
 			// Validate secret student PIN code and active state in one go
-			participant, status, err := session.JoinParticipant(req.EntryCode)
+			participant, _, err := session.JoinParticipant(req.EntryCode)
 			if err != nil {
 				sendError(c, err.Error())
 				continue
