@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle } from 'lucide-react';
+import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle, Trophy } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgToggleVideoCall, MsgSendQuestion, MsgStopQuestion } from '../../store/websocketStore';
+import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgToggleVideoCall, MsgSendQuestion, MsgStopQuestion, MsgLeaderboard } from '../../store/websocketStore';
 import { useClassStore } from '../../store/classStore';
 import type { QuestionBankItem } from '../../store/classStore';
 import VideoConference from './VideoConference';
@@ -120,6 +120,13 @@ export default function ActiveSessionView() {
             </div>
           </div>
           <div className="flex gap-4">
+            <button 
+              onClick={() => sendPacket(MsgLeaderboard, { code, active: !classState?.isShowingLeaderboard })}
+              className={`px-4 py-3 border-4 border-surface-dark font-bold uppercase flex items-center gap-2 shadow-[4px_4px_0px_#111827] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all ${classState?.isShowingLeaderboard ? 'bg-secondary text-surface' : 'bg-surface hover:bg-surface-container'}`}
+            >
+              <Trophy size={20} strokeWidth={3} />
+              <span className="hidden md:inline">{classState?.isShowingLeaderboard ? 'Hide Leaderboard' : 'Show Leaderboard'}</span>
+            </button>
             <button 
               onClick={() => sendPacket(MsgToggleVideoCall, { code, active: !classState?.isVideoCallActive })}
               className={`px-4 py-3 border-4 border-surface-dark font-bold uppercase flex items-center gap-2 shadow-[4px_4px_0px_#111827] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all ${classState?.isVideoCallActive ? 'bg-primary text-surface' : 'bg-surface hover:bg-surface-container'}`}

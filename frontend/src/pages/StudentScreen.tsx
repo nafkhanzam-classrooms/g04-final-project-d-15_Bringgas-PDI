@@ -246,6 +246,47 @@ export default function StudentScreen() {
             isHost={false} 
           />
         )}
+        
+        {/* Leaderboard Overlay */}
+        {classState?.isShowingLeaderboard && (
+          <div className="absolute inset-0 z-40 bg-surface/95 backdrop-blur-sm p-4 md:p-8 overflow-y-auto animate-in fade-in duration-300">
+            <div className="max-w-3xl mx-auto bg-surface border-4 border-surface-dark shadow-[12px_12px_0px_#111827] mt-8 mb-8">
+              <div className="bg-primary text-surface p-6 border-b-4 border-surface-dark flex items-center justify-center gap-4">
+                <Trophy size={40} className="animate-bounce" />
+                <h2 className="font-display text-4xl font-bold uppercase tracking-widest">Class Leaderboard</h2>
+              </div>
+              <div className="p-6">
+                {classState.leaderboard && classState.leaderboard.length > 0 ? (
+                  <div className="space-y-4">
+                    {classState.leaderboard.slice(0, 10).map((entry, idx) => (
+                      <div key={idx} className={`flex items-center gap-4 p-4 border-4 border-surface-dark transition-transform hover:-translate-y-1 ${entry.name === myName ? 'bg-secondary text-surface shadow-[4px_4px_0px_#111827]' : 'bg-surface-container-high'}`}>
+                        <div className={`w-12 h-12 flex items-center justify-center font-display text-2xl font-bold border-2 ${entry.name === myName ? 'border-surface bg-surface text-secondary' : 'border-surface-dark bg-surface'}`}>
+                          {idx + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-xl truncate">{entry.name}</h3>
+                          {entry.name === myName && <span className="font-mono text-xs uppercase opacity-80">(You)</span>}
+                        </div>
+                        <div className="text-right">
+                          <div className="font-display text-2xl font-bold">{entry.score} pts</div>
+                          {entry.streak >= 3 && (
+                            <div className="flex items-center justify-end gap-1 font-bold text-sm text-orange-400">
+                              <Flame size={14} className="animate-pulse" /> {entry.streak} Streak
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="font-mono font-bold text-on-surface-variant uppercase">No scores yet. Waiting for players...</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         {!classState.currentQuestion ? (
           // Slide View
           classState?.presentationUrl ? (

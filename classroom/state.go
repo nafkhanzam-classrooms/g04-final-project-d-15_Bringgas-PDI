@@ -58,10 +58,11 @@ type ClassSession struct {
 	ActiveSlide       int                     `json:"activeSlide"`
 	TotalSlides       int                     `json:"totalSlides"`
 	PresentationUrl   string                  `json:"presentationUrl"`
-	IsVideoCallActive bool                    `json:"isVideoCallActive"`
-	Participants      map[string]*Participant `json:"participants"`
-	CurrentQuestion   *QuizQuestion           `json:"currentQuestion"`
-	Leaderboard       []LeaderboardEntry      `json:"leaderboard"`
+	IsVideoCallActive    bool                    `json:"isVideoCallActive"`
+	IsShowingLeaderboard bool                    `json:"isShowingLeaderboard"`
+	Participants         map[string]*Participant `json:"participants"`
+	CurrentQuestion      *QuizQuestion           `json:"currentQuestion"`
+	Leaderboard          []LeaderboardEntry      `json:"leaderboard"`
 	CreatedAt         time.Time               `json:"createdAt"`
 	mu                sync.RWMutex
 }
@@ -469,10 +470,11 @@ func (s *ClassSession) CopyState() *ClassSession {
 		PointMultiplier:  s.PointMultiplier,
 		ScheduledTime:    s.ScheduledTime,
 		ActiveSlide:       s.ActiveSlide,
-		TotalSlides:       s.TotalSlides,
-		PresentationUrl:   s.PresentationUrl,
-		IsVideoCallActive: s.IsVideoCallActive,
-		CreatedAt:         s.CreatedAt,
+		TotalSlides:          s.TotalSlides,
+		PresentationUrl:      s.PresentationUrl,
+		IsVideoCallActive:    s.IsVideoCallActive,
+		IsShowingLeaderboard: s.IsShowingLeaderboard,
+		CreatedAt:            s.CreatedAt,
 	}
 
 	copied.Participants = make(map[string]*Participant)
@@ -575,4 +577,11 @@ func (s *ClassSession) SetVideoCallActive(active bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.IsVideoCallActive = active
+}
+
+// ToggleLeaderboard safely toggles the leaderboard visibility on student screens
+func (s *ClassSession) ToggleLeaderboard(active bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.IsShowingLeaderboard = active
 }

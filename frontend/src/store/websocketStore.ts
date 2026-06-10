@@ -10,6 +10,7 @@ export const MsgSubmitAnswer = 0x0011;
 export const MsgQuizResult = 0x0012;
 export const MsgStopQuestion = 0x0013;
 export const MsgSlideChange = 0x0020;
+export const MsgLeaderboard = 0x0030;
 export const MsgToggleVideoCall = 0x0040;
 export const MsgError = 0x00FF;
 
@@ -55,6 +56,7 @@ export interface ClassState {
   totalSlides: number;
   presentationUrl: string;
   isVideoCallActive: boolean;
+  isShowingLeaderboard: boolean;
   pointMultiplier: number;
   currentQuestion: Question | null;
   participants: Record<string, Participant>;

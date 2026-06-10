@@ -423,9 +423,9 @@ func main() {
 			list = append(list, fiber.Map{
 				"id":              id,
 				"title":           title,
-				"question_text":   text,
+				"questionText":    text,
 				"options":         options,
-				"correct_option":  correct,
+				"correctOption":   correct,
 				"durationSeconds": duration,
 				"activityType":    actType,
 				"set_id":          setIDVal,
@@ -941,19 +941,25 @@ func handleWebSocket(c *websocket.Conn) {
 			joinSuccessPayload, _ := json.Marshal(map[string]string{"name": participant.Name})
 			c.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(0x0008, seq, joinSuccessPayload))
 
-			// Handle duplicate login (Evict/Kick older browser tab to save resources!)
-			if status == "kick" {
-				registry.mu.Lock()
-				if clients, ok := registry.participants[currentCode]; ok {
-					if oldConn, exists := clients[currentName]; exists && oldConn != c {
-						oldPayload, _ := json.Marshal(map[string]string{"message": "Sesi Anda ditendang karena login ganda dari tab lain."})
-						oldConn.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(protocol.MsgError, 0, oldPayload))
-						oldConn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Kicked"))
-						oldConn.Close()
+			// Handle duplicate login (Evict/Kick older browser tab across ALL classes)
+			registry.mu.Lock()
+			for code, clients := range registry.participants {
+				if oldConn, exists := clients[currentName]; exists && oldConn != c {
+					oldPayload, _ := json.Marshal(map[string]string{"message": "Sesi Anda ditendang karena login ganda dari tab/kelas lain."})
+					oldConn.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(protocol.MsgError, 0, oldPayload))
+					oldConn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Kicked"))
+					oldConn.Close()
+					delete(clients, currentName)
+					
+					// Also mark inactive in the old session
+					if oldSession := sm.GetSession(code); oldSession != nil {
+						oldSession.DisconnectParticipant(currentName)
+						repManager.ReplicateSessionState(oldSession)
+						BroadcastClassState(code)
 					}
 				}
-				registry.mu.Unlock()
 			}
+			registry.mu.Unlock()
 
 			registry.mu.Lock()
 			if _, ok := registry.participants[currentCode]; !ok {
@@ -1138,6 +1144,29 @@ func handleWebSocket(c *websocket.Conn) {
 			session.SetVideoCallActive(req.Active)
 
 			log.Printf("[%s] Host toggled Video Call in %s: %v", nodeName, req.Code, req.Active)
+
+			repManager.ReplicateSessionState(session)
+			BroadcastClassState(req.Code)
+
+		case protocol.MsgLeaderboard:
+			var req struct {
+				Code   string `json:"code"`
+				Active bool   `json:"active"`
+			}
+			if err := json.Unmarshal(payload, &req); err != nil {
+				sendError(c, "Invalid JSON payload for LEADERBOARD")
+				continue
+			}
+
+			session := sm.GetSession(req.Code)
+			if session == nil {
+				sendError(c, "Kelas tidak aktif.")
+				continue
+			}
+
+			session.ToggleLeaderboard(req.Active)
+
+			log.Printf("[%s] Host toggled Leaderboard in %s: %v", nodeName, req.Code, req.Active)
 
 			repManager.ReplicateSessionState(session)
 			BroadcastClassState(req.Code)
