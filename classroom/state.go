@@ -21,13 +21,13 @@ type Participant struct {
 	LastActiveTime time.Time `json:"lastActiveTime"`
 }
 
-// QuizQuestion represents the currently active question
 type QuizQuestion struct {
 	QuestionID      int                  `json:"questionId"`
 	QuestionText    string               `json:"questionText"`
 	Options         []string             `json:"options"`
 	CorrectOption   string               `json:"correctOption"`
 	DurationSeconds int                  `json:"durationSeconds"`
+	ActivityType    string               `json:"activityType"`
 	EndTime         time.Time            `json:"endTime"`
 	Answers         map[string]string    `json:"answers"`
 	Timestamps      map[string]time.Time `json:"timestamps"`
@@ -249,7 +249,7 @@ func (s *ClassSession) DisconnectParticipant(name string) {
 }
 
 // StartQuestion launches a new multiple choice question
-func (s *ClassSession) StartQuestion(qText string, options []string, correct string, duration int) *QuizQuestion {
+func (s *ClassSession) StartQuestion(qText string, options []string, correct string, duration int, activityType string) *QuizQuestion {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -259,6 +259,7 @@ func (s *ClassSession) StartQuestion(qText string, options []string, correct str
 		Options:         options,
 		CorrectOption:   correct,
 		DurationSeconds: duration,
+		ActivityType:    activityType,
 		EndTime:         time.Now().Add(time.Duration(duration) * time.Second),
 		Answers:         make(map[string]string),
 		Timestamps:      make(map[string]time.Time),
@@ -493,6 +494,7 @@ func (s *ClassSession) CopyState() *ClassSession {
 			Options:         q.Options,
 			CorrectOption:   q.CorrectOption,
 			DurationSeconds: q.DurationSeconds,
+			ActivityType:    q.ActivityType,
 			EndTime:         q.EndTime,
 			Answers:         make(map[string]string),
 			Timestamps:      make(map[string]time.Time),

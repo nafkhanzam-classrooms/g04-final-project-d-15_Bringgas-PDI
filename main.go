@@ -1022,14 +1022,14 @@ func handleWebSocket(c *websocket.Conn) {
 			log.Printf("[%s] Host changed slide of %s to page %d", nodeName, req.Code, req.Slide)
 
 			// Check for slide triggers in database
-			var qText, optionsJSON, correctOpt string
+			var qText, optionsJSON, correctOpt, activityType string
 			var duration int
 			err := database.DB.QueryRow(`
-				SELECT q.question_text, q.options, q.correct_option, q.duration_seconds 
+				SELECT q.question_text, q.options, q.correct_option, q.duration_seconds, q.activity_type 
 				FROM slide_triggers t
 				JOIN question_bank q ON t.question_id = q.id
 				WHERE t.class_code = ? AND t.slide_number = ?
-			`, req.Code, req.Slide).Scan(&qText, &optionsJSON, &correctOpt, &duration)
+			`, req.Code, req.Slide).Scan(&qText, &optionsJSON, &correctOpt, &duration, &activityType)
 
 			if err == nil {
 				// We have a mapped question for this slide! Trigger it automatically.
@@ -1037,7 +1037,7 @@ func handleWebSocket(c *websocket.Conn) {
 				json.Unmarshal([]byte(optionsJSON), &opts)
 				
 				session.PointMultiplier = 1
-				session.StartQuestion(qText, opts, correctOpt, duration)
+				session.StartQuestion(qText, opts, correctOpt, duration, activityType)
 				log.Printf("[%s] Auto-triggered Quiz on Slide %d: %s", nodeName, req.Slide, qText)
 			}
 
@@ -1052,6 +1052,7 @@ func handleWebSocket(c *websocket.Conn) {
 				CorrectOption   string   `json:"correctOption"`
 				DurationSeconds int      `json:"durationSeconds"`
 				PointMultiplier int      `json:"pointMultiplier"` // point multiplier: x1 or x2
+				ActivityType    string   `json:"activityType"`
 			}
 			if err := json.Unmarshal(payload, &req); err != nil {
 				sendError(c, "Invalid JSON payload for SEND_QUESTION")
@@ -1071,7 +1072,7 @@ func handleWebSocket(c *websocket.Conn) {
 			}
 			session.PointMultiplier = multiplier
 
-			session.StartQuestion(req.QuestionText, req.Options, req.CorrectOption, req.DurationSeconds)
+			session.StartQuestion(req.QuestionText, req.Options, req.CorrectOption, req.DurationSeconds, req.ActivityType)
 			log.Printf("[%s] Host launched active Quiz in %s (Multiplier x%d): %s", nodeName, req.Code, multiplier, req.QuestionText)
 
 			repManager.ReplicateSessionState(session)

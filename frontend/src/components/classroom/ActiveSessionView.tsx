@@ -83,7 +83,8 @@ export default function ActiveSessionView() {
       options: q.options,
       correctOption: q.correctOption,
       durationSeconds: q.durationSeconds,
-      pointMultiplier: 1
+      pointMultiplier: 1,
+      activityType: q.activityType
     });
   };
 
