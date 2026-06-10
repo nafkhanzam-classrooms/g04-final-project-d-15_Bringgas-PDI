@@ -523,6 +523,22 @@ func (s *ClassSession) UpdateParticipantActivity(name string) {
 	}
 }
 
+// GetParticipant safely retrieves a copy of a participant's data
+func (s *ClassSession) GetParticipant(name string) *Participant {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if p, exists := s.Participants[name]; exists {
+		return &Participant{
+			Name:           p.Name,
+			Score:          p.Score,
+			Streak:         p.Streak,
+			Active:         p.Active,
+			LastActiveTime: p.LastActiveTime,
+		}
+	}
+	return nil
+}
+
 // GetAllSessions returns a thread-safe snapshot slice of all active sessions
 func (sm *SessionManager) GetAllSessions() []*ClassSession {
 	sm.mu.RLock()

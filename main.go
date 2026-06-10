@@ -969,8 +969,6 @@ func handleWebSocket(c *websocket.Conn) {
 
 		case protocol.MsgSubmitAnswer:
 			var req struct {
-				Code   string `json:"code"`
-				Name   string `json:"name"`
 				Answer string `json:"answer"`
 			}
 			if err := json.Unmarshal(payload, &req); err != nil {
@@ -978,29 +976,51 @@ func handleWebSocket(c *websocket.Conn) {
 				continue
 			}
 
-			session := sm.GetSession(req.Code)
-			if session == nil {
-				sendError(c, "Kelas tidak aktif.")
+			// Use connection-level currentCode and currentName instead of payload
+			if currentCode == "" || currentName == "" {
+				sendError(c, "Anda belum bergabung ke kelas.")
 				continue
 			}
 
-			isCorrect, points, err := session.SubmitAnswer(req.Name, req.Answer)
+			session := sm.GetSession(currentCode)
+			if session == nil {
+				sendError(c, "Sesi kelas tidak ditemukan.")
+				continue
+			}
+
+			isCorrect, points, err := session.SubmitAnswer(currentName, req.Answer)
 			if err != nil {
 				sendError(c, err.Error())
 				continue
 			}
 
+			// Get the correct option before it might be cleared
+			correctOpt := ""
+			if session.CurrentQuestion != nil {
+				correctOpt = session.CurrentQuestion.CorrectOption
+			}
+
+			// Get updated participant data for score/streak
+			participant := session.GetParticipant(currentName)
+			var newScore, newStreak int
+			if participant != nil {
+				newScore = participant.Score
+				newStreak = participant.Streak
+			}
+
 			resPayload, _ := json.Marshal(map[string]interface{}{
 				"isCorrect":    isCorrect,
 				"pointsEarned": points,
-				"correct":      session.CurrentQuestion.CorrectOption,
+				"correct":      correctOpt,
+				"newScore":     newScore,
+				"newStreak":    newStreak,
 			})
 			c.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(protocol.MsgQuizResult, seq, resPayload))
 
-			log.Printf("[%s] Student %s submitted answer %s. Points earned: %d", nodeName, req.Name, req.Answer, points)
+			log.Printf("[%s] Student %s submitted answer %s. Points earned: %d (Score: %d, Streak: %d)", nodeName, currentName, req.Answer, points, newScore, newStreak)
 
 			repManager.ReplicateSessionState(session)
-			BroadcastClassState(req.Code)
+			BroadcastClassState(currentCode)
 
 		case protocol.MsgSlideChange:
 			var req struct {

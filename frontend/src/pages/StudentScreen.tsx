@@ -7,6 +7,11 @@ import PdfSlideViewer from '../components/classroom/PdfSlideViewer';
 
 export default function StudentScreen() {
   const { isConnected, connect, classState, myName, sendPacket, lastQuizResult, clearLastQuizResult, error, clearError } = useWebSocketStore();
+  const [localScore, setLocalScore] = useState(0);
+  const [localStreak, setLocalStreak] = useState(0);
+  const [showStreakAnim, setShowStreakAnim] = useState(false);
+  const [streakMilestone, setStreakMilestone] = useState(0);
+  const [scorePopup, setScorePopup] = useState<{points: number, visible: boolean}>({points: 0, visible: false});
   
   const [code, setCode] = useState(() => sessionStorage.getItem('lopyta_student_code') || '');
   const [pin, setPin] = useState(() => sessionStorage.getItem('lopyta_student_pin') || '');
@@ -35,23 +40,53 @@ export default function StudentScreen() {
   // Handle WebSocket errors
   useEffect(() => {
     if (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Pemberitahuan',
-        text: error,
-        confirmButtonColor: '#000000',
-      }).then(() => {
-        clearError();
-        // If class ended or not active, clear session and reload
-        if (error.toLowerCase().includes("diakhiri") || error.toLowerCase().includes("tidak aktif") || error.toLowerCase().includes("not found") || error.toLowerCase().includes("ditendang")) {
+      // Only show kick/end popups for session-ending errors
+      const lowerErr = error.toLowerCase();
+      const isSessionEnding = lowerErr.includes("diakhiri") || lowerErr.includes("ditendang") || lowerErr.includes("not found");
+      
+      if (isSessionEnding) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Pemberitahuan',
+          text: error,
+          confirmButtonColor: '#000000',
+        }).then(() => {
+          clearError();
           sessionStorage.removeItem('lopyta_student_code');
           sessionStorage.removeItem('lopyta_student_pin');
           sessionStorage.removeItem('lopyta_student_joined');
           window.location.reload();
-        }
-      });
+        });
+      } else {
+        // Non-critical errors: just log and clear, don't kick
+        console.warn('Non-critical WS error:', error);
+        clearError();
+      }
     }
   }, [error, clearError]);
+
+  // Handle quiz result - update local score/streak with animations
+  useEffect(() => {
+    if (lastQuizResult) {
+      const result = lastQuizResult as any;
+      if (result.newScore !== undefined) {
+        setLocalScore(result.newScore);
+      }
+      if (result.newStreak !== undefined) {
+        setLocalStreak(result.newStreak);
+        // Show streak animation for milestones (3, 5, 10, etc.)
+        if (result.newStreak >= 3 && result.isCorrect) {
+          setStreakMilestone(result.newStreak);
+          setShowStreakAnim(true);
+          setTimeout(() => setShowStreakAnim(false), 3000);
+        }
+      }
+      if (result.pointsEarned > 0) {
+        setScorePopup({points: result.pointsEarned, visible: true});
+        setTimeout(() => setScorePopup(prev => ({...prev, visible: false})), 2000);
+      }
+    }
+  }, [lastQuizResult]);
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,6 +188,9 @@ export default function StudentScreen() {
 
   // Active Session View for Student
   const myData = Object.values(classState.participants || {}).find(p => p.name === myName);
+  // Use local score/streak if available (updated in real-time from quiz results), fallback to classState
+  const displayScore = localScore || myData?.score || 0;
+  const displayStreak = localStreak || myData?.streak || 0;
 
   return (
     <div className="min-h-screen bg-surface-dim flex flex-col font-sans">
@@ -172,15 +210,20 @@ export default function StudentScreen() {
             <span className="font-mono text-xs font-bold uppercase block mb-1">Student</span>
             <span className="font-display font-bold text-lg">{myName || 'Student'}</span>
           </div>
-          <div className="flex items-center gap-4 bg-surface-container-high p-2 px-4 border-2 border-surface-dark shadow-[4px_4px_0px_#111827]">
-            <div className="flex flex-col items-center">
+          <div className="flex items-center gap-4 bg-surface-container-high p-2 px-4 border-2 border-surface-dark shadow-[4px_4px_0px_#111827] relative">
+            <div className="flex flex-col items-center relative">
               <span className="font-mono text-xs font-bold uppercase">Score</span>
-              <span className="font-display font-bold text-xl">{myData?.score || 0}</span>
+              <span className="font-display font-bold text-xl transition-all duration-300">{displayScore}</span>
+              {scorePopup.visible && (
+                <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-primary font-bold text-sm animate-bounce whitespace-nowrap">+{scorePopup.points}</span>
+              )}
             </div>
             <div className="w-0.5 h-8 bg-surface-dark/20"></div>
-            <div className="flex flex-col items-center text-error">
+            <div className={`flex flex-col items-center transition-all duration-300 ${displayStreak >= 3 ? 'text-orange-500' : 'text-error'}`}>
               <span className="font-mono text-xs font-bold uppercase">Streak</span>
-              <span className="font-display font-bold text-xl flex items-center gap-1"><Flame size={16}/> {myData?.streak || 0}</span>
+              <span className="font-display font-bold text-xl flex items-center gap-1">
+                <Flame size={16} className={displayStreak >= 3 ? 'animate-pulse text-orange-500' : ''}/> {displayStreak}
+              </span>
             </div>
           </div>
           <button 
@@ -238,7 +281,18 @@ export default function StudentScreen() {
           )
         ) : (
           // Quiz/Activity View
-          <div className="flex-1 flex flex-col p-4 md:p-8 overflow-y-auto bg-primary">
+          <div className="flex-1 flex flex-col p-4 md:p-8 overflow-y-auto bg-primary relative">
+            {/* Streak Milestone Animation Overlay */}
+            {showStreakAnim && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
+                <div className="animate-bounce bg-gradient-to-r from-orange-500 via-red-500 to-yellow-500 text-white px-8 py-6 rounded-2xl shadow-2xl border-4 border-white flex flex-col items-center gap-2" style={{animation: 'pulse 0.5s ease-in-out infinite, bounce 1s ease-in-out infinite'}}>
+                  <Flame size={48} className="animate-pulse" />
+                  <span className="font-display text-4xl font-bold">🔥 {streakMilestone} STREAK!</span>
+                  <span className="font-mono text-lg font-bold">+{Math.min((streakMilestone - 1) * 20, 100)} Bonus Points!</span>
+                </div>
+              </div>
+            )}
+
              <div className="max-w-4xl w-full mx-auto bg-surface border-4 border-surface-dark shadow-[8px_8px_0px_#111827] flex flex-col h-full animate-in zoom-in-95 duration-300">
                 <div className="p-6 md:p-8 border-b-4 border-surface-dark bg-surface-container-high relative overflow-hidden">
                    <div className="absolute top-0 right-0 w-32 h-32 bg-secondary opacity-10 rounded-full blur-2xl transform translate-x-1/2 -translate-y-1/2"></div>
@@ -256,8 +310,19 @@ export default function StudentScreen() {
                        </div>
                        <h2 className="font-display text-5xl font-bold uppercase mb-4">{lastQuizResult.isCorrect ? 'Correct!' : 'Incorrect'}</h2>
                        <p className="font-mono text-xl font-bold">You earned +{lastQuizResult.pointsEarned} pts</p>
+                       {lastQuizResult.isCorrect && displayStreak >= 3 && (
+                         <div className="mt-4 flex items-center gap-2 bg-orange-500/20 px-4 py-2 border-2 border-orange-400 rounded-lg">
+                           <Flame size={20} className="text-orange-400" />
+                           <span className="font-bold text-orange-300">{displayStreak} Streak! +{Math.min((displayStreak - 1) * 20, 100)} Bonus</span>
+                         </div>
+                       )}
                        {!lastQuizResult.isCorrect && (
-                         <p className="mt-4 font-bold bg-surface-dark text-surface px-4 py-2 border-2 border-surface">Correct answer: {lastQuizResult.correct}</p>
+                         <>
+                           <p className="mt-4 font-bold bg-surface-dark text-surface px-4 py-2 border-2 border-surface">Correct answer: {lastQuizResult.correct}</p>
+                           {displayStreak === 0 && localStreak > 0 && (
+                             <p className="mt-2 font-mono text-sm opacity-75">Streak lost! 😢</p>
+                           )}
+                         </>
                        )}
                     </div>
                   ) : (
