@@ -318,7 +318,7 @@ export default function ClassSettingsView() {
                 >
                   <option value="" disabled>Select Question</option>
                   {questions.map(q => (
-                    <option key={q.id} value={q.id}>{q.question_text.substring(0, 40)}...</option>
+                    <option key={q.id} value={q.id}>{(q.questionText || '').substring(0, 40)}...</option>
                   ))}
                 </select>
               </div>

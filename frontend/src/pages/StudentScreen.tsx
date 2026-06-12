@@ -18,6 +18,7 @@ export default function StudentScreen() {
   const [pin, setPin] = useState(() => sessionStorage.getItem('lopyta_student_pin') || '');
   const [hasJoined, setHasJoined] = useState(() => sessionStorage.getItem('lopyta_student_joined') === 'true');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [codeAnswer, setCodeAnswer] = useState('');
 
   useEffect(() => {
     connect();
@@ -35,6 +36,7 @@ export default function StudentScreen() {
     if (!classState?.currentQuestion) {
       clearLastQuizResult();
       setSelectedOption(null);
+      setCodeAnswer('');
     }
   }, [classState?.currentQuestion, clearLastQuizResult]);
 
@@ -404,10 +406,35 @@ export default function StudentScreen() {
                           })}
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center justify-center text-center py-12">
-                          <Code size={64} className="text-slate-300 mb-6" />
-                          <h2 className="text-2xl font-bold uppercase text-slate-700 mb-4">Code Sandbox Mode</h2>
-                          <p className="font-semibold text-slate-500">Code submission via UI coming soon.</p>
+                        <div className="flex flex-col h-full w-full max-w-3xl mx-auto animate-in fade-in">
+                          <div className="flex items-center gap-2 mb-4 text-slate-700">
+                            <Code size={24} />
+                            <h2 className="text-xl font-bold uppercase">Write your code</h2>
+                          </div>
+                          <textarea
+                            value={codeAnswer}
+                            onChange={(e) => setCodeAnswer(e.target.value)}
+                            disabled={selectedOption !== null}
+                            className="flex-1 w-full p-4 bg-slate-900 text-green-400 font-mono text-sm md:text-base rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner resize-none min-h-[200px]"
+                            placeholder="// Type your code solution here..."
+                            spellCheck={false}
+                          />
+                          <div className="mt-4 flex justify-end">
+                            <button
+                              onClick={() => {
+                                setSelectedOption('code_submitted');
+                                sendWithRetry(
+                                  MsgSubmitAnswer, 
+                                  { answer: codeAnswer },
+                                  (state) => !!state.lastQuizResult || !!state.classState?.participants?.[state.myName || '']?.hasAnsweredCurrent
+                                );
+                              }}
+                              disabled={selectedOption !== null || !codeAnswer.trim()}
+                              className="bg-blue-600 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wider shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:-translate-y-1 transition-all disabled:opacity-50 disabled:hover:translate-y-0"
+                            >
+                              {selectedOption !== null ? 'Submitted' : 'Submit Code'}
+                            </button>
+                          </div>
                         </div>
                       )}
                     </>

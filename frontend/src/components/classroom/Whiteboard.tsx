@@ -14,12 +14,15 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
   const [color, setColor] = useState('#ef4444');
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
   const [currentLine, setCurrentLine] = useState<number[]>([]);
+  const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
   
   const { classState, sendPacket } = useWebSocketStore();
   const whiteboardLines = classState?.whiteboardLines || [];
   const whiteboardPermit = classState?.whiteboardPermit || 'none';
 
   const canDraw = isHost || whiteboardPermit === 'all';
+  const effectiveCanDraw = canDraw && isDrawingMode;
   const brushSize = 4;
 
   // Initialize Canvas
@@ -27,22 +30,27 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Set canvas dimensions to match its CSS size precisely
-    const parent = canvas.parentElement;
-    if (parent) {
-      canvas.width = parent.clientWidth;
-      canvas.height = parent.clientHeight;
-    } else {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
+    const resizeCanvas = () => {
+      const parent = canvas.parentElement;
+      if (parent) {
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
+      } else {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        contextRef.current = context;
+      }
+      setWindowSize({ w: canvas.width, h: canvas.height });
+    };
 
-    const context = canvas.getContext('2d');
-    if (context) {
-      context.lineCap = 'round';
-      context.lineJoin = 'round';
-      contextRef.current = context;
-    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    return () => window.removeEventListener('resize', resizeCanvas);
   }, []);
 
   // Redraw all lines when whiteboardLines changes
@@ -58,20 +66,19 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
     whiteboardLines.forEach(line => {
       if (line.points.length < 2) return;
       context.beginPath();
-      context.strokeStyle = line.tool === 'eraser' ? 'rgba(255,255,255,1)' : line.color; // If erasing on transparent, it might be tricky. Actually, we use 'destination-out' for eraser on canvas.
       
       if (line.tool === 'eraser') {
         context.globalCompositeOperation = 'destination-out';
-        context.lineWidth = line.size * 5; // Eraser is bigger
+        context.lineWidth = line.size * 5;
       } else {
         context.globalCompositeOperation = 'source-over';
         context.strokeStyle = line.color;
         context.lineWidth = line.size;
       }
 
-      context.moveTo(line.points[0], line.points[1]);
+      context.moveTo(line.points[0] * canvas.width, line.points[1] * canvas.height);
       for (let i = 2; i < line.points.length; i += 2) {
-        context.lineTo(line.points[i], line.points[i + 1]);
+        context.lineTo(line.points[i] * canvas.width, line.points[i + 1] * canvas.height);
       }
       context.stroke();
     });
@@ -79,10 +86,10 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
     // Reset composite operation
     context.globalCompositeOperation = 'source-over';
     
-  }, [whiteboardLines]);
+  }, [whiteboardLines, windowSize]);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!canDraw) return;
+    if (!effectiveCanDraw) return;
     
     // Disable scrolling when touching canvas
     if (e.nativeEvent instanceof TouchEvent) {
@@ -93,7 +100,11 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
     contextRef.current?.beginPath();
     contextRef.current?.moveTo(offsetX, offsetY);
     setIsDrawing(true);
-    setCurrentLine([offsetX, offsetY]);
+    
+    const canvas = canvasRef.current;
+    if (canvas) {
+      setCurrentLine([offsetX / canvas.width, offsetY / canvas.height]);
+    }
   };
 
   const finishDrawing = () => {
@@ -115,7 +126,7 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
   };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !canDraw) return;
+    if (!isDrawing || !effectiveCanDraw) return;
     
     if (e.nativeEvent instanceof TouchEvent) {
       e.nativeEvent.preventDefault();
@@ -124,7 +135,8 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
     const { offsetX, offsetY } = getCoordinates(e);
     
     const context = contextRef.current;
-    if (context) {
+    const canvas = canvasRef.current;
+    if (context && canvas) {
       if (tool === 'eraser') {
         context.globalCompositeOperation = 'destination-out';
         context.lineWidth = brushSize * 5;
@@ -135,9 +147,22 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
       }
       context.lineTo(offsetX, offsetY);
       context.stroke();
-    }
 
-    setCurrentLine(prev => [...prev, offsetX, offsetY]);
+      setCurrentLine(prev => {
+        const next = [...prev, offsetX / canvas.width, offsetY / canvas.height];
+        // Send progressive updates to make it realtime for students
+        if (next.length % 20 === 0) {
+          sendPacket(MsgWhiteboardDraw, {
+            code,
+            points: next,
+            color,
+            size: brushSize,
+            tool
+          });
+        }
+        return next;
+      });
+    }
   };
 
   const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -175,14 +200,23 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
         onTouchEnd={finishDrawing}
         onTouchCancel={finishDrawing}
         onTouchMove={draw}
-        className={`w-full h-full ${canDraw ? 'pointer-events-auto cursor-crosshair' : 'pointer-events-none'}`}
+        className={`w-full h-full ${effectiveCanDraw ? 'pointer-events-auto cursor-crosshair' : 'pointer-events-none'}`}
         style={{ touchAction: 'none' }}
       />
       
       {/* Toolbar */}
       {canDraw && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white px-6 py-3 rounded-2xl shadow-xl border border-slate-200 pointer-events-auto flex items-center gap-4 transition-all hover:shadow-2xl">
-          <div className="flex items-center gap-2 border-r border-slate-200 pr-4">
+          <button
+            onClick={() => setIsDrawingMode(!isDrawingMode)}
+            className={`p-2 px-4 rounded-xl font-bold text-sm transition-all border-2 ${isDrawingMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+          >
+            {isDrawingMode ? 'Draw: ON' : 'Draw: OFF'}
+          </button>
+          
+          <div className="w-px h-6 bg-slate-200 hidden md:block"></div>
+
+          <div className={`flex items-center gap-2 border-r border-slate-200 pr-4 transition-opacity ${!isDrawingMode ? 'opacity-50 pointer-events-none' : ''}`}>
             <button
               onClick={() => setTool('pen')}
               className={`p-2 rounded-xl transition-all ${tool === 'pen' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}
@@ -197,7 +231,7 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
             </button>
           </div>
 
-          <div className="flex items-center gap-2 border-r border-slate-200 pr-4">
+          <div className={`flex items-center gap-2 border-r border-slate-200 pr-4 transition-opacity ${!isDrawingMode ? 'opacity-50 pointer-events-none' : ''}`}>
             {['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#000000'].map(c => (
               <button
                 key={c}
@@ -208,7 +242,7 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
             ))}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className={`flex items-center gap-4 transition-opacity ${!isDrawingMode ? 'opacity-50 pointer-events-none' : ''}`}>
             {isHost && (
               <>
                 <button
