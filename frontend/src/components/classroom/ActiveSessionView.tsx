@@ -8,7 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import type { QuestionBankItem } from '../../store/classStore';
 import VideoConference from './VideoConference';
 import PdfSlideViewer from './PdfSlideViewer';
-import Whiteboard from './Whiteboard';
+import Whiteboard, { WhiteboardToolbar } from './Whiteboard';
 
 export default function ActiveSessionView() {
   const { code } = useParams();
@@ -268,6 +268,9 @@ export default function ActiveSessionView() {
             </div>
           )}
         </div>
+
+        {/* Toolbar Outside PPT */}
+        {code && <WhiteboardToolbar isHost={true} code={code} />}
         
         <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
           <h3 className="font-bold text-lg text-slate-800">Slide {slideNumber} of {classState?.totalSlides || '?'}</h3>

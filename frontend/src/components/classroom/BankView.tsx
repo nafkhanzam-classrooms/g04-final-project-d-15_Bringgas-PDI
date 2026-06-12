@@ -33,7 +33,7 @@ export default function BankView() {
   const [options, setOptions] = useState(['', '', '', '']);
   const [correctOption, setCorrectOption] = useState('A');
   const [duration, setDuration] = useState(60);
-  const [activityType, setActivityType] = useState<'quiz'|'code'>('quiz');
+  const [activityType, setActivityType] = useState<'quiz'|'code'|'yesno'>('quiz');
 
   const openAddQuestion = () => {
     setTitle('');
@@ -49,10 +49,20 @@ export default function BankView() {
   const openEditQuestion = (item: any) => {
     setTitle(item.title);
     setQuestionText(item.question_text || item.questionText || '');
-    setOptions(item.activityType === 'quiz' && item.options && item.options.length === 4 ? item.options : ['', '', '', '']);
+    
+    const isQuiz = item.activityType === 'quiz' || item.activity_type === 'quiz';
+    const opts = item.options || [];
+    
+    if (isQuiz && opts.length === 2 && opts[0] === 'Yes' && opts[1] === 'No') {
+      setActivityType('yesno');
+      setOptions(['Yes', 'No', '', '']);
+    } else {
+      setActivityType(item.activityType || item.activity_type || 'quiz');
+      setOptions(isQuiz && opts.length >= 2 ? opts : ['', '', '', '']);
+    }
+    
     setCorrectOption(item.correct_option || item.correctOption || 'A');
     setDuration(item.durationSeconds || item.duration_seconds || 60);
-    setActivityType(item.activityType || item.activity_type || 'quiz');
     setEditingItemId(item.id);
     setIsAddingQuestion(true);
   };
@@ -109,13 +119,21 @@ export default function BankView() {
       }
     }
 
+    const isQuiz = activityType === 'quiz' || activityType === 'yesno';
+    let finalOptions: string[] = [];
+    if (activityType === 'quiz') {
+      finalOptions = options;
+    } else if (activityType === 'yesno') {
+      finalOptions = ['Yes', 'No'];
+    }
+
     const newItem = {
       title,
       questionText,
-      options: activityType === 'quiz' ? options : [],
-      correctOption: activityType === 'quiz' ? correctOption : '',
+      options: finalOptions,
+      correctOption: isQuiz ? correctOption : '',
       durationSeconds: duration,
-      activityType,
+      activityType: activityType === 'yesno' ? 'quiz' : activityType,
       set_id: activeSet.id
     };
 
@@ -169,6 +187,7 @@ export default function BankView() {
                   <label className="block font-sans text-sm font-bold uppercase mb-2">Type</label>
                   <select value={activityType} onChange={e => setActivityType(e.target.value as any)} className="w-full border border-slate-200 rounded-xl p-3 font-bold focus:outline-none appearance-none bg-white">
                     <option value="quiz">Multiple Choice</option>
+                    <option value="yesno">Yes / No</option>
                     <option value="code">Code Sandbox</option>
                   </select>
                 </div>
@@ -191,9 +210,24 @@ export default function BankView() {
                     <div className={`w-12 border border-slate-200 rounded-xl flex items-center justify-center font-sans font-bold text-xl cursor-pointer transition-colors ${correctOption === letter ? 'bg-blue-600 text-white' : 'bg-white hover:bg-slate-50'}`} onClick={() => setCorrectOption(letter)}>
                       {letter}
                     </div>
-                    <input type="text" value={options[i]} onChange={e => { const newOpts = [...options]; newOpts[i] = e.target.value; setOptions(newOpts); }} required placeholder={`Option ${letter}`} className="flex-1 border border-slate-200 rounded-xl p-3 font-bold focus:outline-none focus:border-primary" />
+                    <input type="text" value={options[i] || ''} onChange={e => { const newOpts = [...options]; newOpts[i] = e.target.value; setOptions(newOpts); }} required placeholder={`Option ${letter}`} className="flex-1 border border-slate-200 rounded-xl p-3 font-bold focus:outline-none focus:border-primary" />
                   </div>
                 ))}
+              </div>
+            )}
+
+            {activityType === 'yesno' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="flex gap-2">
+                  <div className={`flex-1 border border-slate-200 rounded-xl flex items-center justify-center font-sans font-bold text-xl cursor-pointer transition-colors ${correctOption === 'A' ? 'bg-blue-600 text-white' : 'bg-white hover:bg-slate-50'}`} onClick={() => setCorrectOption('A')}>
+                    Yes (A)
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <div className={`flex-1 border border-slate-200 rounded-xl flex items-center justify-center font-sans font-bold text-xl cursor-pointer transition-colors ${correctOption === 'B' ? 'bg-blue-600 text-white' : 'bg-white hover:bg-slate-50'}`} onClick={() => setCorrectOption('B')}>
+                    No (B)
+                  </div>
+                </div>
               </div>
             )}
 
@@ -213,8 +247,8 @@ export default function BankView() {
               <div key={item.id} className="bg-white border border-slate-200 rounded-2xl flex flex-col shadow-sm hover:-translate-y-1 transition-transform">
                 <div className="p-4 border-b border-slate-200 bg-slate-100 flex justify-between items-start gap-4">
                   <div className="flex-1 min-w-0">
-                    <span className={`inline-block px-2 py-0.5 border border-slate-200 font-sans text-[10px] font-bold uppercase mb-2 ${item.activityType === 'quiz' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
-                      {item.activityType}
+                    <span className={`inline-block px-2 py-0.5 border border-slate-200 font-sans text-[10px] font-bold uppercase mb-2 ${item.activityType === 'quiz' && item.options?.length === 2 && item.options[0] === 'Yes' ? 'bg-green-100 text-green-800' : item.activityType === 'quiz' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
+                      {item.activityType === 'quiz' && item.options?.length === 2 && item.options[0] === 'Yes' ? 'yes/no' : item.activityType}
                     </span>
                     <h3 className="font-bold text-lg leading-tight truncate">{item.title}</h3>
                   </div>

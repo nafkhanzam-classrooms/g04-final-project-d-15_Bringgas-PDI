@@ -165,7 +165,14 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
         const payloadStr = new TextDecoder().decode(payloadBytes);
         
         try {
-          const payload = JSON.parse(payloadStr);
+          let payload: any = null;
+          if (payloadStr.trim().length > 0) {
+            try {
+              payload = JSON.parse(payloadStr);
+            } catch (jsonErr) {
+              console.warn('JSON parse error for msgType', msgType, jsonErr);
+            }
+          }
           
           if (msgType === MsgClassState) {
             set({ classState: payload });

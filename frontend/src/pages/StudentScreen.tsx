@@ -4,7 +4,7 @@ import Swal from 'sweetalert2';
 import { useWebSocketStore, MsgJoinClass, MsgSubmitAnswer } from '../store/websocketStore';
 import VideoConference from '../components/classroom/VideoConference';
 import PdfSlideViewer from '../components/classroom/PdfSlideViewer';
-import Whiteboard from '../components/classroom/Whiteboard';
+import Whiteboard, { WhiteboardToolbar } from '../components/classroom/Whiteboard';
 
 export default function StudentScreen() {
   const { isConnected, connect, classState, myName, sendPacket, sendWithRetry, lastQuizResult, clearLastQuizResult, error, clearError } = useWebSocketStore();
@@ -300,30 +300,34 @@ export default function StudentScreen() {
         {!classState.currentQuestion ? (
           // Slide View
           classState?.presentationUrl ? (
-            <div className="w-full aspect-video relative bg-slate-100 overflow-hidden mx-auto max-w-full max-h-[80vh]">
-              {/* Whiteboard Overlay */}
-              {code && <Whiteboard isHost={false} code={code} />}
+            <>
+              <div className="w-full aspect-video relative bg-slate-100 overflow-hidden mx-auto max-w-full max-h-[80vh]">
+                {/* Whiteboard Overlay */}
+                {code && <Whiteboard isHost={false} code={code} />}
 
-              {classState.presentationUrl.toLowerCase().endsWith('.pdf') ? (
-                <div className="absolute inset-0 z-10">
-                  <PdfSlideViewer 
-                    url={classState.presentationUrl} 
-                    slideNumber={classState.activeSlide} 
+                {classState.presentationUrl.toLowerCase().endsWith('.pdf') ? (
+                  <div className="absolute inset-0 z-10">
+                    <PdfSlideViewer 
+                      url={classState.presentationUrl} 
+                      slideNumber={classState.activeSlide} 
+                    />
+                  </div>
+                ) : (
+                  <iframe 
+                    src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
+                      classState.presentationUrl.startsWith('http') ? classState.presentationUrl : window.location.origin + classState.presentationUrl
+                    )}`} 
+                    width="100%" 
+                    height="100%" 
+                    frameBorder="0"
+                    className="w-full h-full border-0 absolute top-0 left-0"
+                    title="PowerPoint Presentation"
                   />
-                </div>
-              ) : (
-                <iframe 
-                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
-                    classState.presentationUrl.startsWith('http') ? classState.presentationUrl : window.location.origin + classState.presentationUrl
-                  )}`} 
-                  width="100%" 
-                  height="100%" 
-                  frameBorder="0"
-                  className="w-full h-full border-0 absolute top-0 left-0"
-                  title="PowerPoint Presentation"
-                />
-              )}
-            </div>
+                )}
+              </div>
+              
+              {code && <WhiteboardToolbar isHost={false} code={code} />}
+            </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50">
               <div className="bg-white p-12 rounded-3xl shadow-xl max-w-2xl w-full">
