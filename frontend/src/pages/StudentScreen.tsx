@@ -146,7 +146,7 @@ export default function StudentScreen() {
 
         try {
           // eslint-disable-next-line no-new-func
-          const result = new Function(codeAnswer)();
+          const result = new Function('print', codeAnswer)(console.log);
           if (result !== undefined) logs.push(String(result));
           setRunOutput({ stdout: logs.join('\n'), stderr: '' });
         } catch(e: any) {
@@ -155,28 +155,35 @@ export default function StudentScreen() {
           console.log = originalConsoleLog;
         }
       } else {
-        const response = await fetch('https://emkc.org/api/v2/piston/execute', {
+        const WANDBOX_COMPILERS: Record<string, string> = {
+          python: 'cpython-head',
+          go: 'go-head',
+          java: 'openjdk-head',
+          cpp: 'gcc-head',
+          c: 'gcc-head-c',
+          php: 'php-head'
+        };
+
+        const response = await fetch('https://wandbox.org/api/compile.json', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            language: language,
-            version: '*', 
-            files: [{ content: codeAnswer }]
+            compiler: WANDBOX_COMPILERS[language] || 'nodejs-head',
+            code: codeAnswer
           })
         });
         const data = await response.json();
-        if (data.run) {
+        if (data.status === "0" || data.status === "1") {
           setRunOutput({
-            stdout: data.run.stdout,
-            stderr: data.run.stderr,
-            error: data.message
+            stdout: data.program_message || data.compiler_message || '',
+            stderr: data.program_error || data.compiler_error || ''
           });
         } else {
-          setRunOutput({ stdout: '', stderr: '', error: 'Server eksekusi Piston saat ini sedang dibatasi (Whitelist Only) oleh penyedia. Silakan gunakan bahasa JavaScript untuk eksekusi langsung di browser.' });
+          setRunOutput({ stdout: '', stderr: '', error: data.compiler_error || 'Execution failed on Wandbox' });
         }
       }
     } catch (err: any) {
-      setRunOutput({ stdout: '', stderr: '', error: 'Gagal terhubung ke server eksekusi.' });
+      setRunOutput({ stdout: '', stderr: '', error: 'Gagal terhubung ke server eksekusi. ' + err.message });
     } finally {
       setIsRunning(false);
     }
@@ -406,7 +413,7 @@ export default function StudentScreen() {
             )}
 
              <div className="max-w-4xl w-full mx-auto bg-white rounded-3xl shadow-xl flex flex-col h-full animate-in zoom-in-95 duration-300 overflow-hidden border border-slate-100">
-                <div className="p-6 md:p-10 border-b border-slate-100 bg-slate-50 relative">
+                 <div className="p-6 md:p-10 border-b border-slate-100 bg-slate-50 relative">
                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 opacity-5 rounded-full blur-2xl transform translate-x-1/2 -translate-y-1/2"></div>
                    <span className="text-xs font-bold uppercase tracking-widest bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full inline-block mb-4">
                      {classState.currentQuestion.activityType.toUpperCase()}
@@ -414,30 +421,43 @@ export default function StudentScreen() {
                    <h3 className="text-3xl md:text-5xl font-bold text-slate-800 leading-tight">{classState.currentQuestion.questionText}</h3>
                 </div>
 
-                <div className="p-6 md:p-10 flex-1 flex flex-col justify-center">
-                  {lastQuizResult ? (
-                    <div className={`p-8 rounded-2xl flex flex-col items-center justify-center text-center animate-in zoom-in ${lastQuizResult.isCorrect ? 'bg-green-500 text-white shadow-green-500/20 shadow-xl' : 'bg-red-50 text-red-600 border border-red-100'}`}>
-                       <div className={`mb-6 p-4 rounded-full ${lastQuizResult.isCorrect ? 'bg-white text-green-500' : 'bg-red-100'}`}>
-                         {lastQuizResult.isCorrect ? <CheckCircle size={64} /> : <Zap size={64} />}
-                       </div>
-                       <h2 className="text-4xl font-bold uppercase mb-4">{lastQuizResult.isCorrect ? 'Correct!' : 'Incorrect'}</h2>
-                       <p className={`font-semibold text-xl ${lastQuizResult.isCorrect ? 'text-green-100' : 'text-red-500'}`}>You earned +{lastQuizResult.pointsEarned} pts</p>
-                       {lastQuizResult.isCorrect && displayStreak >= 3 && (
-                         <div className="mt-4 flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-xl shadow-lg shadow-orange-500/20">
-                           <Flame size={20} />
-                           <span className="font-bold">{displayStreak} Streak! +{Math.min((displayStreak - 1) * 20, 100)} Bonus</span>
-                         </div>
-                       )}
-                       {!lastQuizResult.isCorrect && (
-                         <>
-                           <p className="mt-4 font-bold bg-white text-red-600 px-6 py-3 rounded-xl shadow-sm">Correct answer: {lastQuizResult.correct}</p>
-                           {displayStreak === 0 && localStreak > 0 && (
-                             <p className="mt-4 text-sm font-semibold opacity-75">Streak lost! 😢</p>
-                           )}
-                         </>
-                       )}
+                <div className="flex-1 overflow-y-auto w-full p-4 md:p-8 relative min-h-[400px]">
+                  {selectedOption !== null && lastQuizResult ? (
+                    <div className="absolute inset-0 z-10 bg-slate-50 flex items-center justify-center p-4">
+                      <div className={`p-8 rounded-2xl flex flex-col items-center justify-center text-center animate-in zoom-in ${
+                        classState.currentQuestion.activityType === 'code' ? 'bg-slate-800 text-white shadow-xl' :
+                        lastQuizResult.isCorrect ? 'bg-green-500 text-white shadow-green-500/20 shadow-xl' : 'bg-red-50 text-red-600 border border-red-100'
+                      }`}>
+                        <div className={`mb-6 p-4 rounded-full ${
+                          classState.currentQuestion.activityType === 'code' ? 'bg-slate-700 text-blue-400' :
+                          lastQuizResult.isCorrect ? 'bg-white text-green-500' : 'bg-red-100'
+                        }`}>
+                          {classState.currentQuestion.activityType === 'code' ? <Code size={64} /> :
+                           lastQuizResult.isCorrect ? <CheckCircle size={64} /> : <Zap size={64} />}
+                        </div>
+                        <h2 className="text-4xl font-bold uppercase mb-4">
+                          {classState.currentQuestion.activityType === 'code' ? 'Code Submitted!' :
+                           lastQuizResult.isCorrect ? 'Correct!' : 'Incorrect'}
+                        </h2>
+                        
+                        {classState.currentQuestion.activityType === 'code' ? (
+                          <p className="font-semibold text-xl text-slate-300">Your solution has been sent to the teacher.</p>
+                        ) : (
+                          <>
+                            <div className="text-xl font-semibold mb-4">
+                              {lastQuizResult.isCorrect ? 'You earned' : 'Correct answer was'}
+                              <span className={`mx-2 text-2xl font-black ${lastQuizResult.isCorrect ? 'text-white' : 'text-slate-800'}`}>
+                                {lastQuizResult.isCorrect ? `+${lastQuizResult.pointsEarned} pts` : classState.currentQuestion.correctOption}
+                              </span>
+                            </div>
+                            <div className={`text-sm font-bold tracking-widest uppercase opacity-80 flex items-center gap-2 justify-center ${lastQuizResult.isCorrect ? 'text-green-100' : 'text-red-400'}`}>
+                              <Flame size={16} /> Streak: {lastQuizResult.streakCount}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  ) : (
+                  ) : selectedOption !== null ? (
                     <>
                       {classState.currentQuestion.activityType === 'quiz' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
