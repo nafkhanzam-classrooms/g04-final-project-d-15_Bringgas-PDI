@@ -19,7 +19,6 @@ export default function StudentScreen() {
   const [hasJoined, setHasJoined] = useState(() => sessionStorage.getItem('lopyta_student_joined') === 'true');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [codeAnswer, setCodeAnswer] = useState('');
-  const [language, setLanguage] = useState('javascript');
   const [runOutput, setRunOutput] = useState<{stdout: string, stderr: string, error?: string} | null>(null);
   const [isRunning, setIsRunning] = useState(false);
 
@@ -136,54 +135,25 @@ export default function StudentScreen() {
     setIsRunning(true);
     setRunOutput(null);
     try {
-      if (language === 'javascript') {
-        const logs: string[] = [];
-        const originalConsoleLog = console.log;
-        
-        console.log = (...args) => {
-          logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
-        };
+      const logs: string[] = [];
+      const originalConsoleLog = console.log;
+      
+      console.log = (...args) => {
+        logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+      };
 
-        try {
-          // eslint-disable-next-line no-new-func
-          const result = new Function('print', codeAnswer)(console.log);
-          if (result !== undefined) logs.push(String(result));
-          setRunOutput({ stdout: logs.join('\n'), stderr: '' });
-        } catch(e: any) {
-          setRunOutput({ stdout: logs.join('\n'), stderr: e.message });
-        } finally {
-          console.log = originalConsoleLog;
-        }
-      } else {
-        const WANDBOX_COMPILERS: Record<string, string> = {
-          python: 'cpython-3.10.6',
-          go: 'go-1.19.6',
-          java: 'openjdk-head',
-          cpp: 'gcc-12.2.0',
-          c: 'gcc-12.2.0-c',
-          php: 'php-8.2.3'
-        };
-
-        const response = await fetch('https://wandbox.org/api/compile.json', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            compiler: WANDBOX_COMPILERS[language] || 'nodejs-head',
-            code: codeAnswer
-          })
-        });
-        const data = await response.json();
-        if (data.status === "0" || data.status === "1") {
-          setRunOutput({
-            stdout: data.program_message || data.compiler_message || '',
-            stderr: data.program_error || data.compiler_error || ''
-          });
-        } else {
-          setRunOutput({ stdout: '', stderr: '', error: data.compiler_error || 'Execution failed on Wandbox' });
-        }
+      try {
+        // eslint-disable-next-line no-new-func
+        const result = new Function('print', codeAnswer)(console.log);
+        if (result !== undefined) logs.push(String(result));
+        setRunOutput({ stdout: logs.join('\n'), stderr: '' });
+      } catch(e: any) {
+        setRunOutput({ stdout: logs.join('\n'), stderr: e.message });
+      } finally {
+        console.log = originalConsoleLog;
       }
     } catch (err: any) {
-      setRunOutput({ stdout: '', stderr: '', error: 'Gagal terhubung ke server eksekusi. ' + err.message });
+      setRunOutput({ stdout: '', stderr: '', error: 'Gagal menjalankan kode: ' + err.message });
     } finally {
       setIsRunning(false);
     }
@@ -488,28 +458,16 @@ export default function StudentScreen() {
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2 text-slate-700">
                               <Code size={24} />
-                              <h2 className="text-xl font-bold uppercase">Write your code</h2>
+                              <h2 className="text-xl font-bold uppercase">Write your code (JavaScript)</h2>
                             </div>
-                            <select 
-                              value={language}
-                              onChange={(e) => setLanguage(e.target.value)}
-                              className="bg-white border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold text-sm uppercase outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                              <option value="javascript">JavaScript</option>
-                              <option value="python">Python</option>
-                              <option value="go">Go</option>
-                              <option value="java">Java</option>
-                              <option value="cpp">C++</option>
-                              <option value="c">C</option>
-                              <option value="php">PHP</option>
-                            </select>
+                            <span className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg font-bold text-sm uppercase">JS</span>
                           </div>
                           <textarea
                             value={codeAnswer}
                             onChange={(e) => setCodeAnswer(e.target.value)}
                             disabled={selectedOption !== null}
                             className="flex-1 w-full p-4 bg-slate-900 text-green-400 font-mono text-sm md:text-base rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner resize-none min-h-[200px]"
-                            placeholder={`// Type your ${language} solution here...`}
+                            placeholder={`// Type your javascript solution here...`}
                             spellCheck={false}
                           />
 
