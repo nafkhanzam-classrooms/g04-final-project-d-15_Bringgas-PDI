@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle, Trophy, Folder, ChevronDown, ChevronUp, Code } from 'lucide-react';
+import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle, Trophy, Folder, ChevronDown, ChevronUp, Code, ThumbsUp } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgToggleVideoCall, MsgSendQuestion, MsgStopQuestion, MsgLeaderboard } from '../../store/websocketStore';
+import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgToggleVideoCall, MsgSendQuestion, MsgStopQuestion, MsgLeaderboard, MsgGradeCode } from '../../store/websocketStore';
 import { useClassStore } from '../../store/classStore';
 import { useAuthStore } from '../../store/authStore';
 import type { QuestionBankItem } from '../../store/classStore';
@@ -108,6 +108,24 @@ export default function ActiveSessionView() {
       disconnect();
       navigate('/host/classes');
     }
+  };
+
+  const handleGradeCode = (studentName: string) => {
+    if (!classState) return;
+    sendWithRetry(MsgGradeCode, {
+      code: classState.code,
+      studentName: studentName,
+      points: 100 * (classState.pointMultiplier || 1)
+    }, () => true);
+    
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: `Excellent! +100 points to ${studentName}`,
+      showConfirmButton: false,
+      timer: 2000
+    });
   };
 
   const changeSlide = (delta: number) => {
@@ -253,7 +271,16 @@ export default function ActiveSessionView() {
                         <div key={i} className="bg-slate-900 rounded-xl p-4 shadow-md border border-slate-800 flex flex-col max-h-[250px]">
                           <div className="flex items-center justify-between mb-2">
                              <span className="text-blue-400 font-bold text-sm uppercase tracking-wider">{student}</span>
-                             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                             <div className="flex items-center gap-3">
+                               <button 
+                                 onClick={() => handleGradeCode(student)}
+                                 className="text-slate-400 hover:text-green-400 hover:bg-green-400/20 p-1.5 rounded-lg transition-all flex items-center gap-1"
+                                 title="Beri Nilai Benar"
+                               >
+                                 <ThumbsUp size={16} /> <span className="text-[10px] font-bold">APPROVE</span>
+                               </button>
+                               <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                             </div>
                           </div>
                           <pre className="text-green-300 font-mono text-xs overflow-y-auto flex-1 p-2 bg-black/50 rounded-lg whitespace-pre-wrap">{code}</pre>
                         </div>

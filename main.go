@@ -1139,6 +1139,52 @@ func handleWebSocket(c *websocket.Conn) {
 			repManager.ReplicateSessionState(session)
 			BroadcastClassState(req.Code)
 
+		case protocol.MsgGradeCode:
+			var req struct {
+				Code        string `json:"code"`
+				StudentName string `json:"studentName"`
+				Points      int    `json:"points"`
+			}
+			if err := json.Unmarshal(payload, &req); err != nil {
+				sendError(c, "Invalid JSON payload for GRADE_CODE")
+				continue
+			}
+
+			session := sm.GetSession(req.Code)
+			if session == nil {
+				sendError(c, "Kelas tidak aktif.")
+				continue
+			}
+
+			newScore, newStreak, err := session.GradeStudent(req.StudentName, req.Points)
+			if err != nil {
+				sendError(c, "Gagal memberi nilai: "+err.Error())
+				continue
+			}
+
+			// Send MsgQuizResult ONLY to the graded student
+			resPayload, _ := json.Marshal(map[string]interface{}{
+				"isCorrect":    true,
+				"pointsEarned": req.Points,
+				"correct":      "Approved by Teacher",
+				"newScore":     newScore,
+				"newStreak":    newStreak,
+			})
+			packet := protocol.EncodePacket(protocol.MsgQuizResult, 0, resPayload)
+
+			registry.mu.RLock()
+			if classMap, ok := registry.participants[req.Code]; ok {
+				if studentConn, ok := classMap[req.StudentName]; ok {
+					studentConn.WriteMessage(websocket.BinaryMessage, packet)
+				}
+			}
+			registry.mu.RUnlock()
+
+			log.Printf("[%s] Host awarded %d points to %s in %s", nodeName, req.Points, req.StudentName, req.Code)
+
+			repManager.ReplicateSessionState(session)
+			BroadcastClassState(req.Code)
+
 		case protocol.MsgToggleVideoCall:
 			var req struct {
 				Code   string `json:"code"`

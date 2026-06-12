@@ -9,6 +9,7 @@ export const MsgSendQuestion = 0x0010;
 export const MsgSubmitAnswer = 0x0011;
 export const MsgQuizResult = 0x0012;
 export const MsgStopQuestion = 0x0013;
+export const MsgGradeCode = 0x0014;
 export const MsgSlideChange = 0x0020;
 export const MsgLeaderboard = 0x0030;
 export const MsgToggleVideoCall = 0x0040;

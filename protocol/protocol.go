@@ -22,6 +22,7 @@ const (
 	MsgSubmitAnswer    uint16 = 0x0011
 	MsgQuizResult      uint16 = 0x0012
 	MsgStopQuestion    uint16 = 0x0013
+	MsgGradeCode       uint16 = 0x0014
 	MsgSlideChange     uint16 = 0x0020
 	MsgSlideBroadcast  uint16 = 0x0021
 	MsgLeaderboard     uint16 = 0x0030

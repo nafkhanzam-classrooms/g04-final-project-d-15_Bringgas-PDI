@@ -374,6 +374,39 @@ func (s *ClassSession) SubmitAnswer(name, answer string) (bool, int, error) {
 	return isCorrect, pointsEarned, nil
 }
 
+// GradeStudent awards points and streak for a specific student's code submission
+func (s *ClassSession) GradeStudent(name string, points int) (int, int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	p, exists := s.Participants[name]
+	if !exists {
+		return 0, 0, fmt.Errorf("participant not found")
+	}
+
+	p.Score += points
+	p.Streak++
+	p.LastActiveTime = time.Now()
+	
+	s.recalculateLeaderboardNoLock()
+
+	go func(classCode, studentName string, score, streak int) {
+		db := database.GetDB()
+		if db == nil {
+			return
+		}
+		var id int
+		err := db.QueryRow("SELECT id FROM submissions WHERE class_code = ? AND student_name = ?", classCode, studentName).Scan(&id)
+		if err == sql.ErrNoRows {
+			db.Exec("INSERT INTO submissions (class_code, student_name, score, streak) VALUES (?, ?, ?, ?)", classCode, studentName, score, streak)
+		} else if err == nil {
+			db.Exec("UPDATE submissions SET score = ?, streak = ? WHERE id = ?", score, streak, id)
+		}
+	}(s.Code, name, p.Score, p.Streak)
+
+	return p.Score, p.Streak, nil
+}
+
 // StartSession sets class active state to true in-memory and in MariaDB
 func (s *ClassSession) StartSession() {
 	s.mu.Lock()

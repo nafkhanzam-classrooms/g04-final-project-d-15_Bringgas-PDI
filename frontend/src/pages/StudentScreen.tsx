@@ -399,18 +399,18 @@ export default function StudentScreen() {
                         lastQuizResult.isCorrect ? 'bg-green-500 text-white shadow-green-500/20 shadow-xl' : 'bg-red-50 text-red-600 border border-red-100'
                       }`}>
                         <div className={`mb-6 p-4 rounded-full ${
-                          classState.currentQuestion.activityType === 'code' ? 'bg-slate-700 text-blue-400' :
+                          classState.currentQuestion.activityType === 'code' && lastQuizResult.correct !== 'Approved by Teacher' ? 'bg-slate-700 text-blue-400' :
                           lastQuizResult.isCorrect ? 'bg-white text-green-500' : 'bg-red-100'
                         }`}>
-                          {classState.currentQuestion.activityType === 'code' ? <Code size={64} /> :
+                          {classState.currentQuestion.activityType === 'code' && lastQuizResult.correct !== 'Approved by Teacher' ? <Code size={64} /> :
                            lastQuizResult.isCorrect ? <CheckCircle size={64} /> : <Zap size={64} />}
                         </div>
                         <h2 className="text-4xl font-bold uppercase mb-4">
-                          {classState.currentQuestion.activityType === 'code' ? 'Code Submitted!' :
+                          {classState.currentQuestion.activityType === 'code' && lastQuizResult.correct !== 'Approved by Teacher' ? 'Code Submitted!' :
                            lastQuizResult.isCorrect ? 'Correct!' : 'Incorrect'}
                         </h2>
                         
-                        {classState.currentQuestion.activityType === 'code' ? (
+                        {classState.currentQuestion.activityType === 'code' && lastQuizResult.correct !== 'Approved by Teacher' ? (
                           <p className="font-semibold text-xl text-slate-300">Your solution has been sent to the teacher.</p>
                         ) : (
                           <>
