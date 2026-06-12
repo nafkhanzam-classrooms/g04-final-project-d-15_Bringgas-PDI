@@ -239,7 +239,7 @@ export default function ActiveSessionView() {
               </button>
             </div>
           ) : classState?.presentationUrl ? (
-            <div className="flex-1 w-full h-full relative bg-slate-50 overflow-hidden min-h-[80vh] md:min-h-screen">
+            <div className="flex-1 w-full h-full relative bg-slate-50 overflow-hidden">
               {classState.presentationUrl.toLowerCase().endsWith('.pdf') ? (
                 <div className="absolute inset-0 z-10">
                   <PdfSlideViewer 

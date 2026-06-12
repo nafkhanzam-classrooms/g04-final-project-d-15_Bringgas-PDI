@@ -219,20 +219,21 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
       
       {/* Toolbar */}
       {canDraw && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white px-6 py-3 rounded-2xl shadow-xl border border-slate-200 pointer-events-auto flex items-center gap-4 transition-all hover:shadow-2xl">
+        <div className="absolute top-1/2 -translate-y-1/2 left-4 bg-white p-3 rounded-2xl shadow-xl border border-slate-200 pointer-events-auto flex flex-col items-center gap-4 transition-all hover:shadow-2xl z-50">
           {isHost && (
             <>
               <button
                 onClick={() => setIsDrawingMode(!isDrawingMode)}
-                className={`p-2 px-4 rounded-xl font-bold text-sm transition-all border-2 ${isDrawingMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+                className={`p-2 w-12 h-12 rounded-xl font-bold text-[10px] flex flex-col items-center justify-center transition-all border-2 ${isDrawingMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
               >
-                {isDrawingMode ? 'Draw: ON' : 'Draw: OFF'}
+                <span>DRAW</span>
+                <span className={isDrawingMode ? 'text-white' : 'text-blue-600'}>{isDrawingMode ? 'ON' : 'OFF'}</span>
               </button>
-              <div className="w-px h-6 bg-slate-200 hidden md:block"></div>
+              <div className="w-8 h-px bg-slate-200"></div>
             </>
           )}
 
-          <div className={`flex items-center gap-2 border-r border-slate-200 pr-4 transition-opacity ${!effectiveCanDraw ? 'opacity-50 pointer-events-none' : ''}`}>
+          <div className={`flex flex-col items-center gap-2 border-b border-slate-200 pb-4 transition-opacity ${!effectiveCanDraw ? 'opacity-50 pointer-events-none' : ''}`}>
             <button
               onClick={() => setTool('pen')}
               className={`p-2 rounded-xl transition-all ${tool === 'pen' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}
@@ -247,7 +248,7 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
             </button>
           </div>
 
-          <div className={`flex items-center gap-2 border-r border-slate-200 pr-4 transition-opacity ${!effectiveCanDraw ? 'opacity-50 pointer-events-none' : ''}`}>
+          <div className={`flex flex-col items-center gap-3 border-b border-slate-200 pb-4 transition-opacity ${!effectiveCanDraw ? 'opacity-50 pointer-events-none' : ''}`}>
             {['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#000000'].map(c => (
               <button
                 key={c}
@@ -258,7 +259,7 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
             ))}
           </div>
 
-          <div className={`flex items-center gap-4 transition-opacity ${!effectiveCanDraw ? 'opacity-50 pointer-events-none' : ''}`}>
+          <div className={`flex flex-col items-center gap-4 transition-opacity ${!effectiveCanDraw ? 'opacity-50 pointer-events-none' : ''}`}>
             {isHost && (
               <>
                 <button
@@ -274,9 +275,6 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
                   title={whiteboardPermit === 'all' ? 'Students can draw' : 'Only Host can draw'}
                 >
                   {whiteboardPermit === 'all' ? <Unlock size={20} /> : <Lock size={20} />}
-                  <span className="text-xs font-semibold hidden md:inline">
-                    {whiteboardPermit === 'all' ? 'Siswa Bisa Coret' : 'Kunci Coretan'}
-                  </span>
                 </button>
               </>
             )}
