@@ -46,7 +46,7 @@ export interface Question {
   questionText: string;
   options: string[];
   correctOption: string;
-  activityType: 'quiz' | 'poll' | 'essay';
+  activityType: 'quiz' | 'poll' | 'essay' | 'code' | 'yesno';
   durationSeconds: number;
   pointMultiplier: number;
 }
@@ -90,7 +90,7 @@ interface WebSocketState {
   error: string | null;
   classState: ClassState | null;
   myName: string | null;
-  lastQuizResult: { isCorrect: boolean; pointsEarned: number; correct: string } | null;
+  lastQuizResult: { isCorrect: boolean; pointsEarned: number; correct: string; newScore?: number; newStreak?: number } | null;
   pendingActions: Record<number, PendingAction>;
   
   connect: () => void;

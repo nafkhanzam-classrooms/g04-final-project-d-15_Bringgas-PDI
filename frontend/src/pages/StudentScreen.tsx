@@ -451,7 +451,7 @@ export default function StudentScreen() {
                               </span>
                             </div>
                             <div className={`text-sm font-bold tracking-widest uppercase opacity-80 flex items-center gap-2 justify-center ${lastQuizResult.isCorrect ? 'text-green-100' : 'text-red-400'}`}>
-                              <Flame size={16} /> Streak: {lastQuizResult.streakCount}
+                              <Flame size={16} /> Streak: {lastQuizResult.newStreak}
                             </div>
                           </>
                         )}
