@@ -156,12 +156,12 @@ export default function StudentScreen() {
         }
       } else {
         const WANDBOX_COMPILERS: Record<string, string> = {
-          python: 'cpython-head',
-          go: 'go-head',
+          python: 'cpython-3.10.6',
+          go: 'go-1.19.6',
           java: 'openjdk-head',
-          cpp: 'gcc-head',
-          c: 'gcc-head-c',
-          php: 'php-head'
+          cpp: 'gcc-12.2.0',
+          c: 'gcc-12.2.0-c',
+          php: 'php-8.2.3'
         };
 
         const response = await fetch('https://wandbox.org/api/compile.json', {

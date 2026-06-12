@@ -232,14 +232,46 @@ export default function ActiveSessionView() {
           {code && <Whiteboard isHost={true} code={code} />}
 
           {classState?.currentQuestion ? (
-            <div className="absolute inset-0 z-10 bg-blue-600/95 text-white p-8 flex flex-col items-center justify-center text-center">
-              <div className="font-semibold text-sm mb-4 bg-white/20 px-4 py-1.5 rounded-full">
-                {classState.currentQuestion.activityType === 'quiz' ? 'Multiple Choice Quiz' : 'Code Challenge'}
+            <div className="absolute inset-0 z-20 bg-slate-50 flex flex-col items-center justify-start text-center p-8 overflow-y-auto w-full h-full">
+              <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-5xl border border-slate-100 flex flex-col items-center relative">
+                <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-40 overflow-hidden rounded-3xl">
+                  <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-100 blur-3xl mix-blend-overlay"></div>
+                </div>
+                
+                <div className="font-bold text-sm mb-6 bg-blue-100 text-blue-700 px-6 py-2 rounded-full uppercase tracking-widest shadow-sm z-10">
+                  {classState.currentQuestion.activityType === 'quiz' ? 'Multiple Choice Quiz' : 'Code Challenge'}
+                </div>
+                <h3 className="text-3xl md:text-5xl font-extrabold text-slate-800 mb-8 max-w-4xl leading-tight z-10">{classState.currentQuestion.questionText}</h3>
+                
+                {classState.currentQuestion.activityType === 'code' && classState.currentQuestion.answers && Object.keys(classState.currentQuestion.answers).length > 0 && (
+                  <div className="w-full mt-6 text-left z-10 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                    <h4 className="font-bold text-lg text-slate-700 mb-4 flex items-center gap-2 uppercase tracking-wide">
+                      <Code size={20} className="text-blue-600" /> Submitted Solutions ({Object.keys(classState.currentQuestion.answers).length})
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {Object.entries(classState.currentQuestion.answers).map(([student, code], i) => (
+                        <div key={i} className="bg-slate-900 rounded-xl p-4 shadow-md border border-slate-800 flex flex-col max-h-[250px]">
+                          <div className="flex items-center justify-between mb-2">
+                             <span className="text-blue-400 font-bold text-sm uppercase tracking-wider">{student}</span>
+                             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                          </div>
+                          <pre className="text-green-300 font-mono text-xs overflow-y-auto flex-1 p-2 bg-black/50 rounded-lg whitespace-pre-wrap">{code}</pre>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {classState.currentQuestion.activityType === 'code' && (!classState.currentQuestion.answers || Object.keys(classState.currentQuestion.answers).length === 0) && (
+                   <div className="w-full mt-6 text-center z-10 bg-slate-50 p-12 rounded-2xl border border-slate-200 border-dashed">
+                      <p className="text-slate-500 font-semibold text-lg uppercase tracking-wider animate-pulse">Waiting for submissions...</p>
+                   </div>
+                )}
+                
+                <button onClick={stopQuiz} className="mt-8 z-10 bg-red-50 text-red-600 border border-red-200 px-10 py-4 rounded-2xl hover:bg-red-600 hover:text-white font-bold text-lg flex items-center gap-3 transition-all shadow-md">
+                  <StopCircle size={24} /> Stop Activity
+                </button>
               </div>
-              <h3 className="text-3xl md:text-5xl font-bold mb-8 max-w-3xl leading-tight">{classState.currentQuestion.questionText}</h3>
-              <button onClick={stopQuiz} className="bg-white text-blue-600 px-8 py-4 rounded-xl hover:bg-slate-50 font-bold text-lg flex items-center gap-3 transition-all shadow-xl shadow-black/10">
-                <StopCircle size={24} /> Stop Activity
-              </button>
             </div>
           ) : classState?.presentationUrl ? (
             <div className="flex-1 w-full h-full relative bg-slate-50 overflow-hidden">
