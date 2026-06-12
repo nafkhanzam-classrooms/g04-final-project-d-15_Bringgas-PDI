@@ -164,7 +164,7 @@ export default function BankView() {
             </button>
             <div>
               <h2 className="font-sans text-4xl font-bold uppercase">{activeSet.title}</h2>
-              <p className="font-sans text-xs font-bold text-slate-500 uppercase mt-1">Manage Questions inside this Set</p>
+              <p className="font-sans text-xs font-bold text-slate-500 uppercase mt-1">Manage Questions inside this Folder</p>
             </div>
           </div>
           <button 
@@ -281,7 +281,7 @@ export default function BankView() {
         <div>
           <h2 className="font-sans text-4xl font-bold uppercase flex items-center gap-3">
             <Database size={32} />
-            Question Sets
+            Folders
           </h2>
           <p className="font-sans text-xs font-bold text-slate-500 uppercase mt-2">Manage Question Banks</p>
         </div>
@@ -289,13 +289,13 @@ export default function BankView() {
           onClick={() => setIsAddingSet(!isAddingSet)}
           className="bg-blue-600 text-white px-6 py-3 border border-slate-200 rounded-2xl shadow-sm hover:shadow-none hover:-translate-y-1 font-bold uppercase flex items-center gap-2 transition-all"
         >
-          {isAddingSet ? 'Cancel' : <><Plus size={20} strokeWidth={3} /> New Set</>}
+          {isAddingSet ? 'Cancel' : <><Plus size={20} strokeWidth={3} /> New Folder</>}
         </button>
       </div>
 
       {isAddingSet && (
         <form onSubmit={handleCreateSet} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-8 max-w-xl">
-          <label className="block font-sans text-sm font-bold uppercase mb-2">Set Title</label>
+          <label className="block font-sans text-sm font-bold uppercase mb-2">Folder Name</label>
           <div className="flex gap-4">
             <input type="text" value={newSetTitle} onChange={e => setNewSetTitle(e.target.value)} required placeholder="e.g. UTS Jaringan Dasar" className="flex-1 border border-slate-200 rounded-xl p-3 font-bold focus:outline-none focus:border-primary" />
             <button type="submit" className="bg-violet-600 text-white px-6 py-3 border border-slate-200 rounded-xl font-bold uppercase shadow-sm hover:shadow-none hover:-translate-y-1 transition-all">
@@ -307,9 +307,9 @@ export default function BankView() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-8">
         {isLoading && questionSets.length === 0 ? (
-          <div className="col-span-full py-12 text-center font-sans font-bold uppercase animate-pulse">Loading sets...</div>
+          <div className="col-span-full py-12 text-center font-sans font-bold uppercase animate-pulse">Loading folders...</div>
         ) : questionSets.length === 0 ? (
-          <div className="col-span-full py-12 text-center font-sans font-bold uppercase border-4 border-dashed border-slate-200/20 text-slate-500">No question sets found. Create one.</div>
+          <div className="col-span-full py-12 text-center font-sans font-bold uppercase border-4 border-dashed border-slate-200/20 text-slate-500">No folders found. Create one.</div>
         ) : (
           questionSets.map((set) => (
             <div 

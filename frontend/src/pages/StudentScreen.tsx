@@ -19,6 +19,9 @@ export default function StudentScreen() {
   const [hasJoined, setHasJoined] = useState(() => sessionStorage.getItem('lopyta_student_joined') === 'true');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [codeAnswer, setCodeAnswer] = useState('');
+  const [language, setLanguage] = useState('javascript');
+  const [runOutput, setRunOutput] = useState<{stdout: string, stderr: string, error?: string} | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
 
   useEffect(() => {
     connect();
@@ -126,6 +129,37 @@ export default function StudentScreen() {
         return !!state.lastQuizResult || !!myData?.hasAnsweredCurrent;
       }
     );
+  };
+
+  const handleRunCode = async () => {
+    if (!codeAnswer.trim()) return;
+    setIsRunning(true);
+    setRunOutput(null);
+    try {
+      const response = await fetch('https://emkc.org/api/v2/piston/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language: language,
+          version: '*', 
+          files: [{ content: codeAnswer }]
+        })
+      });
+      const data = await response.json();
+      if (data.run) {
+        setRunOutput({
+          stdout: data.run.stdout,
+          stderr: data.run.stderr,
+          error: data.message
+        });
+      } else {
+        setRunOutput({ stdout: '', stderr: '', error: data.message || 'Execution failed' });
+      }
+    } catch (err: any) {
+      setRunOutput({ stdout: '', stderr: '', error: err.message });
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   if (!hasJoined || !classState) {
@@ -411,19 +445,55 @@ export default function StudentScreen() {
                         </div>
                       ) : (
                         <div className="flex flex-col h-full w-full max-w-3xl mx-auto animate-in fade-in">
-                          <div className="flex items-center gap-2 mb-4 text-slate-700">
-                            <Code size={24} />
-                            <h2 className="text-xl font-bold uppercase">Write your code</h2>
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2 text-slate-700">
+                              <Code size={24} />
+                              <h2 className="text-xl font-bold uppercase">Write your code</h2>
+                            </div>
+                            <select 
+                              value={language}
+                              onChange={(e) => setLanguage(e.target.value)}
+                              className="bg-white border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold text-sm uppercase outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="javascript">JavaScript</option>
+                              <option value="python">Python</option>
+                              <option value="go">Go</option>
+                              <option value="java">Java</option>
+                              <option value="cpp">C++</option>
+                              <option value="c">C</option>
+                              <option value="php">PHP</option>
+                            </select>
                           </div>
                           <textarea
                             value={codeAnswer}
                             onChange={(e) => setCodeAnswer(e.target.value)}
                             disabled={selectedOption !== null}
                             className="flex-1 w-full p-4 bg-slate-900 text-green-400 font-mono text-sm md:text-base rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner resize-none min-h-[200px]"
-                            placeholder="// Type your code solution here..."
+                            placeholder={`// Type your ${language} solution here...`}
                             spellCheck={false}
                           />
-                          <div className="mt-4 flex justify-end">
+
+                          {runOutput && (
+                            <div className="mt-4 p-4 bg-black rounded-xl border border-slate-800 font-mono text-sm shadow-inner text-left">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-bold text-slate-500 uppercase">Output Terminal</span>
+                                <button onClick={() => setRunOutput(null)} className="text-slate-500 hover:text-white font-bold">&times;</button>
+                              </div>
+                              {runOutput.error && <div className="text-red-500 mb-1">{runOutput.error}</div>}
+                              {runOutput.stderr && <div className="text-red-400 whitespace-pre-wrap">{runOutput.stderr}</div>}
+                              {runOutput.stdout && <div className="text-green-400 whitespace-pre-wrap">{runOutput.stdout}</div>}
+                              {!runOutput.stdout && !runOutput.stderr && !runOutput.error && <div className="text-slate-500 italic">Program finished with no output.</div>}
+                            </div>
+                          )}
+
+                          <div className="mt-4 flex justify-between gap-4">
+                            <button
+                              onClick={handleRunCode}
+                              disabled={selectedOption !== null || !codeAnswer.trim() || isRunning}
+                              className="bg-slate-800 text-white px-6 py-4 rounded-xl font-bold uppercase tracking-wider hover:bg-slate-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 flex-1 md:flex-none"
+                            >
+                              {isRunning ? <span className="animate-pulse">Running...</span> : <><Zap size={18} /> Run Code</>}
+                            </button>
                             <button
                               onClick={() => {
                                 setSelectedOption('code_submitted');
@@ -434,9 +504,9 @@ export default function StudentScreen() {
                                 );
                               }}
                               disabled={selectedOption !== null || !codeAnswer.trim()}
-                              className="bg-blue-600 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wider shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:-translate-y-1 transition-all disabled:opacity-50 disabled:hover:translate-y-0"
+                              className="bg-blue-600 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wider shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:-translate-y-1 transition-all disabled:opacity-50 disabled:hover:translate-y-0 flex-1"
                             >
-                              {selectedOption !== null ? 'Submitted' : 'Submit Code'}
+                              {selectedOption !== null ? 'Submitted' : 'Submit Solution'}
                             </button>
                           </div>
                         </div>
