@@ -49,6 +49,8 @@ export interface Question {
   activityType: 'quiz' | 'poll' | 'essay' | 'code' | 'yesno';
   durationSeconds: number;
   pointMultiplier: number;
+  answers?: Record<string, string>;
+  timestamps?: Record<string, string>;
 }
 
 export interface WhiteboardLine {

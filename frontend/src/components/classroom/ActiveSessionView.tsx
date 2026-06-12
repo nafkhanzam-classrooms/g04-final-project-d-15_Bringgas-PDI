@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle, Trophy, Folder, ChevronDown, ChevronUp } from 'lucide-react';
+import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle, Trophy, Folder, ChevronDown, ChevronUp, Code } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgToggleVideoCall, MsgSendQuestion, MsgStopQuestion, MsgLeaderboard } from '../../store/websocketStore';
 import { useClassStore } from '../../store/classStore';
