@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { useWebSocketStore, MsgWhiteboardDraw, MsgWhiteboardClear, MsgWhiteboardPermit } from '../../store/websocketStore';
-import { Trash2, Edit3, Eraser, Unlock, Lock } from 'lucide-react';
+import { useWebSocketStore, MsgWhiteboardDraw, MsgWhiteboardClear } from '../../store/websocketStore';
+import { Trash2, Edit3, Eraser } from 'lucide-react';
 
 interface WhiteboardProps {
   isHost: boolean;
@@ -20,7 +20,6 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
   const { classState, sendPacket } = useWebSocketStore();
   const whiteboardLines = classState?.whiteboardLines || [];
 
-  const canDraw = isHost;
   const effectiveCanDraw = isHost && isDrawingMode;
   const brushSize = 4;
 
@@ -192,12 +191,6 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
       offsetX: clientX - rect.left,
       offsetY: clientY - rect.top
     };
-  };
-
-  const togglePermit = () => {
-    if (!isHost) return;
-    const newPermit = whiteboardPermit === 'all' ? 'none' : 'all';
-    sendPacket(MsgWhiteboardPermit, { code, permit: newPermit });
   };
 
   return (
