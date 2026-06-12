@@ -300,7 +300,7 @@ export default function StudentScreen() {
         {!classState.currentQuestion ? (
           // Slide View
           classState?.presentationUrl ? (
-            <div className="flex-1 w-full h-full relative bg-slate-100 overflow-hidden min-h-[80vh] md:min-h-screen">
+            <div className="w-full aspect-video relative bg-slate-100 overflow-hidden mx-auto max-w-full max-h-[80vh]">
               {/* Whiteboard Overlay */}
               {code && <Whiteboard isHost={false} code={code} />}
 

@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { useWebSocketStore, MsgWhiteboardDraw, MsgWhiteboardClear } from '../../store/websocketStore';
-import { Trash2, Edit3, Eraser } from 'lucide-react';
+import { useWebSocketStore, MsgWhiteboardDraw, MsgWhiteboardClear, MsgWhiteboardPermit } from '../../store/websocketStore';
+import { Trash2, Edit3, Eraser, Unlock, Lock } from 'lucide-react';
 
 interface WhiteboardProps {
   isHost: boolean;
@@ -19,8 +19,10 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
   
   const { classState, sendPacket } = useWebSocketStore();
   const whiteboardLines = classState?.whiteboardLines || [];
+  const whiteboardPermit = classState?.whiteboardPermit || 'none';
 
-  const effectiveCanDraw = isHost && isDrawingMode;
+  const canDraw = isHost || whiteboardPermit === 'all';
+  const effectiveCanDraw = isHost ? isDrawingMode : canDraw;
   const brushSize = 4;
 
   // Initialize Canvas
@@ -193,6 +195,12 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
     };
   };
 
+  const togglePermit = () => {
+    if (!isHost) return;
+    const newPermit = whiteboardPermit === 'all' ? 'none' : 'all';
+    sendPacket(MsgWhiteboardPermit, { code, permit: newPermit });
+  };
+
   return (
     <div className="absolute inset-0 z-50 pointer-events-none">
       <canvas
@@ -209,19 +217,22 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
         style={{ touchAction: 'none' }}
       />
       
-      {/* Toolbar - ONLY HOST */}
-      {isHost && (
+      {/* Toolbar */}
+      {canDraw && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white px-6 py-3 rounded-2xl shadow-xl border border-slate-200 pointer-events-auto flex items-center gap-4 transition-all hover:shadow-2xl">
-          <button
-            onClick={() => setIsDrawingMode(!isDrawingMode)}
-            className={`p-2 px-4 rounded-xl font-bold text-sm transition-all border-2 ${isDrawingMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
-          >
-            {isDrawingMode ? 'Draw: ON' : 'Draw: OFF'}
-          </button>
-          
-          <div className="w-px h-6 bg-slate-200 hidden md:block"></div>
+          {isHost && (
+            <>
+              <button
+                onClick={() => setIsDrawingMode(!isDrawingMode)}
+                className={`p-2 px-4 rounded-xl font-bold text-sm transition-all border-2 ${isDrawingMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+              >
+                {isDrawingMode ? 'Draw: ON' : 'Draw: OFF'}
+              </button>
+              <div className="w-px h-6 bg-slate-200 hidden md:block"></div>
+            </>
+          )}
 
-          <div className={`flex items-center gap-2 border-r border-slate-200 pr-4 transition-opacity ${!isDrawingMode ? 'opacity-50 pointer-events-none' : ''}`}>
+          <div className={`flex items-center gap-2 border-r border-slate-200 pr-4 transition-opacity ${!effectiveCanDraw ? 'opacity-50 pointer-events-none' : ''}`}>
             <button
               onClick={() => setTool('pen')}
               className={`p-2 rounded-xl transition-all ${tool === 'pen' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}
@@ -236,7 +247,7 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
             </button>
           </div>
 
-          <div className={`flex items-center gap-2 border-r border-slate-200 pr-4 transition-opacity ${!isDrawingMode ? 'opacity-50 pointer-events-none' : ''}`}>
+          <div className={`flex items-center gap-2 border-r border-slate-200 pr-4 transition-opacity ${!effectiveCanDraw ? 'opacity-50 pointer-events-none' : ''}`}>
             {['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#000000'].map(c => (
               <button
                 key={c}
@@ -247,14 +258,28 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
             ))}
           </div>
 
-          <div className={`flex items-center gap-4 transition-opacity ${!isDrawingMode ? 'opacity-50 pointer-events-none' : ''}`}>
-            <button
-              onClick={() => sendPacket(MsgWhiteboardClear, { code })}
-              className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-              title="Clear All"
-            >
-              <Trash2 size={20} />
-            </button>
+          <div className={`flex items-center gap-4 transition-opacity ${!effectiveCanDraw ? 'opacity-50 pointer-events-none' : ''}`}>
+            {isHost && (
+              <>
+                <button
+                  onClick={() => sendPacket(MsgWhiteboardClear, { code })}
+                  className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                  title="Clear All"
+                >
+                  <Trash2 size={20} />
+                </button>
+                <button
+                  onClick={togglePermit}
+                  className={`p-2 rounded-xl transition-all flex items-center gap-2 ${whiteboardPermit === 'all' ? 'bg-green-100 text-green-600' : 'text-slate-500 hover:bg-slate-100'}`}
+                  title={whiteboardPermit === 'all' ? 'Students can draw' : 'Only Host can draw'}
+                >
+                  {whiteboardPermit === 'all' ? <Unlock size={20} /> : <Lock size={20} />}
+                  <span className="text-xs font-semibold hidden md:inline">
+                    {whiteboardPermit === 'all' ? 'Siswa Bisa Coret' : 'Kunci Coretan'}
+                  </span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

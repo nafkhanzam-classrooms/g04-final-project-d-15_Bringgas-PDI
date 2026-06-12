@@ -176,7 +176,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
                 return {
                   classState: {
                     ...state.classState,
-                    whiteboardLines: [...state.classState.whiteboardLines, line]
+                    whiteboardLines: [...(state.classState.whiteboardLines || []), line]
                   }
                 };
               }

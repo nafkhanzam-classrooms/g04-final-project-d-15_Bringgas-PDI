@@ -224,7 +224,7 @@ export default function ActiveSessionView() {
         )}
 
         {/* Presentation Area */}
-        <div className="flex-1 bg-white rounded-2xl shadow-lg border border-slate-100 flex flex-col relative overflow-hidden min-h-[400px]">
+        <div className="flex-1 w-full max-w-full aspect-video bg-white rounded-2xl shadow-lg border border-slate-100 flex flex-col relative overflow-hidden mx-auto max-h-[70vh]">
           {/* Whiteboard Overlay */}
           {code && <Whiteboard isHost={true} code={code} />}
 
@@ -272,10 +272,18 @@ export default function ActiveSessionView() {
         <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
           <h3 className="font-bold text-lg text-slate-800">Slide {slideNumber} of {classState?.totalSlides || '?'}</h3>
           <div className="flex gap-2">
-            <button onClick={() => changeSlide(-1)} disabled={slideNumber <= 1} className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-50 rounded-xl transition-all">
+            <button 
+              onClick={() => changeSlide(-1)} 
+              disabled={slideNumber <= 1} 
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md shadow-blue-600/20 disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none disabled:hover:bg-slate-300 disabled:cursor-not-allowed"
+            >
               Prev
             </button>
-            <button onClick={() => changeSlide(1)} disabled={slideNumber >= (classState?.totalSlides || 1)} className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all shadow-md shadow-blue-600/20">
+            <button 
+              onClick={() => changeSlide(1)} 
+              disabled={slideNumber >= (classState?.totalSlides || 1)} 
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md shadow-blue-600/20 disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none disabled:hover:bg-slate-300 disabled:cursor-not-allowed"
+            >
               Next Slide
             </button>
           </div>
