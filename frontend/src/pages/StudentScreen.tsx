@@ -136,27 +136,47 @@ export default function StudentScreen() {
     setIsRunning(true);
     setRunOutput(null);
     try {
-      const response = await fetch('https://emkc.org/api/v2/piston/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          language: language,
-          version: '*', 
-          files: [{ content: codeAnswer }]
-        })
-      });
-      const data = await response.json();
-      if (data.run) {
-        setRunOutput({
-          stdout: data.run.stdout,
-          stderr: data.run.stderr,
-          error: data.message
-        });
+      if (language === 'javascript') {
+        const logs: string[] = [];
+        const originalConsoleLog = console.log;
+        
+        console.log = (...args) => {
+          logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+        };
+
+        try {
+          // eslint-disable-next-line no-new-func
+          const result = new Function(codeAnswer)();
+          if (result !== undefined) logs.push(String(result));
+          setRunOutput({ stdout: logs.join('\n'), stderr: '' });
+        } catch(e: any) {
+          setRunOutput({ stdout: logs.join('\n'), stderr: e.message });
+        } finally {
+          console.log = originalConsoleLog;
+        }
       } else {
-        setRunOutput({ stdout: '', stderr: '', error: data.message || 'Execution failed' });
+        const response = await fetch('https://emkc.org/api/v2/piston/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            language: language,
+            version: '*', 
+            files: [{ content: codeAnswer }]
+          })
+        });
+        const data = await response.json();
+        if (data.run) {
+          setRunOutput({
+            stdout: data.run.stdout,
+            stderr: data.run.stderr,
+            error: data.message
+          });
+        } else {
+          setRunOutput({ stdout: '', stderr: '', error: 'Server eksekusi Piston saat ini sedang dibatasi (Whitelist Only) oleh penyedia. Silakan gunakan bahasa JavaScript untuk eksekusi langsung di browser.' });
+        }
       }
     } catch (err: any) {
-      setRunOutput({ stdout: '', stderr: '', error: err.message });
+      setRunOutput({ stdout: '', stderr: '', error: 'Gagal terhubung ke server eksekusi.' });
     } finally {
       setIsRunning(false);
     }

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle, Trophy } from 'lucide-react';
+import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle, Trophy, Folder, ChevronDown, ChevronUp } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgToggleVideoCall, MsgSendQuestion, MsgStopQuestion, MsgLeaderboard } from '../../store/websocketStore';
 import { useClassStore } from '../../store/classStore';
@@ -15,7 +15,8 @@ export default function ActiveSessionView() {
   const navigate = useNavigate();
   const { logout } = useAuthStore();
   const { isConnected, classState, connect, disconnect, sendPacket, sendWithRetry, error, clearError } = useWebSocketStore();
-  const { questionBank, fetchQuestionBank, endClass } = useClassStore();
+  const { questionBank, questionSets, fetchQuestionBank, fetchQuestionSets, endClass } = useClassStore();
+  const [expandedFolderId, setExpandedFolderId] = useState<number | null>(null);
   
   // Persist slide number in sessionStorage to recover immediately after a refresh
   const [slideNumber, setSlideNumber] = useState(() => {
@@ -25,6 +26,7 @@ export default function ActiveSessionView() {
   const requestedSlide = useRef(slideNumber);
 
   useEffect(() => {
+    fetchQuestionSets();
     fetchQuestionBank();
     if (!isConnected) {
       connect();
@@ -32,6 +34,7 @@ export default function ActiveSessionView() {
     
     // Refresh question bank when returning to this tab
     const handleFocus = () => {
+      fetchQuestionSets();
       fetchQuestionBank();
     };
     window.addEventListener('focus', handleFocus);
@@ -330,22 +333,54 @@ export default function ActiveSessionView() {
             </button>
           </div>
           <div className="overflow-y-auto p-4 space-y-3">
-            {questionBank.map(q => (
-              <button 
-                key={q.id}
-                onClick={() => launchQuiz(q)}
-                disabled={!!classState?.currentQuestion}
-                className="w-full text-left p-4 rounded-xl border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed group flex flex-col gap-1"
-              >
-                <div className="flex justify-between items-start">
-                  <span className="font-bold text-sm text-slate-800 leading-tight group-hover:text-blue-700">{q.title}</span>
-                  <Send size={14} className="text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+            {questionSets.map(set => {
+              const itemsInSet = questionBank.filter(q => q.set_id === set.id);
+              const isExpanded = expandedFolderId === set.id;
+              
+              return (
+                <div key={set.id} className="border border-slate-200 rounded-xl overflow-hidden">
+                  <button 
+                    onClick={() => setExpandedFolderId(isExpanded ? null : set.id)}
+                    className="w-full text-left p-3 bg-slate-50 hover:bg-slate-100 flex justify-between items-center transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Folder size={16} className="text-blue-600" />
+                      <span className="font-bold text-sm text-slate-800 truncate pr-2 max-w-[140px]">{set.title}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-slate-500 bg-white px-2 py-0.5 rounded-full border border-slate-200">{itemsInSet.length}</span>
+                      {isExpanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+                    </div>
+                  </button>
+                  
+                  {isExpanded && (
+                    <div className="p-2 space-y-2 bg-white border-t border-slate-100">
+                      {itemsInSet.length === 0 ? (
+                        <div className="text-center p-3 text-slate-400 font-semibold text-xs uppercase">Empty Folder</div>
+                      ) : (
+                        itemsInSet.map(q => (
+                          <button 
+                            key={q.id}
+                            onClick={() => launchQuiz(q)}
+                            disabled={!!classState?.currentQuestion}
+                            className="w-full text-left p-3 rounded-lg border border-slate-100 hover:bg-blue-50 hover:border-blue-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed group flex flex-col gap-1"
+                          >
+                            <div className="flex justify-between items-start">
+                              <span className="font-bold text-sm text-slate-800 leading-tight group-hover:text-blue-700">{q.title}</span>
+                              <Send size={14} className="text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide group-hover:text-blue-600/70">{q.activityType} • {q.durationSeconds}s</span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
-                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide group-hover:text-blue-600/70">{q.activityType} • {q.durationSeconds}s</span>
-              </button>
-            ))}
-            {questionBank.length === 0 && (
-               <div className="text-center p-4 text-slate-400 font-semibold text-xs uppercase">No questions in bank.</div>
+              );
+            })}
+            
+            {questionSets.length === 0 && (
+               <div className="text-center p-4 text-slate-400 font-semibold text-xs uppercase">No folders available.</div>
             )}
           </div>
         </div>
