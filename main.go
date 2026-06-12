@@ -808,7 +808,9 @@ func handleWebSocket(c *websocket.Conn) {
 		}
 	}()
 
+	c.SetReadLimit(2 * 1024 * 1024) // Limit to 2MB to prevent OOM
 	for {
+		c.SetReadDeadline(time.Now().Add(60 * time.Second)) // 60s read timeout
 		mt, message, err := c.ReadMessage()
 		if err != nil {
 			break
@@ -823,7 +825,8 @@ func handleWebSocket(c *websocket.Conn) {
 		if err != nil {
 			log.Printf("[%s] Malformed Packet Error: %v", nodeName, err)
 			sendError(c, fmt.Sprintf("Malformed packet rejected: %v", err))
-			continue
+			c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseUnsupportedData, "Malformed packet"))
+			break // Security fix: drop connection immediately on malformed data
 		}
 
 		switch msgType {

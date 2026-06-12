@@ -15,6 +15,7 @@ export const MsgToggleVideoCall = 0x0040;
 export const MsgWhiteboardDraw = 0x0050;
 export const MsgWhiteboardClear = 0x0051;
 export const MsgWhiteboardPermit = 0x0052;
+export const MsgHeartbeat = 0x00F0;
 export const MsgError = 0x00FF;
 
 const MAGIC_NUMBER = 0xCAFE;
@@ -130,6 +131,21 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
       socket.onopen = () => {
         set({ ws: socket, isConnected: true, isConnecting: false, error: null });
         console.log('WebSocket Connected');
+
+        // Start Heartbeat (timeout protection)
+        const intervalId = window.setInterval(() => {
+          const state = get();
+          if (state.isConnected && state.ws) {
+            state.sendPacket(MsgHeartbeat, { status: "ping" });
+          }
+        }, 5000) as unknown as number;
+
+        set((state) => ({
+          pendingActions: {
+            ...state.pendingActions,
+            [MsgHeartbeat]: { payload: {}, checkAck: () => true, intervalId }
+          }
+        }));
       };
 
       socket.onmessage = (event) => {
@@ -192,7 +208,12 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
 
       socket.onclose = (event) => {
         console.log('WebSocket Disconnected', event.code);
-        set({ ws: null, isConnected: false, isConnecting: false });
+        
+        // Clear all intervals
+        const { pendingActions } = get();
+        Object.values(pendingActions).forEach(action => window.clearInterval(action.intervalId));
+
+        set({ ws: null, isConnected: false, isConnecting: false, pendingActions: {} });
         
         // Auto reconnect logic could go here
         if (event.code !== 1000) { // Not a clean close
