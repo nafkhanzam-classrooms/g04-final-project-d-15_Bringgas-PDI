@@ -19,10 +19,9 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
   
   const { classState, sendPacket } = useWebSocketStore();
   const whiteboardLines = classState?.whiteboardLines || [];
-  const whiteboardPermit = classState?.whiteboardPermit || 'none';
 
-  const canDraw = isHost || whiteboardPermit === 'all';
-  const effectiveCanDraw = canDraw && isDrawingMode;
+  const canDraw = isHost;
+  const effectiveCanDraw = isHost && isDrawingMode;
   const brushSize = 4;
 
   // Initialize Canvas
@@ -112,11 +111,11 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
     contextRef.current?.closePath();
     setIsDrawing(false);
 
-    if (currentLine.length > 2) {
-      // Send line to server
+    // If it was just a click (dot)
+    if (currentLine.length === 2) {
       sendPacket(MsgWhiteboardDraw, {
         code,
-        points: currentLine,
+        points: [currentLine[0], currentLine[1], currentLine[0], currentLine[1]],
         color,
         size: brushSize,
         tool
@@ -149,12 +148,17 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
       context.stroke();
 
       setCurrentLine(prev => {
-        const next = [...prev, offsetX / canvas.width, offsetY / canvas.height];
-        // Send progressive updates to make it realtime for students
-        if (next.length % 20 === 0) {
+        const newX = offsetX / canvas.width;
+        const newY = offsetY / canvas.height;
+        const next = [...prev, newX, newY];
+        
+        // Send true real-time segments
+        if (prev.length >= 2) {
+          const lastX = prev[prev.length - 2];
+          const lastY = prev[prev.length - 1];
           sendPacket(MsgWhiteboardDraw, {
             code,
-            points: next,
+            points: [lastX, lastY, newX, newY],
             color,
             size: brushSize,
             tool
@@ -170,15 +174,23 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     
-    if ('touches' in e) {
-      return {
-        offsetX: e.touches[0].clientX - rect.left,
-        offsetY: e.touches[0].clientY - rect.top
-      };
+    // Fallback if width/height is 0 to avoid Infinity
+    if (canvas.width === 0 || canvas.height === 0) {
+      return { offsetX: 0, offsetY: 0 };
     }
+    
+    let clientX, clientY;
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = (e as React.MouseEvent).clientX;
+      clientY = (e as React.MouseEvent).clientY;
+    }
+    
     return {
-      offsetX: e.nativeEvent.offsetX,
-      offsetY: e.nativeEvent.offsetY
+      offsetX: clientX - rect.left,
+      offsetY: clientY - rect.top
     };
   };
 
@@ -204,8 +216,8 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
         style={{ touchAction: 'none' }}
       />
       
-      {/* Toolbar */}
-      {canDraw && (
+      {/* Toolbar - ONLY HOST */}
+      {isHost && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white px-6 py-3 rounded-2xl shadow-xl border border-slate-200 pointer-events-auto flex items-center gap-4 transition-all hover:shadow-2xl">
           <button
             onClick={() => setIsDrawingMode(!isDrawingMode)}
@@ -243,27 +255,13 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
           </div>
 
           <div className={`flex items-center gap-4 transition-opacity ${!isDrawingMode ? 'opacity-50 pointer-events-none' : ''}`}>
-            {isHost && (
-              <>
-                <button
-                  onClick={() => sendPacket(MsgWhiteboardClear, { code })}
-                  className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                  title="Clear All"
-                >
-                  <Trash2 size={20} />
-                </button>
-                <button
-                  onClick={togglePermit}
-                  className={`p-2 rounded-xl transition-all flex items-center gap-2 ${whiteboardPermit === 'all' ? 'bg-green-100 text-green-600' : 'text-slate-500 hover:bg-slate-100'}`}
-                  title={whiteboardPermit === 'all' ? 'Students can draw' : 'Only Host can draw'}
-                >
-                  {whiteboardPermit === 'all' ? <Unlock size={20} /> : <Lock size={20} />}
-                  <span className="text-xs font-semibold hidden md:inline">
-                    {whiteboardPermit === 'all' ? 'Siswa Bisa Coret' : 'Kunci Coretan'}
-                  </span>
-                </button>
-              </>
-            )}
+            <button
+              onClick={() => sendPacket(MsgWhiteboardClear, { code })}
+              className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+              title="Clear All"
+            >
+              <Trash2 size={20} />
+            </button>
           </div>
         </div>
       )}
