@@ -457,7 +457,7 @@ export default function StudentScreen() {
                         )}
                       </div>
                     </div>
-                  ) : selectedOption !== null ? (
+                  ) : (
                     <>
                       {classState.currentQuestion.activityType === 'quiz' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
