@@ -1,59 +1,74 @@
-
-import { School } from 'lucide-react';
+import { School, ArrowRight } from 'lucide-react';
 
 export default function TeacherLogin() {
 
   return (
-    <div className="min-h-screen flex w-full bg-surface-dark text-on-surface">
-      {/* Left Branding - Neo-brutalist pattern */}
-      <div className="hidden md:flex md:w-1/2 bg-primary flex-col justify-center items-center relative overflow-hidden border-r-[8px] border-surface-dark">
-        {/* Geometric background shapes */}
-        <div className="absolute top-0 left-0 w-64 h-64 bg-primary-dark translate-x-[-20%] translate-y-[-20%] rotate-45 mix-blend-multiply opacity-50" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#047857] translate-x-[30%] translate-y-[30%] rounded-full mix-blend-multiply opacity-50" />
+    <div className="min-h-screen flex w-full bg-surface text-on-surface font-sans">
+      
+      {/* Left Branding - Soft Purple Elegance */}
+      <div className="hidden lg:flex lg:w-5/12 bg-surface-container flex-col justify-center px-16 relative overflow-hidden">
+        {/* Soft decorative blur circles */}
+        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-secondary blur-[100px] opacity-40 rounded-full mix-blend-multiply" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-primary blur-[100px] opacity-20 rounded-full mix-blend-multiply" />
         
-        <div className="relative z-10 flex flex-col items-center max-w-md p-8 border-4 border-surface-dark bg-primary shadow-[8px_8px_0px_#111827]">
-          <div className="mb-6 p-4 bg-surface-dark text-primary rounded-sm border-2 border-surface-dark">
-            <School size={80} strokeWidth={1.5} />
+        <div className="relative z-10">
+          <div className="mb-8 w-20 h-20 bg-white text-primary rounded-[20px] shadow-xl shadow-primary/10 flex items-center justify-center border border-white">
+            <School size={40} strokeWidth={1.5} />
           </div>
-          <h1 className="font-display text-5xl font-bold text-surface-dark tracking-tight mb-2 uppercase">Bringgas PDI</h1>
-          <p className="font-mono text-lg text-surface-dark font-medium border-t-2 border-surface-dark pt-2 mt-2">
-            INTELLIGENT INSTRUCTOR PORTAL
+          <h1 className="font-display text-4xl xl:text-5xl font-bold text-on-surface tracking-tight mb-4">
+            Welcome to <br/><span className="text-primary">Bringgas PDI</span>
+          </h1>
+          <p className="text-lg text-on-surface-variant font-medium leading-relaxed max-w-sm">
+            The intelligent platform for modern educators. Manage your interactive classrooms with ease and style.
           </p>
+        </div>
+        
+        <div className="absolute bottom-8 left-16 font-mono text-xs text-on-surface-variant font-medium tracking-wider">
+          SYSTEM VERSION 2.0
         </div>
       </div>
 
-      {/* Right Login Form */}
-      <div className="w-full md:w-1/2 flex flex-col justify-center items-center p-8 bg-surface relative">
+      {/* Right Login Form - Clean & Bright */}
+      <div className="w-full lg:w-7/12 flex flex-col justify-center items-center p-8 bg-white relative">
         <div className="w-full max-w-md">
+          
           {/* Mobile Header */}
-          <div className="md:hidden flex flex-col items-center mb-12 text-primary">
-            <div className="p-3 bg-surface-dark text-primary rounded-sm border-2 border-surface-dark mb-4">
-              <School size={48} strokeWidth={1.5} />
+          <div className="lg:hidden flex flex-col items-center mb-10 text-center">
+            <div className="w-16 h-16 bg-surface-container text-primary rounded-2xl flex items-center justify-center shadow-inner mb-4">
+              <School size={32} strokeWidth={1.5} />
             </div>
-            <h2 className="font-display text-3xl font-bold uppercase text-surface-dark">Bringgas PDI</h2>
+            <h2 className="font-display text-3xl font-bold text-on-surface">Bringgas PDI</h2>
+            <p className="text-on-surface-variant mt-2">Intelligent Instructor Portal</p>
           </div>
 
-          <div className="mb-8">
-            <h2 className="font-display text-4xl font-bold text-surface-dark mb-2">Welcome Back.</h2>
-            <p className="text-on-surface-variant font-mono text-sm">SECURE ACCESS TO LIVE CLASSROOM SESSIONS</p>
+          <div className="mb-10 text-center lg:text-left">
+            <h2 className="font-display text-3xl font-bold text-on-surface mb-2">Get Started</h2>
+            <p className="text-on-surface-variant">Sign in to access your dashboard</p>
           </div>
 
           <div className="space-y-6">
             {/* OAuth Login */}
             <a 
               href="/api/auth/google/login"
-              className="w-full flex justify-center items-center gap-3 py-3 px-4 border-2 border-surface-dark bg-surface hover:bg-surface-dim transition-all shadow-[4px_4px_0px_#111827] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] font-bold text-surface-dark"
+              className="group w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-surface border border-surface-container-high hover:border-primary hover:bg-surface-dim transition-all shadow-sm hover:shadow-md font-semibold text-on-surface"
             >
-              <img alt="Google Logo" className="w-5 h-5" src="/images/google-logo.svg" onError={(e) => e.currentTarget.style.display = 'none'} />
-              SIGN IN WITH GOOGLE
+              <img alt="Google Logo" className="w-6 h-6" src="/images/google-logo.svg" onError={(e) => e.currentTarget.style.display = 'none'} />
+              <span>Continue with Google</span>
+              <ArrowRight size={18} className="opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all absolute right-6 text-primary" />
             </a>
-
-
           </div>
+          
+          {/* Decorative Divider */}
+          <div className="mt-12 flex items-center gap-4">
+            <div className="flex-1 h-px bg-surface-container-high"></div>
+            <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-widest">Secure Access</span>
+            <div className="flex-1 h-px bg-surface-container-high"></div>
+          </div>
+          
         </div>
         
-        <div className="absolute bottom-6 font-mono text-xs text-on-surface-variant font-bold">
-          © 2026 BRINGGAS PDI.
+        <div className="absolute bottom-8 font-sans text-sm text-on-surface-variant">
+          © {new Date().getFullYear()} Bringgas PDI. All rights reserved.
         </div>
       </div>
     </div>

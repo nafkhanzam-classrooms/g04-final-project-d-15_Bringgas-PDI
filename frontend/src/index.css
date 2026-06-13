@@ -1,17 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  /* Colors - Premium Modern Solid style */
-  --color-primary: #2563eb; /* Blue 600 */
-  --color-primary-dark: #1d4ed8;
-  --color-secondary: #8b5cf6; /* Violet 500 */
+  /* Colors - Clean Light Theme with Bright Blue & Soft Purple */
+  --color-primary: #3b82f6; /* Bright Blue 500 */
+  --color-primary-dark: #2563eb; /* Blue 600 */
+  --color-secondary: #d8b4fe; /* Soft Purple (Fuchsia 300) */
+  --color-secondary-dark: #c084fc; /* Purple 400 */
   --color-tertiary: #0f172a; /* Slate 900 */
   
   --color-surface: #ffffff;
-  --color-surface-dim: #f8fafc; /* Slate 50 */
+  --color-surface-dim: #faf5ff; /* Very Soft Purple background */
   --color-surface-dark: #1e293b; /* Slate 800 */
-  --color-surface-container: #f1f5f9; /* Slate 100 */
-  --color-surface-container-high: #e2e8f0; /* Slate 200 */
+  --color-surface-container: #f3e8ff; /* Soft Purple 100 */
+  --color-surface-container-high: #e9d5ff; /* Soft Purple 200 */
   
   --color-on-surface: #0f172a;
   --color-on-surface-variant: #475569;
