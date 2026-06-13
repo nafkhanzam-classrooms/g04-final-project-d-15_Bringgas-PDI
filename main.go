@@ -1207,7 +1207,8 @@ func handleWebSocket(c *websocket.Conn) {
 			c.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(0x0008, seq, joinSuccessPayload))
 
 			// Handle duplicate login (Evict/Kick older browser tab across ALL classes)
-			var broadcastCodes []string
+			// Handle duplicate login (Evict/Kick older browser tab across ALL classes)
+			var oldSessionsToSync []*classroom.ClassSession
 			registry.mu.Lock()
 			for code, clients := range registry.participants {
 				if oldConn, exists := clients[currentName]; exists && oldConn != c {
@@ -1223,15 +1224,14 @@ func handleWebSocket(c *websocket.Conn) {
 					// Also mark inactive in the old session
 					if oldSession := sm.GetSession(code); oldSession != nil {
 						oldSession.DisconnectParticipant(currentName)
-						repManager.ReplicateSessionState(oldSession)
-						broadcastCodes = append(broadcastCodes, code)
+						oldSessionsToSync = append(oldSessionsToSync, oldSession)
 					}
 				}
 			}
 			registry.mu.Unlock()
 
-			for _, bc := range broadcastCodes {
-				BroadcastClassState(bc)
+			for _, os := range oldSessionsToSync {
+				repManager.ReplicateSessionState(os) // This also broadcasts class state internally
 			}
 
 			// Broadcast kick event to other nodes in the cluster
