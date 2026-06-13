@@ -108,6 +108,12 @@ export const useClassStore = create<ClassState>((set, get) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code })
       });
+      if (res.ok) {
+        set((state) => ({
+          classes: state.classes.map(c => c.code === code ? { ...c, isActive: true } : c)
+        }));
+        await get().fetchClasses();
+      }
       return res.ok;
     } catch (err) {
       console.error('Failed to start class', err);
@@ -122,6 +128,12 @@ export const useClassStore = create<ClassState>((set, get) => ({
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ code })
 			});
+			if (res.ok) {
+				set((state) => ({
+					classes: state.classes.map(c => c.code === code ? { ...c, isActive: false } : c)
+				}));
+				await get().fetchClasses();
+			}
 			return res.ok;
 		} catch (err) {
 			console.error('Failed to end class', err);
