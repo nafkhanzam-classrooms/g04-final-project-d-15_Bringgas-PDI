@@ -31,11 +31,15 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [currentLine, setCurrentLine] = useState<number[]>([]);
+  const isDrawingRef = useRef(false);
+  const strokeSegmentsRef = useRef<any[]>([]);
   const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   
-  const { classState, sendPacket } = useWebSocketStore();
+  const { classState, sendPacket, unsyncedLines, addUnsyncedLines } = useWebSocketStore();
   const whiteboardLines = lines !== undefined ? lines : (classState?.whiteboardLines || []);
+  const activeSlide = classState?.activeSlide || 1;
+  const localUnsynced = unsyncedLines[`${code}_${activeSlide}`] || [];
+  const mergedLines = [...whiteboardLines, ...localUnsynced];
   const whiteboardPermit = classState?.whiteboardPermit || 'none';
   
   const { tool, color, isDrawingMode } = useWhiteboardToolStore();
@@ -56,8 +60,8 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
       } else {
         const parent = canvas.parentElement;
         if (parent) {
-          canvas.width = parent.clientWidth;
-          canvas.height = parent.clientHeight;
+          canvas.width = parent.clientWidth || window.innerWidth;
+          canvas.height = parent.clientHeight || window.innerHeight;
         } else {
           canvas.width = window.innerWidth;
           canvas.height = window.innerHeight;
@@ -74,14 +78,28 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
 
     resizeCanvas();
     
-    if (!width || !height) {
+    if (width && height) {
+      return;
+    }
+
+    const parent = canvas.parentElement;
+    if (parent) {
+      const resizeObserver = new ResizeObserver(() => {
+        resizeCanvas();
+      });
+      resizeObserver.observe(parent);
+      return () => resizeObserver.disconnect();
+    } else {
       window.addEventListener('resize', resizeCanvas);
       return () => window.removeEventListener('resize', resizeCanvas);
     }
   }, [width, height]);
 
-  // Redraw all lines when whiteboardLines changes
+  // Redraw all lines when mergedLines changes
   useEffect(() => {
+    // If currently drawing, defer redraw to avoid ghost lines and flickers
+    if (isDrawingRef.current) return;
+
     const canvas = canvasRef.current;
     const context = contextRef.current;
     if (!canvas || !context) return;
@@ -90,7 +108,7 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     // Draw all lines from state
-    whiteboardLines.forEach(line => {
+    mergedLines.forEach(line => {
       if (line.points.length < 2) return;
       context.beginPath();
       
@@ -113,7 +131,7 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
     // Reset composite operation
     context.globalCompositeOperation = 'source-over';
     
-  }, [whiteboardLines, windowSize]);
+  }, [mergedLines, windowSize]);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!effectiveCanDraw) return;
@@ -127,10 +145,13 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
     contextRef.current?.beginPath();
     contextRef.current?.moveTo(offsetX, offsetY);
     setIsDrawing(true);
+    isDrawingRef.current = true;
+    strokeSegmentsRef.current = [];
     
     const canvas = canvasRef.current;
     if (canvas) {
-      setCurrentLine([offsetX / canvas.width, offsetY / canvas.height]);
+      // Store the starting point
+      strokeSegmentsRef.current.push({ x: offsetX / canvas.width, y: offsetY / canvas.height });
     }
   };
 
@@ -138,18 +159,39 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
     if (!isDrawing) return;
     contextRef.current?.closePath();
     setIsDrawing(false);
+    isDrawingRef.current = false;
 
     // If it was just a click (dot)
-    if (currentLine.length === 2) {
-      sendPacket(MsgWhiteboardDraw, {
-        code,
-        points: [currentLine[0], currentLine[1], currentLine[0], currentLine[1]],
+    if (strokeSegmentsRef.current.length === 1) {
+      const point = strokeSegmentsRef.current[0];
+      const newLine = {
+        points: [point.x, point.y, point.x, point.y],
         color,
         size: brushSize,
         tool
+      };
+      addUnsyncedLines(code, activeSlide, [newLine]);
+      sendPacket(MsgWhiteboardDraw, {
+        code,
+        ...newLine
       });
+    } else {
+      // Extract lines from stroke segments to save locally
+      const newLines = [];
+      for (let i = 1; i < strokeSegmentsRef.current.length; i++) {
+        if (strokeSegmentsRef.current[i].isSent) {
+           newLines.push(strokeSegmentsRef.current[i].lineData);
+        }
+      }
+      if (newLines.length > 0) {
+        addUnsyncedLines(code, activeSlide, newLines);
+      }
     }
-    setCurrentLine([]);
+    
+    strokeSegmentsRef.current = [];
+    
+    // Force a redraw of the canvas to incorporate the new lines from state cleanly
+    setWindowSize(prev => ({ ...prev }));
   };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -175,25 +217,33 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
       context.lineTo(offsetX, offsetY);
       context.stroke();
 
-      setCurrentLine(prev => {
-        const newX = offsetX / canvas.width;
-        const newY = offsetY / canvas.height;
-        const next = [...prev, newX, newY];
+      const newX = offsetX / canvas.width;
+      const newY = offsetY / canvas.height;
+      
+      if (strokeSegmentsRef.current.length > 0) {
+        const lastPoint = strokeSegmentsRef.current[strokeSegmentsRef.current.length - 1];
         
-        // Send true real-time segments
-        if (prev.length >= 2) {
-          const lastX = prev[prev.length - 2];
-          const lastY = prev[prev.length - 1];
-          sendPacket(MsgWhiteboardDraw, {
-            code,
-            points: [lastX, lastY, newX, newY],
-            color,
-            size: brushSize,
-            tool
-          });
-        }
-        return next;
-      });
+        const newLineData = {
+          points: [lastPoint.x, lastPoint.y, newX, newY],
+          color,
+          size: brushSize,
+          tool
+        };
+        
+        strokeSegmentsRef.current.push({
+          x: newX,
+          y: newY,
+          isSent: true,
+          lineData: newLineData
+        });
+        
+        sendPacket(MsgWhiteboardDraw, {
+          code,
+          ...newLineData
+        });
+      } else {
+         strokeSegmentsRef.current.push({ x: newX, y: newY });
+      }
     }
   };
 
