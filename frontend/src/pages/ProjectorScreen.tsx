@@ -67,11 +67,11 @@ export default function ProjectorScreen() {
 
   if (!classState) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex flex-col justify-center items-center p-8 text-center font-sans">
-        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-6"></div>
-        <h2 className="text-3xl font-extrabold uppercase tracking-wider text-slate-200">Menunggu Dashboard Guru...</h2>
-        <p className="text-slate-400 mt-2 font-semibold">Silakan biarkan tab ini terbuka. Tampilan proyektor akan otomatis aktif setelah terhubung.</p>
-        <div className="mt-8 text-sm font-semibold bg-slate-800 px-4 py-2 rounded-xl text-blue-400 border border-slate-700 uppercase tracking-widest">
+      <div className="min-h-screen bg-white text-slate-800 flex flex-col justify-center items-center p-8 text-center font-sans">
+        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-6"></div>
+        <h2 className="text-3xl font-black uppercase tracking-wider text-slate-800">Menunggu Dashboard Guru...</h2>
+        <p className="text-slate-500 mt-2 font-semibold">Silakan biarkan tab ini terbuka. Tampilan proyektor akan otomatis aktif setelah terhubung.</p>
+        <div className="mt-8 text-sm font-semibold bg-slate-50 px-4 py-2 rounded-xl text-blue-600 border border-slate-200 uppercase tracking-widest">
           Class Code: {code}
         </div>
       </div>
@@ -82,7 +82,10 @@ export default function ProjectorScreen() {
   const activeParticipants = Object.values(participants || {}).filter((p: any) => p.active);
 
   return (
-    <div className="min-h-screen bg-white text-slate-800 flex flex-col font-sans overflow-hidden select-none relative w-full h-screen">
+    <div 
+      onClick={!isFullscreen ? toggleFullscreen : undefined}
+      className={`min-h-screen bg-white text-slate-800 flex flex-col font-sans overflow-hidden select-none relative w-full h-screen ${!isFullscreen ? 'cursor-pointer' : ''}`}
+    >
       
       {/* 1. Main Content: PDF/Iframe Slide taking FULL window space */}
       <div className="absolute inset-0 w-full h-full z-0 flex items-center justify-center bg-white">
@@ -260,15 +263,14 @@ export default function ProjectorScreen() {
 
       {/* 8. Fullscreen Splash Trigger Overlay */}
       {!isFullscreen && (
-        <div 
-          onClick={toggleFullscreen}
-          className="absolute inset-0 z-50 bg-slate-900/95 text-white flex flex-col justify-center items-center p-8 text-center cursor-pointer font-sans animate-in fade-in duration-300 animate-out fade-out"
-        >
-          <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30 mb-6 hover:scale-105 active:scale-95 transition-all">
-            <Play size={36} className="text-white fill-white translate-x-0.5" />
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 bg-white/95 backdrop-blur-md border border-slate-200 p-4 px-6 rounded-2xl shadow-2xl flex items-center gap-4 animate-bounce max-w-xl pointer-events-none">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center animate-pulse">
+            <Play size={16} className="text-white fill-white" />
           </div>
-          <h2 className="text-3xl font-extrabold uppercase tracking-wider text-slate-100">Klik Untuk Memulai Presentasi</h2>
-          <p className="text-slate-400 mt-3 font-semibold text-lg max-w-lg">Tampilan proyektor siap. Klik di mana saja pada layar ini untuk mengaktifkan Fullscreen otomatis.</p>
+          <div className="text-left">
+            <h3 className="font-bold text-sm text-slate-800">Tampilan Proyektor Siap</h3>
+            <p className="text-xs text-slate-500 font-semibold">Klik di mana saja pada layar ini untuk mengaktifkan Fullscreen.</p>
+          </div>
         </div>
       )}
 
