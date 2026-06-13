@@ -9,6 +9,8 @@ interface WhiteboardProps {
   lines?: any[];
   width?: number;
   height?: number;
+  pdfWidth?: number;
+  pdfHeight?: number;
 }
 
 export const useWhiteboardToolStore = create<{
@@ -27,7 +29,7 @@ export const useWhiteboardToolStore = create<{
   setIsDrawingMode: (isDrawingMode) => set({ isDrawingMode }),
 }));
 
-export default function Whiteboard({ isHost, code, lines, width, height }: WhiteboardProps) {
+export default function Whiteboard({ isHost, code, lines, width, height, pdfWidth, pdfHeight }: WhiteboardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -95,19 +97,45 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
     }
   }, [width, height]);
 
+  const getScreenCoords = (nx: number, ny: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const refW = pdfWidth || canvas.width;
+    const refH = pdfHeight || canvas.height;
+    const refLeft = (canvas.width - refW) / 2;
+    const refTop = (canvas.height - refH) / 2;
+    
+    return {
+      x: nx * refW + refLeft,
+      y: ny * refH + refTop
+    };
+  };
+
+  const getNormalizedCoords = (offsetX: number, offsetY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    
+    const refW = pdfWidth || canvas.width;
+    const refH = pdfHeight || canvas.height;
+    const refLeft = (canvas.width - refW) / 2;
+    const refTop = (canvas.height - refH) / 2;
+    
+    return {
+      x: (offsetX - refLeft) / refW,
+      y: (offsetY - refTop) / refH
+    };
+  };
+
   // Redraw all lines when mergedLines changes
   useEffect(() => {
-    // If currently drawing, defer redraw to avoid ghost lines and flickers
     if (isDrawingRef.current) return;
 
     const canvas = canvasRef.current;
     const context = contextRef.current;
     if (!canvas || !context) return;
 
-    // Clear canvas
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw all lines from state
     mergedLines.forEach(line => {
       if (line.points.length < 2) return;
       context.beginPath();
@@ -121,22 +149,22 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
         context.lineWidth = line.size;
       }
 
-      context.moveTo(line.points[0] * canvas.width, line.points[1] * canvas.height);
+      const start = getScreenCoords(line.points[0], line.points[1]);
+      context.moveTo(start.x, start.y);
       for (let i = 2; i < line.points.length; i += 2) {
-        context.lineTo(line.points[i] * canvas.width, line.points[i + 1] * canvas.height);
+        const point = getScreenCoords(line.points[i], line.points[i + 1]);
+        context.lineTo(point.x, point.y);
       }
       context.stroke();
     });
     
-    // Reset composite operation
     context.globalCompositeOperation = 'source-over';
     
-  }, [mergedLines, windowSize]);
+  }, [mergedLines, windowSize, pdfWidth, pdfHeight]);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!effectiveCanDraw) return;
     
-    // Disable scrolling when touching canvas
     if (e.nativeEvent instanceof TouchEvent) {
       e.nativeEvent.preventDefault();
     }
@@ -150,8 +178,8 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
     
     const canvas = canvasRef.current;
     if (canvas) {
-      // Store the starting point
-      strokeSegmentsRef.current.push({ x: offsetX / canvas.width, y: offsetY / canvas.height });
+      const { x: nx, y: ny } = getNormalizedCoords(offsetX, offsetY);
+      strokeSegmentsRef.current.push({ x: nx, y: ny });
     }
   };
 
@@ -161,7 +189,6 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
     setIsDrawing(false);
     isDrawingRef.current = false;
 
-    // If it was just a click (dot)
     if (strokeSegmentsRef.current.length === 1) {
       const point = strokeSegmentsRef.current[0];
       const newLine = {
@@ -176,7 +203,6 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
         ...newLine
       });
     } else {
-      // Extract lines from stroke segments to save locally
       const newLines = [];
       for (let i = 1; i < strokeSegmentsRef.current.length; i++) {
         if (strokeSegmentsRef.current[i].isSent) {
@@ -189,8 +215,6 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
     }
     
     strokeSegmentsRef.current = [];
-    
-    // Force a redraw of the canvas to incorporate the new lines from state cleanly
     setWindowSize(prev => ({ ...prev }));
   };
 
@@ -217,8 +241,7 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
       context.lineTo(offsetX, offsetY);
       context.stroke();
 
-      const newX = offsetX / canvas.width;
-      const newY = offsetY / canvas.height;
+      const { x: newX, y: newY } = getNormalizedCoords(offsetX, offsetY);
       
       if (strokeSegmentsRef.current.length > 0) {
         const lastPoint = strokeSegmentsRef.current[strokeSegmentsRef.current.length - 1];
