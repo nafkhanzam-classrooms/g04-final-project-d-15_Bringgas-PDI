@@ -1207,6 +1207,7 @@ func handleWebSocket(c *websocket.Conn) {
 			c.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(0x0008, seq, joinSuccessPayload))
 
 			// Handle duplicate login (Evict/Kick older browser tab across ALL classes)
+			var broadcastCodes []string
 			registry.mu.Lock()
 			for code, clients := range registry.participants {
 				if oldConn, exists := clients[currentName]; exists && oldConn != c {
@@ -1223,11 +1224,15 @@ func handleWebSocket(c *websocket.Conn) {
 					if oldSession := sm.GetSession(code); oldSession != nil {
 						oldSession.DisconnectParticipant(currentName)
 						repManager.ReplicateSessionState(oldSession)
-						BroadcastClassState(code)
+						broadcastCodes = append(broadcastCodes, code)
 					}
 				}
 			}
 			registry.mu.Unlock()
+
+			for _, bc := range broadcastCodes {
+				BroadcastClassState(bc)
+			}
 
 			// Broadcast kick event to other nodes in the cluster
 			if classroom.RedisClient != nil {
