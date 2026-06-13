@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useWebSocketStore } from './websocketStore';
 
 // Helper to intercept 401 Unauthorized responses and redirect to login
 async function fetchWithAuth(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
@@ -134,6 +135,7 @@ export const useClassStore = create<ClassState>((set, get) => ({
 				set((state) => ({
 					classes: state.classes.map(c => c.code === code ? { ...c, isActive: false } : c)
 				}));
+				useWebSocketStore.getState().clearUnsyncedLines(code);
 				await get().fetchClasses();
 			}
 			return res.ok;

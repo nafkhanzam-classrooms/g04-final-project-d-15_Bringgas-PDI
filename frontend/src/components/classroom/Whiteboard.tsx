@@ -34,8 +34,11 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
   const [currentLine, setCurrentLine] = useState<number[]>([]);
   const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   
-  const { classState, sendPacket } = useWebSocketStore();
+  const { classState, sendPacket, unsyncedLines, addUnsyncedLine } = useWebSocketStore();
   const whiteboardLines = lines !== undefined ? lines : (classState?.whiteboardLines || []);
+  const activeSlide = classState?.activeSlide || 1;
+  const localUnsynced = unsyncedLines[`${code}_${activeSlide}`] || [];
+  const mergedLines = [...whiteboardLines, ...localUnsynced];
   const whiteboardPermit = classState?.whiteboardPermit || 'none';
   
   const { tool, color, isDrawingMode } = useWhiteboardToolStore();
@@ -90,7 +93,7 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     // Draw all lines from state
-    whiteboardLines.forEach(line => {
+    mergedLines.forEach(line => {
       if (line.points.length < 2) return;
       context.beginPath();
       
@@ -113,7 +116,7 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
     // Reset composite operation
     context.globalCompositeOperation = 'source-over';
     
-  }, [whiteboardLines, windowSize]);
+  }, [mergedLines, windowSize]);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!effectiveCanDraw) return;
@@ -141,12 +144,16 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
 
     // If it was just a click (dot)
     if (currentLine.length === 2) {
-      sendPacket(MsgWhiteboardDraw, {
-        code,
+      const newLine = {
         points: [currentLine[0], currentLine[1], currentLine[0], currentLine[1]],
         color,
         size: brushSize,
         tool
+      };
+      addUnsyncedLine(code, activeSlide, newLine);
+      sendPacket(MsgWhiteboardDraw, {
+        code,
+        ...newLine
       });
     }
     setCurrentLine([]);
@@ -184,12 +191,16 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
         if (prev.length >= 2) {
           const lastX = prev[prev.length - 2];
           const lastY = prev[prev.length - 1];
-          sendPacket(MsgWhiteboardDraw, {
-            code,
+          const newLine = {
             points: [lastX, lastY, newX, newY],
             color,
             size: brushSize,
             tool
+          };
+          addUnsyncedLine(code, activeSlide, newLine);
+          sendPacket(MsgWhiteboardDraw, {
+            code,
+            ...newLine
           });
         }
         return next;
