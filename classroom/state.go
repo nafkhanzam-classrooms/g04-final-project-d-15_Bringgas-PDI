@@ -552,6 +552,7 @@ func (s *ClassSession) CopyState() *ClassSession {
 		IsVideoCallActive:    s.IsVideoCallActive,
 		IsShowingLeaderboard: s.IsShowingLeaderboard,
 		WhiteboardPermit:     s.WhiteboardPermit,
+		WhiteboardActive:     s.WhiteboardActive,
 		CreatedAt:            s.CreatedAt,
 	}
 

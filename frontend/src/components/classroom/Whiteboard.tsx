@@ -405,7 +405,7 @@ export function WhiteboardToolbar({ isHost, code, isDraggable = true }: Whiteboa
         <div className="flex items-center gap-3 border-r border-slate-200 pr-3">
           <button
             onClick={() => sendPacket(MsgWhiteboardActive, { code, active: !whiteboardActive })}
-            className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all border-2 flex items-center gap-1.5 ${whiteboardActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all border-2 flex items-center gap-1.5 ${whiteboardActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
           >
             <span>DRAW:</span>
             <span>{whiteboardActive ? 'ON' : 'OFF'}</span>
