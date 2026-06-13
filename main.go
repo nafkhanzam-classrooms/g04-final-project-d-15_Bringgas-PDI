@@ -1478,8 +1478,20 @@ func handleWebSocket(c *websocket.Conn) {
 							}
 						}
 						registry.mu.RUnlock()
+					}
+				}
+			}
 
-						// Sync to Redis and other cluster nodes
+		case protocol.MsgWhiteboardDrawFinish:
+			var req struct {
+				Code string `json:"code"`
+			}
+			if err := json.Unmarshal(payload, &req); err == nil {
+				session := sm.GetSession(req.Code)
+				if session != nil {
+					canDraw := isHost || session.WhiteboardPermit == "all"
+					if canDraw {
+						// Sync stroke to Redis and cluster nodes at the end of drawing
 						repManager.ReplicateSessionState(session)
 					}
 				}

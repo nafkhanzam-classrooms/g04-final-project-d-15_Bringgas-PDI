@@ -30,6 +30,7 @@ const (
 	MsgWhiteboardDraw   uint16 = 0x0050
 	MsgWhiteboardClear  uint16 = 0x0051
 	MsgWhiteboardPermit uint16 = 0x0052
+	MsgWhiteboardDrawFinish uint16 = 0x0053
 	MsgHeartbeat        uint16 = 0x00F0
 	MsgError           uint16 = 0x00FF
 	MsgReplicateState  uint16 = 0x0100

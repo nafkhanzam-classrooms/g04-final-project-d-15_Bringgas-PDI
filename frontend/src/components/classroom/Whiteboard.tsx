@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { create } from 'zustand';
-import { useWebSocketStore, MsgWhiteboardDraw, MsgWhiteboardClear, MsgWhiteboardPermit } from '../../store/websocketStore';
+import { useWebSocketStore, MsgWhiteboardDraw, MsgWhiteboardClear, MsgWhiteboardDrawFinish, MsgWhiteboardPermit } from '../../store/websocketStore';
 import { Trash2, Edit3, Eraser, Unlock, Lock } from 'lucide-react';
 
 interface WhiteboardProps {
@@ -199,6 +199,7 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
         code,
         ...newLine
       });
+      sendPacket(MsgWhiteboardDrawFinish, { code });
     } else {
       const newLines = [];
       for (let i = 1; i < strokeSegmentsRef.current.length; i++) {
@@ -209,6 +210,7 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
       if (newLines.length > 0) {
         addLocalLines(newLines);
       }
+      sendPacket(MsgWhiteboardDrawFinish, { code });
     }
     
     strokeSegmentsRef.current = [];
