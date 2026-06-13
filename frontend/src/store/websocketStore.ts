@@ -16,6 +16,7 @@ export const MsgToggleVideoCall = 0x0040;
 export const MsgWhiteboardDraw = 0x0050;
 export const MsgWhiteboardClear = 0x0051;
 export const MsgWhiteboardPermit = 0x0052;
+export const MsgWhiteboardActive = 0x0054;
 export const MsgWhiteboardDrawFinish = 0x0053;
 export const MsgHeartbeat = 0x00F0;
 export const MsgError = 0x00FF;
@@ -75,6 +76,7 @@ export interface ClassState {
   isVideoCallActive: boolean;
   isShowingLeaderboard: boolean;
   whiteboardPermit: string;
+  whiteboardActive: boolean;
   whiteboardLines: WhiteboardLine[];
   pointMultiplier: number;
   currentQuestion: Question | null;

@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { create } from 'zustand';
-import { useWebSocketStore, MsgWhiteboardDraw, MsgWhiteboardClear, MsgWhiteboardDrawFinish, MsgWhiteboardPermit } from '../../store/websocketStore';
+import { useWebSocketStore, MsgWhiteboardDraw, MsgWhiteboardClear, MsgWhiteboardDrawFinish, MsgWhiteboardPermit, MsgWhiteboardActive } from '../../store/websocketStore';
 import { Trash2, Edit3, Eraser, Unlock, Lock, GripHorizontal } from 'lucide-react';
 
 interface WhiteboardProps {
@@ -36,11 +36,12 @@ export default function Whiteboard({ isHost, code, lines }: WhiteboardProps) {
   const { classState, sendPacket, addLocalLines } = useWebSocketStore();
   const whiteboardLines = lines !== undefined ? lines : (classState?.whiteboardLines || []);
   const whiteboardPermit = classState?.whiteboardPermit || 'none';
+  const whiteboardActive = classState?.whiteboardActive ?? false;
   
-  const { tool, color, isDrawingMode } = useWhiteboardToolStore();
+  const { tool, color } = useWhiteboardToolStore();
 
-  // Strict permission check: Host must have drawing mode ON, students need permit='all'
-  const canDraw = isHost ? isDrawingMode : (whiteboardPermit === 'all');
+  // Strict permission check: Master switch must be ON. If ON, Host can always draw, students need permit='all'
+  const canDraw = whiteboardActive && (isHost || whiteboardPermit === 'all');
   const brushSize = 4;
 
   // Initialize Canvas
@@ -297,10 +298,11 @@ export default function Whiteboard({ isHost, code, lines }: WhiteboardProps) {
 export function WhiteboardToolbar({ isHost, code }: WhiteboardProps) {
   const { classState, sendPacket } = useWebSocketStore();
   const whiteboardPermit = classState?.whiteboardPermit || 'none';
-  const { tool, setTool, color, setColor, isDrawingMode, setIsDrawingMode } = useWhiteboardToolStore();
+  const whiteboardActive = classState?.whiteboardActive ?? false;
+  const { tool, setTool, color, setColor } = useWhiteboardToolStore();
 
   const canDraw = isHost || whiteboardPermit === 'all';
-  const effectiveCanDraw = isHost ? isDrawingMode : canDraw;
+  const effectiveCanDraw = whiteboardActive && canDraw;
 
   // Drag state
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -399,11 +401,11 @@ export function WhiteboardToolbar({ isHost, code }: WhiteboardProps) {
       {isHost && (
         <div className="flex items-center gap-3 border-r border-slate-200 pr-3">
           <button
-            onClick={() => setIsDrawingMode(!isDrawingMode)}
-            className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all border-2 flex items-center gap-1.5 ${isDrawingMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+            onClick={() => sendPacket(MsgWhiteboardActive, { code, active: !whiteboardActive })}
+            className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all border-2 flex items-center gap-1.5 ${whiteboardActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
           >
             <span>DRAW:</span>
-            <span>{isDrawingMode ? 'ON' : 'OFF'}</span>
+            <span>{whiteboardActive ? 'ON' : 'OFF'}</span>
           </button>
         </div>
       )}

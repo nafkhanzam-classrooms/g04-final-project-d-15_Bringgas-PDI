@@ -499,6 +499,13 @@ export default function ActiveSessionView() {
                   <Whiteboard isHost={true} code={code} />
                 </div>
               )}
+              
+              {/* Floating Toolbar */}
+              {code && (
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto">
+                  <WhiteboardToolbar isHost={true} code={code} />
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50">
@@ -509,12 +516,7 @@ export default function ActiveSessionView() {
           )}
         </div>
 
-        {/* Whiteboard Toolbar (draggable, always visible) */}
-        {code && (
-          <div className="mt-2">
-            <WhiteboardToolbar isHost={true} code={code} />
-          </div>
-        )}
+
 
         <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
           <h3 className="font-bold text-lg text-slate-800">Slide {slideNumber} of {classState?.totalSlides || '?'}</h3>

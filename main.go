@@ -1494,7 +1494,7 @@ func handleWebSocket(c *websocket.Conn) {
 				session := sm.GetSession(req.Code)
 				if session != nil {
 					// Check permissions
-					canDraw := isHost || session.WhiteboardPermit == "all"
+					canDraw := session.WhiteboardActive && (isHost || session.WhiteboardPermit == "all")
 					if canDraw {
 						line := classroom.WhiteboardLine{
 							Points:  req.Points,
@@ -1543,7 +1543,7 @@ func handleWebSocket(c *websocket.Conn) {
 			if err := json.Unmarshal(payload, &req); err == nil {
 				session := sm.GetSession(req.Code)
 				if session != nil {
-					canDraw := isHost || session.WhiteboardPermit == "all"
+					canDraw := session.WhiteboardActive && (isHost || session.WhiteboardPermit == "all")
 					if canDraw {
 						// Sync stroke to Redis and cluster nodes at the end of drawing
 						repManager.ReplicateSessionState(session)
@@ -1587,6 +1587,20 @@ func handleWebSocket(c *websocket.Conn) {
 						}
 					}
 					registry.mu.RUnlock()
+				}
+			}
+
+		case protocol.MsgWhiteboardActive:
+			var req struct {
+				Code   string `json:"code"`
+				Active bool   `json:"active"`
+			}
+			if err := json.Unmarshal(payload, &req); err == nil {
+				session := sm.GetSession(req.Code)
+				if session != nil && isHost {
+					session.SetWhiteboardActive(req.Active)
+					repManager.ReplicateSessionState(session)
+					BroadcastClassState(req.Code)
 				}
 			}
 

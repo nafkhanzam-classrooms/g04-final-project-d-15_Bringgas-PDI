@@ -76,6 +76,7 @@ type ClassSession struct {
 	WhiteboardLines      []WhiteboardLine        `json:"whiteboardLines"`
 	WhiteboardSlides     map[int][]WhiteboardLine `json:"whiteboardSlides"`
 	WhiteboardPermit     string                  `json:"whiteboardPermit"`
+	WhiteboardActive     bool                    `json:"whiteboardActive"`
 	CreatedAt         time.Time               `json:"createdAt"`
 	mu                sync.RWMutex
 }
@@ -699,4 +700,11 @@ func (s *ClassSession) SetWhiteboardPermit(permit string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.WhiteboardPermit = permit
+}
+
+// SetWhiteboardActive updates the global whiteboard active state
+func (s *ClassSession) SetWhiteboardActive(active bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.WhiteboardActive = active
 }
