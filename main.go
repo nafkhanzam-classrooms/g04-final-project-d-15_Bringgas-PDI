@@ -1478,6 +1478,9 @@ func handleWebSocket(c *websocket.Conn) {
 							}
 						}
 						registry.mu.RUnlock()
+
+						// Sync to Redis and other cluster nodes
+						repManager.ReplicateSessionState(session)
 					}
 				}
 			}
