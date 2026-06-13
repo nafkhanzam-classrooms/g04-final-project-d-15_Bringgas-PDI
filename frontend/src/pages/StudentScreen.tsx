@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { LogIn, User, Hash, Zap, Code, CheckCircle, Flame, Trophy } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useWebSocketStore, MsgJoinClass, MsgSubmitAnswer } from '../store/websocketStore';
@@ -45,16 +46,16 @@ export default function StudentScreen() {
   // Handle WebSocket errors
   useEffect(() => {
     if (error) {
-      // Only show kick/end popups for session-ending errors
       const lowerErr = error.toLowerCase();
       const isSessionEnding = lowerErr.includes("diakhiri") || lowerErr.includes("ditendang") || lowerErr.includes("not found");
+      const isJoinError = !classState || lowerErr.includes("pin") || lowerErr.includes("tidak terdaftar") || lowerErr.includes("belum dimulai") || lowerErr.includes("salah") || lowerErr.includes("tidak ditemukan");
       
-      if (isSessionEnding) {
+      if (isSessionEnding || isJoinError) {
         Swal.fire({
           icon: 'error',
-          title: 'Pemberitahuan',
+          title: isJoinError ? 'Gagal Masuk Kelas' : 'Pemberitahuan',
           text: error,
-          confirmButtonColor: '#000000',
+          confirmButtonColor: '#3b82f6',
         }).then(() => {
           clearError();
           sessionStorage.removeItem('lopyta_student_code');
@@ -68,7 +69,7 @@ export default function StudentScreen() {
         clearError();
       }
     }
-  }, [error, clearError]);
+  }, [error, clearError, classState]);
 
   // Handle quiz result - update local score/streak with animations
   useEffect(() => {
@@ -242,7 +243,7 @@ export default function StudentScreen() {
             <Zap size={20} />
           </div>
           <div>
-            <h1 className="font-bold text-lg tracking-wide text-slate-800">{classState.className}</h1>
+            <h2 className="font-bold text-lg tracking-wide text-slate-800">{classState.className}</h2>
             <p className="text-xs font-semibold text-slate-500 uppercase mt-0.5">Host: {classState.hostName}</p>
           </div>
         </div>

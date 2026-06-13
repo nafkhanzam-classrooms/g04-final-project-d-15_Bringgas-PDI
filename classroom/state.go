@@ -59,6 +59,7 @@ type ClassSession struct {
 	ClassName         string                  `json:"className"`
 	HostName          string                  `json:"hostName"`
 	TeacherID         int                     `json:"teacherId"`
+	HostSessionID     string                  `json:"hostSessionId"`
 	StudentEntryCode  string                  `json:"studentEntryCode"` // Kode Khusus (manual or system-generated)
 	Active            bool                    `json:"active"`           // WebSocket connectivity active
 	IsActive          bool                    `json:"isActive"`         // Teacher started the class
@@ -513,6 +514,7 @@ func (s *ClassSession) CopyState() *ClassSession {
 		ClassName:        s.ClassName,
 		HostName:         s.HostName,
 		TeacherID:        s.TeacherID,
+		HostSessionID:    s.HostSessionID,
 		StudentEntryCode: s.StudentEntryCode,
 		Active:           s.Active,
 		IsActive:         s.IsActive,

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle, Trophy, Folder, ChevronDown, ChevronUp, Code, ThumbsUp } from 'lucide-react';
+import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle, Trophy, Folder, ChevronDown, ChevronUp, Code, ThumbsUp, Monitor } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgToggleVideoCall, MsgSendQuestion, MsgStopQuestion, MsgLeaderboard, MsgGradeCode } from '../../store/websocketStore';
 import { useClassStore } from '../../store/classStore';
@@ -24,6 +24,84 @@ export default function ActiveSessionView() {
     return saved ? parseInt(saved, 10) : 1;
   });
   const requestedSlide = useRef(slideNumber);
+  const [rosterCount, setRosterCount] = useState(0);
+  const channelRef = useRef<BroadcastChannel | null>(null);
+
+  // Redirect to active session if we visited `/host/session` but a session is active
+  useEffect(() => {
+    if (!code) {
+      if (classState?.code) {
+        navigate(`/host/session/${classState.code}`);
+      } else {
+        const activeClass = useClassStore.getState().classes.find(c => c.isActive);
+        if (activeClass) {
+          navigate(`/host/session/${activeClass.code}`);
+        }
+      }
+    }
+  }, [code, classState, navigate]);
+
+  // Fetch class roster count
+  useEffect(() => {
+    if (code) {
+      fetch(`/api/teacher/classes/${code}/students`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setRosterCount(data.length);
+          }
+        })
+        .catch(err => console.error("Error fetching roster:", err));
+    }
+  }, [code]);
+
+  // Listen to keyboard arrow keys for slide navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        document.activeElement?.tagName === 'INPUT' ||
+        document.activeElement?.tagName === 'TEXTAREA'
+      ) {
+        return;
+      }
+      if (e.key === 'ArrowLeft') {
+        changeSlide(-1);
+      } else if (e.key === 'ArrowRight') {
+        changeSlide(1);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [slideNumber, classState]);
+
+  // BroadcastChannel for projector
+  useEffect(() => {
+    if (code) {
+      channelRef.current = new BroadcastChannel(`lopyta_projector_${code}`);
+      
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data.type === 'REQUEST_INITIAL_STATE' && classState) {
+          channelRef.current?.postMessage({ type: 'STATE_UPDATE', classState });
+        }
+      };
+      
+      channelRef.current.addEventListener('message', handleMessage);
+      
+      return () => {
+        channelRef.current?.removeEventListener('message', handleMessage);
+        channelRef.current?.close();
+      };
+    }
+  }, [code, classState]);
+
+  // Broadcast updates
+  useEffect(() => {
+    if (classState && channelRef.current) {
+      channelRef.current.postMessage({ type: 'STATE_UPDATE', classState });
+    }
+  }, [classState]);
 
   useEffect(() => {
     fetchQuestionSets();
@@ -103,11 +181,39 @@ export default function ActiveSessionView() {
 
   const handleEndSession = async () => {
     if (!code) return;
-    if (window.confirm('Are you sure you want to end this session?')) {
-      await endClass(code);
-      disconnect();
-      navigate('/host/classes');
-    }
+    
+    Swal.fire({
+      title: 'Akhiri Sesi Kelas?',
+      text: 'Seluruh data aktivitas akan disimpan dan semua siswa akan otomatis keluar dari kelas.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Ya, Akhiri Kelas',
+      cancelButtonText: 'Batal'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const ok = await endClass(code);
+        if (ok) {
+          disconnect();
+          Swal.fire({
+            title: 'Sesi Kelas Berhasil Diakhiri',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+          }).then(() => {
+            navigate('/host/classes');
+          });
+        } else {
+          Swal.fire({
+            title: 'Gagal',
+            text: 'Gagal mengakhiri kelas. Silakan coba lagi.',
+            icon: 'error',
+            confirmButtonColor: '#3b82f6'
+          });
+        }
+      }
+    });
   };
 
   const handleGradeCode = (studentName: string) => {
@@ -223,6 +329,13 @@ export default function ActiveSessionView() {
               className={`px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all ${classState?.isVideoCallActive ? 'bg-blue-600 text-white' : 'bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100'}`}
             >
               <span className="hidden md:inline">{classState?.isVideoCallActive ? 'End Video Call' : 'Start Video Call'}</span>
+            </button>
+            <button 
+              onClick={() => window.open(`/host/projector/${code}`, '_blank')}
+              className="px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100"
+            >
+              <Monitor size={18} />
+              <span className="hidden md:inline">Projector View</span>
             </button>
             <button 
               onClick={handleEndSession}
@@ -365,7 +478,9 @@ export default function ActiveSessionView() {
               <Users size={18} className="text-blue-600" />
               Students
             </h3>
-            <span className="font-semibold text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">{Object.values(classState?.participants || {}).length}</span>
+            <span className="font-semibold text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">
+              {Object.values(classState?.participants || {}).filter(p => p.active).length} / {rosterCount}
+            </span>
           </div>
           <div className="overflow-y-auto p-0 flex-1">
             {Object.values(classState?.participants || {}).length === 0 && (
@@ -373,7 +488,10 @@ export default function ActiveSessionView() {
             )}
             {Object.values(classState?.participants || {}).map((p, i) => (
               <div key={i} className="px-4 py-3 border-b border-slate-50 flex justify-between items-center hover:bg-slate-50 transition-colors">
-                <span className="font-semibold text-slate-700 truncate pr-2">{p.name}</span>
+                <div className="flex items-center gap-2 truncate pr-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${p.active ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`} />
+                  <span className={`font-semibold text-slate-700 truncate ${!p.active ? 'text-slate-400' : ''}`}>{p.name}</span>
+                </div>
                 <span className="font-bold text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">{p.score}pt</span>
               </div>
             ))}

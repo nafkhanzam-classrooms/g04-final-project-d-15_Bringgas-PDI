@@ -39,6 +39,7 @@ export interface Participant {
   streak: number;
   joinedAt: string;
   hasAnsweredCurrent: boolean;
+  active: boolean;
 }
 
 export interface Question {

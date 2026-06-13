@@ -629,7 +629,35 @@ func main() {
 			session = s
 		}
 
+		// Enforce single active class per teacher
+		teacherID := session.TeacherID
+		for _, s := range sm.GetAllSessions() {
+			if s.TeacherID == teacherID && s.Code != req.Code && s.IsActive {
+				log.Printf("[%s] Teacher %d starting session %s. Auto-ending active old session %s.", nodeName, teacherID, req.Code, s.Code)
+				s.EndSession()
+				repManager.ReplicateSessionState(s)
+				BroadcastClassState(s.Code)
+
+				// Eject all participants of the old session
+				registry.mu.Lock()
+				if clients, ok := registry.participants[s.Code]; ok {
+					for name, conn := range clients {
+						payload, _ := json.Marshal(map[string]string{"message": "Sesi kelas telah diakhiri karena Guru membuka kelas baru."})
+						conn.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(protocol.MsgError, 0, payload))
+						conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Kicked"))
+						conn.Close()
+						delete(clients, name)
+					}
+				}
+				registry.mu.Unlock()
+			}
+		}
+
 		session.StartSession()
+		sess, err := sessionStore.Get(c)
+		if err == nil {
+			session.HostSessionID = sess.ID()
+		}
 		repManager.ReplicateSessionState(session)
 		BroadcastClassState(req.Code)
 
@@ -658,6 +686,7 @@ func main() {
 					// Send termination protocol packet
 					payload, _ := json.Marshal(map[string]string{"message": "Sesi kelas telah diakhiri oleh Guru."})
 					conn.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(protocol.MsgError, 0, payload))
+					conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Kicked"))
 					conn.Close()
 					delete(clients, name)
 				}
@@ -722,6 +751,10 @@ func main() {
 	app.Use("/ws", func(c *fiber.Ctx) error {
 		if websocket.IsWebSocketUpgrade(c) {
 			c.Locals("allowed", true)
+			sess, err := sessionStore.Get(c)
+			if err == nil {
+				c.Locals("session_id", sess.ID())
+			}
 			return c.Next()
 		}
 		return fiber.ErrUpgradeRequired
@@ -892,6 +925,11 @@ func handleWebSocket(c *websocket.Conn) {
 
 			if session == nil {
 				session = sm.CreateSession(req.ClassName, req.HostName, req.TeacherID, req.StudentEntryCode, time.Time{})
+			}
+
+			sessID, _ := c.Locals("session_id").(string)
+			if sessID != "" {
+				session.HostSessionID = sessID
 			}
 
 			currentCode = session.Code
@@ -1370,6 +1408,31 @@ func startHeartbeatTicker() {
 		sessions := sm.GetAllSessions()
 
 		for _, s := range sessions {
+			// Check if teacher's login session has expired in Redis
+			if s.IsActive && s.HostSessionID != "" && sessionStore != nil {
+				val, err := sessionStore.Storage.Get(s.HostSessionID)
+				if err != nil || len(val) == 0 {
+					log.Printf("[%s] Host session %s has expired. Auto-ending class %s.", nodeName, s.HostSessionID, s.Code)
+					s.EndSession()
+					repManager.ReplicateSessionState(s)
+					BroadcastClassState(s.Code)
+
+					// Eject all participants
+					registry.mu.Lock()
+					if clients, ok := registry.participants[s.Code]; ok {
+						for name, conn := range clients {
+							payload, _ := json.Marshal(map[string]string{"message": "Sesi kelas telah berakhir otomatis karena sesi Guru habis."})
+							conn.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(protocol.MsgError, 0, payload))
+							conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Kicked"))
+							conn.Close()
+							delete(clients, name)
+						}
+					}
+					registry.mu.Unlock()
+					continue
+				}
+			}
+
 			prunedNames, changed := s.PruneInactiveParticipants(15 * time.Second)
 			if changed {
 				for _, name := range prunedNames {

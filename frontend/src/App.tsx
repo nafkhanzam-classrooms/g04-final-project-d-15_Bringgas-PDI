@@ -7,6 +7,7 @@ import TeacherLogin from './pages/TeacherLogin';
 import TeacherDashboard from './pages/TeacherDashboard';
 import StudentScreen from './pages/StudentScreen';
 import DownloadLandingPage from './pages/DownloadLandingPage';
+import ProjectorScreen from './pages/ProjectorScreen';
 
 declare global {
   interface Window {
@@ -36,7 +37,12 @@ function App() {
   const { checkAuth } = useAuthStore();
   
   useEffect(() => {
-    checkAuth();
+    const hostname = window.location.hostname;
+    const isTeacherDomain = hostname.includes('guru');
+    const isWails = typeof window.go !== 'undefined';
+    if (isTeacherDomain || isWails) {
+      checkAuth();
+    }
   }, [checkAuth]);
 
   // Determine environment
@@ -65,6 +71,16 @@ function App() {
         element={
           <ProtectedRoute>
             <TeacherDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Projector Screen (Standalone, no sidebar) */}
+      <Route
+        path="/host/projector/:code"
+        element={
+          <ProtectedRoute>
+            <ProjectorScreen />
           </ProtectedRoute>
         }
       />

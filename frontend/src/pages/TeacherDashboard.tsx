@@ -1,6 +1,9 @@
+import { useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { School, LayoutDashboard, Presentation, Database, LogOut, Activity } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { useClassStore } from '../store/classStore';
+import { useWebSocketStore } from '../store/websocketStore';
 
 // We will create these components next
 import OverviewView from '../components/classroom/OverviewView';
@@ -13,6 +16,15 @@ export default function TeacherDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const { teacher, logout } = useAuthStore();
+  const { classState } = useWebSocketStore();
+  const { classes, fetchClasses } = useClassStore();
+
+  useEffect(() => {
+    fetchClasses();
+  }, [fetchClasses]);
+
+  const activeCode = classState?.code || classes.find(c => c.isActive)?.code;
+  const hasActiveSession = !!activeCode;
   
   const handleLogout = async () => {
     await logout();
@@ -21,19 +33,27 @@ export default function TeacherDashboard() {
 
   const currentPath = location.pathname;
 
-  const NavItem = ({ to, icon: Icon, label }: { to: string, icon: any, label: string }) => {
+  const NavItem = ({ to, icon: Icon, label, badge }: { to: string, icon: any, label: string, badge?: boolean }) => {
     const isActive = currentPath === to || (to !== '/host' && currentPath.startsWith(to));
     return (
       <button 
         onClick={() => navigate(to)}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${
+        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all font-semibold text-sm ${
           isActive 
             ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' 
             : 'bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900'
         }`}
       >
-        <Icon size={20} />
-        {label}
+        <div className="flex items-center gap-3">
+          <Icon size={20} />
+          {label}
+        </div>
+        {badge && (
+          <span className="flex h-2.5 w-2.5 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+          </span>
+        )}
       </button>
     );
   };
@@ -68,7 +88,12 @@ export default function TeacherDashboard() {
           <NavItem to="/host" icon={LayoutDashboard} label="Overview" />
           <NavItem to="/host/classes" icon={Presentation} label="My Classes" />
           <NavItem to="/host/bank" icon={Database} label="Question Bank" />
-          <NavItem to="/host/session" icon={Activity} label="Active Session" />
+          <NavItem 
+            to={hasActiveSession ? `/host/session/${activeCode}` : "/host/session"} 
+            icon={Activity} 
+            label="Active Session" 
+            badge={hasActiveSession}
+          />
         </nav>
 
         <div className="p-4 border-t border-slate-100">
