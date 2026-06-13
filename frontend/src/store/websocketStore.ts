@@ -226,7 +226,6 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
               lowerMsg.includes("belum dimulai") ||
               lowerMsg.includes("salah")
             ) {
-              const currentCode = get().classState?.code;
               localStorage.removeItem('lopyta_student_code');
               localStorage.removeItem('lopyta_student_pin');
               localStorage.removeItem('lopyta_student_joined');

@@ -135,7 +135,6 @@ export const useClassStore = create<ClassState>((set, get) => ({
 				set((state) => ({
 					classes: state.classes.map(c => c.code === code ? { ...c, isActive: false } : c)
 				}));
-				useWebSocketStore.getState().clearUnsyncedLines(code);
 				await get().fetchClasses();
 			}
 			return res.ok;
