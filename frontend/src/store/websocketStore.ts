@@ -96,7 +96,6 @@ interface WebSocketState {
   myName: string | null;
   lastQuizResult: { isCorrect: boolean; pointsEarned: number; correct: string; newScore?: number; newStreak?: number } | null;
   pendingActions: Record<number, PendingAction>;
-  unsyncedLines: Record<string, WhiteboardLine[]>;
   
   connect: () => void;
   disconnect: () => void;
@@ -105,32 +104,8 @@ interface WebSocketState {
   cancelRetry: (msgType: number) => void;
   clearError: () => void;
   clearLastQuizResult: () => void;
-  addUnsyncedLines: (code: string, slide: number, lines: WhiteboardLine[]) => void;
-  reconcileUnsyncedLines: (code: string, slide: number, syncedLines: WhiteboardLine[]) => void;
-  clearUnsyncedLines: (code: string) => void;
 }
 
-const loadInitialUnsyncedLines = (): Record<string, WhiteboardLine[]> => {
-  const result: Record<string, WhiteboardLine[]> = {};
-  if (typeof window === 'undefined') return result;
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith('lopyta_unsynced_whiteboard_')) {
-      try {
-        const parts = key.split('_');
-        const code = parts[3];
-        const slide = parts[4];
-        if (code && slide) {
-          const lines = JSON.parse(localStorage.getItem(key) || '[]');
-          result[`${code}_${slide}`] = lines;
-        }
-      } catch (e) {
-        console.error('Failed to parse localStorage key', key, e);
-      }
-    }
-  }
-  return result;
-};
 
 export const useWebSocketStore = create<WebSocketState>((set, get) => {
   let reconnectTimeout: number | null = null;
@@ -144,7 +119,6 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
     myName: null,
     lastQuizResult: null,
     pendingActions: {},
-    unsyncedLines: loadInitialUnsyncedLines(),
 
     connect: () => {
       const { ws, isConnecting, isConnected } = get();
@@ -207,12 +181,6 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
           
           if (msgType === MsgClassState) {
             set({ classState: payload });
-            if (payload && payload.code) {
-              const code = payload.code;
-              const slide = payload.activeSlide || 1;
-              const syncedLines = payload.whiteboardLines || [];
-              get().reconcileUnsyncedLines(code, slide, syncedLines);
-            }
           } else if (msgType === MsgWhiteboardDraw) {
             const line = payload;
             set((state) => {
@@ -226,10 +194,6 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
               }
               return state;
             });
-            const currentClassState = get().classState;
-            if (currentClassState) {
-              get().reconcileUnsyncedLines(currentClassState.code, currentClassState.activeSlide || 1, [line]);
-            }
           } else if (msgType === MsgWhiteboardClear) {
             set((state) => {
               if (state.classState) {
@@ -242,10 +206,6 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
               }
               return state;
             });
-            const currentClassState = get().classState;
-            if (currentClassState) {
-              get().clearUnsyncedLines(currentClassState.code);
-            }
           } else if (msgType === MsgJoinSuccess) {
             set({ myName: payload.name });
           } else if (msgType === MsgQuizResult) {
@@ -267,9 +227,6 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
               lowerMsg.includes("salah")
             ) {
               const currentCode = get().classState?.code;
-              if (currentCode) {
-                get().clearUnsyncedLines(currentCode);
-              }
               localStorage.removeItem('lopyta_student_code');
               localStorage.removeItem('lopyta_student_pin');
               localStorage.removeItem('lopyta_student_joined');
@@ -406,79 +363,5 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
 
     clearError: () => set({ error: null }),
     clearLastQuizResult: () => set({ lastQuizResult: null }),
-
-    addUnsyncedLines: (code, slide, lines) => {
-      if (lines.length === 0) return;
-      const key = `${code}_${slide}`;
-      const storageKey = `lopyta_unsynced_whiteboard_${code}_${slide}`;
-
-      set((state) => {
-        const currentList = state.unsyncedLines[key] || [];
-        const newLines = lines.filter(line => 
-          !currentList.some(l => JSON.stringify(l.points) === JSON.stringify(line.points))
-        );
-        if (newLines.length === 0) return state;
-
-        const updated = [...currentList, ...newLines];
-        localStorage.setItem(storageKey, JSON.stringify(updated));
-        return {
-          unsyncedLines: {
-            ...state.unsyncedLines,
-            [key]: updated
-          }
-        };
-      });
-    },
-
-    reconcileUnsyncedLines: (code, slide, syncedLines) => {
-      const key = `${code}_${slide}`;
-      const storageKey = `lopyta_unsynced_whiteboard_${code}_${slide}`;
-
-      set((state) => {
-        const currentList = state.unsyncedLines[key] || [];
-        if (currentList.length === 0) return state;
-
-        const remaining = currentList.filter(unsynced => {
-          const isSynced = syncedLines.some(synced => 
-            JSON.stringify(synced.points) === JSON.stringify(unsynced.points) &&
-            synced.tool === unsynced.tool
-          );
-          return !isSynced;
-        });
-
-        if (remaining.length === 0) {
-          localStorage.removeItem(storageKey);
-          const updatedUnsynced = { ...state.unsyncedLines };
-          delete updatedUnsynced[key];
-          return { unsyncedLines: updatedUnsynced };
-        } else {
-          localStorage.setItem(storageKey, JSON.stringify(remaining));
-          return {
-            unsyncedLines: {
-              ...state.unsyncedLines,
-              [key]: remaining
-            }
-          };
-        }
-      });
-    },
-
-    clearUnsyncedLines: (code) => {
-      set((state) => {
-        const updatedUnsynced = { ...state.unsyncedLines };
-        Object.keys(updatedUnsynced).forEach(k => {
-          if (k.startsWith(code + '_')) {
-            delete updatedUnsynced[k];
-          }
-        });
-        for (let i = localStorage.length - 1; i >= 0; i--) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith(`lopyta_unsynced_whiteboard_${code}_`)) {
-            localStorage.removeItem(key);
-          }
-        }
-        return { unsyncedLines: updatedUnsynced };
-      });
-    },
   };
 });

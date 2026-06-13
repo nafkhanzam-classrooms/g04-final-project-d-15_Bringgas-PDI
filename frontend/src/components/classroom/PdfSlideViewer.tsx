@@ -129,27 +129,24 @@ export default function PdfSlideViewer({ url, slideNumber, showWhiteboard, isHos
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       )}
-      {currentViewportSize ? (
-        <div 
-          className="relative shadow-lg" 
-          style={{ 
-            width: `${currentViewportSize.width}px`, 
-            height: `${currentViewportSize.height}px` 
-          }}
-        >
-          <canvas ref={canvasRef} className="w-full h-full" />
-        </div>
-      ) : (
-        <canvas ref={canvasRef} className="max-w-full max-h-full shadow-lg opacity-0" />
-      )}
       
-      {showWhiteboard && code && (
-        <Whiteboard 
-          isHost={isHost || false} 
-          code={code} 
-          lines={whiteboardLines}
-        />
-      )}
+      <div 
+        className={`relative shadow-lg transition-opacity duration-300 ${currentViewportSize ? 'opacity-100' : 'opacity-0'}`} 
+        style={currentViewportSize ? { 
+          width: `${currentViewportSize.width}px`, 
+          height: `${currentViewportSize.height}px` 
+        } : {}}
+      >
+        <canvas ref={canvasRef} className="w-full h-full block" />
+        
+        {showWhiteboard && code && currentViewportSize && (
+          <Whiteboard 
+            isHost={isHost || false} 
+            code={code} 
+            lines={whiteboardLines}
+          />
+        )}
+      </div>
     </div>
   );
 }

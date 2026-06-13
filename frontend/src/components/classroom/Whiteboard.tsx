@@ -37,11 +37,8 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
   const strokeSegmentsRef = useRef<any[]>([]);
   const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   
-  const { classState, sendPacket, unsyncedLines, addUnsyncedLines } = useWebSocketStore();
+  const { classState, sendPacket } = useWebSocketStore();
   const whiteboardLines = lines !== undefined ? lines : (classState?.whiteboardLines || []);
-  const activeSlide = classState?.activeSlide || 1;
-  const localUnsynced = unsyncedLines[`${code}_${activeSlide}`] || [];
-  const mergedLines = [...whiteboardLines, ...localUnsynced];
   const whiteboardPermit = classState?.whiteboardPermit || 'none';
   
   const { tool, color, isDrawingMode } = useWhiteboardToolStore();
@@ -126,7 +123,7 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
     };
   };
 
-  // Redraw all lines when mergedLines changes
+  // Redraw all lines when whiteboardLines changes
   useEffect(() => {
     if (isDrawingRef.current) return;
 
@@ -136,7 +133,7 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
 
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    mergedLines.forEach(line => {
+    whiteboardLines.forEach(line => {
       if (line.points.length < 2) return;
       context.beginPath();
       
@@ -160,7 +157,7 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
     
     context.globalCompositeOperation = 'source-over';
     
-  }, [mergedLines, windowSize, pdfWidth, pdfHeight]);
+  }, [whiteboardLines, windowSize, pdfWidth, pdfHeight]);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!effectiveCanDraw) return;
@@ -197,21 +194,12 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
         size: brushSize,
         tool
       };
-      addUnsyncedLines(code, activeSlide, [newLine]);
       sendPacket(MsgWhiteboardDraw, {
         code,
         ...newLine
       });
     } else {
-      const newLines = [];
-      for (let i = 1; i < strokeSegmentsRef.current.length; i++) {
-        if (strokeSegmentsRef.current[i].isSent) {
-           newLines.push(strokeSegmentsRef.current[i].lineData);
-        }
-      }
-      if (newLines.length > 0) {
-        addUnsyncedLines(code, activeSlide, newLines);
-      }
+      // Sent while drawing, nothing more needed here
     }
     
     strokeSegmentsRef.current = [];
