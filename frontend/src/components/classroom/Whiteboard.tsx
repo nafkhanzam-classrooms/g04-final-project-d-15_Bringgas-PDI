@@ -381,6 +381,8 @@ export function WhiteboardToolbar({ isHost, code, isDraggable = true, isFloating
     top: `${position.y}px`,
     zIndex: 9999,
     transform: 'none',
+    bottom: 'auto',
+    right: 'auto',
     width: 'auto',
   } : {};
 
