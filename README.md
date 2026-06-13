@@ -53,8 +53,8 @@ flowchart TD
     Teacher -->|Akses Panel & Kelola Kelas| TeacherWeb
     Student -->|Akses & Ikuti Kelas| StudentWeb
 
-    TeacherWeb -->|REST & WebSocket (HTTPS/WSS)| Nginx
-    StudentWeb -->|REST & WebSocket (HTTPS/WSS)| Nginx
+    TeacherWeb -->|REST & WebSocket| Nginx
+    StudentWeb -->|REST & WebSocket| Nginx
 
     Nginx -->|IP Hash Load Balancing| Node1
     Nginx -->|IP Hash Load Balancing| Node2
