@@ -138,15 +138,17 @@ export default function PdfSlideViewer({ url, slideNumber, showWhiteboard, isHos
         } : {}}
       >
         <canvas ref={canvasRef} className="w-full h-full block" />
-        
-        {showWhiteboard && code && currentViewportSize && (
-          <Whiteboard 
-            isHost={isHost || false} 
-            code={code} 
-            lines={whiteboardLines}
-          />
-        )}
       </div>
+
+      {showWhiteboard && code && currentViewportSize && (
+        <Whiteboard 
+          isHost={isHost || false} 
+          code={code} 
+          lines={whiteboardLines}
+          pdfWidth={currentViewportSize.width}
+          pdfHeight={currentViewportSize.height}
+        />
+      )}
     </div>
   );
 }

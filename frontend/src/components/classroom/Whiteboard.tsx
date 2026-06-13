@@ -37,7 +37,7 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
   const strokeSegmentsRef = useRef<any[]>([]);
   const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   
-  const { classState, sendPacket } = useWebSocketStore();
+  const { classState, sendPacket, addLocalLines } = useWebSocketStore();
   const whiteboardLines = lines !== undefined ? lines : (classState?.whiteboardLines || []);
   const whiteboardPermit = classState?.whiteboardPermit || 'none';
   
@@ -194,12 +194,21 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
         size: brushSize,
         tool
       };
+      addLocalLines([newLine]);
       sendPacket(MsgWhiteboardDraw, {
         code,
         ...newLine
       });
     } else {
-      // Sent while drawing, nothing more needed here
+      const newLines = [];
+      for (let i = 1; i < strokeSegmentsRef.current.length; i++) {
+        if (strokeSegmentsRef.current[i].isSent) {
+           newLines.push(strokeSegmentsRef.current[i].lineData);
+        }
+      }
+      if (newLines.length > 0) {
+        addLocalLines(newLines);
+      }
     }
     
     strokeSegmentsRef.current = [];

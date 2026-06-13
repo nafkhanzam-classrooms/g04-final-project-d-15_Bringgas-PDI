@@ -104,6 +104,7 @@ interface WebSocketState {
   cancelRetry: (msgType: number) => void;
   clearError: () => void;
   clearLastQuizResult: () => void;
+  addLocalLines: (lines: WhiteboardLine[]) => void;
 }
 
 
@@ -362,5 +363,19 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
 
     clearError: () => set({ error: null }),
     clearLastQuizResult: () => set({ lastQuizResult: null }),
+    addLocalLines: (lines) => {
+      if (!lines || lines.length === 0) return;
+      set((state) => {
+        if (state.classState) {
+          return {
+            classState: {
+              ...state.classState,
+              whiteboardLines: [...(state.classState.whiteboardLines || []), ...lines]
+            }
+          };
+        }
+        return state;
+      });
+    },
   };
 });
