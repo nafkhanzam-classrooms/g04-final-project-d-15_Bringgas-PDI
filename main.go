@@ -1124,6 +1124,12 @@ func handleWebSocket(c *websocket.Conn) {
 				}
 			}
 
+			// Reject creating/joining if the session is officially ended in the DB
+			if session != nil && !session.IsActive {
+				sendError(c, "Sesi kelas ini sudah berakhir.")
+				break
+			}
+
 			if session == nil {
 				session = sm.CreateSession(req.ClassName, req.HostName, req.TeacherID, req.StudentEntryCode, time.Time{})
 			}

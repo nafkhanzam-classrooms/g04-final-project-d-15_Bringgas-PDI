@@ -104,10 +104,21 @@ export default function StudentScreen() {
   useEffect(() => {
     if (error) {
       const lowerErr = error.toLowerCase();
-      const isSessionEnding = lowerErr.includes("diakhiri") || lowerErr.includes("ditendang") || lowerErr.includes("not found");
+      const isSessionEnding = lowerErr.includes("diakhiri") || lowerErr.includes("not found");
+      const isDuplicate = lowerErr.includes("ditendang");
       const isJoinError = !classState || lowerErr.includes("pin") || lowerErr.includes("tidak terdaftar") || lowerErr.includes("belum dimulai") || lowerErr.includes("salah") || lowerErr.includes("tidak ditemukan");
 
-      if (isSessionEnding || isJoinError) {
+      if (isDuplicate) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Sesi Berpindah',
+          text: 'Anda membuka kelas ini di tab/perangkat lain. Koneksi di tab ini diputus otomatis untuk menghemat data, namun Anda tetap berada di halaman ini.',
+          confirmButtonColor: '#3b82f6',
+          allowOutsideClick: false,
+        }).then(() => {
+          clearError();
+        });
+      } else if (isSessionEnding || isJoinError) {
         Swal.fire({
           icon: 'error',
           title: isJoinError ? 'Gagal Masuk Kelas' : 'Pemberitahuan',

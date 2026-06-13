@@ -220,9 +220,10 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
 
             // If it is a critical ejection/class end/duplicate connection, clean local storage
             const lowerMsg = msg.toLowerCase();
+            const isDuplicate = lowerMsg.includes("ditendang");
+            
             if (
               lowerMsg.includes("diakhiri") || 
-              lowerMsg.includes("ditendang") || 
               lowerMsg.includes("not found") ||
               lowerMsg.includes("tidak ditemukan") ||
               lowerMsg.includes("pin") ||
@@ -233,7 +234,17 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
               localStorage.removeItem('lopyta_student_code');
               localStorage.removeItem('lopyta_student_pin');
               localStorage.removeItem('lopyta_student_joined');
-              
+            }
+
+            if (isDuplicate || 
+              lowerMsg.includes("diakhiri") || 
+              lowerMsg.includes("not found") ||
+              lowerMsg.includes("tidak ditemukan") ||
+              lowerMsg.includes("pin") ||
+              lowerMsg.includes("tidak terdaftar") ||
+              lowerMsg.includes("belum dimulai") ||
+              lowerMsg.includes("salah")
+            ) {
               // Close connection cleanly so that we do not trigger reconnect timeouts
               const socket = get().ws;
               if (socket) {

@@ -213,6 +213,19 @@ export default function ActiveSessionView() {
           navigate('/host');
         });
         return;
+      } else if (error.toLowerCase().includes('berakhir')) {
+        Swal.fire({
+          title: 'Sesi Berakhir',
+          text: 'Sesi kelas ini sudah diakhiri dan tidak dapat diakses lagi.',
+          icon: 'info',
+          confirmButtonColor: '#3b82f6',
+          allowOutsideClick: false,
+        }).then(() => {
+          clearError();
+          disconnect();
+          navigate('/host/classes');
+        });
+        return;
       } else {
         Swal.fire({
           icon: 'error',
