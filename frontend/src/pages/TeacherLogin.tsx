@@ -1,4 +1,4 @@
-import { School, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 export default function TeacherLogin() {
 
