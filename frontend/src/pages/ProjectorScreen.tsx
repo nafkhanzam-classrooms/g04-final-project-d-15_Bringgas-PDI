@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Trophy, Code, Play, Maximize, Minimize } from 'lucide-react';
+import { Trophy, Code, Play, Minimize } from 'lucide-react';
 import PdfSlideViewer from '../components/classroom/PdfSlideViewer';
 import Whiteboard from '../components/classroom/Whiteboard';
 
@@ -12,7 +12,6 @@ const resolvePresentationUrl = (url: string) => {
   }
   return url;
 };
-
 
 export default function ProjectorScreen() {
   const { code } = useParams();
@@ -40,19 +39,6 @@ export default function ProjectorScreen() {
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
-
-  // Auto-fullscreen on first user click anywhere on document if not already fullscreen
-  useEffect(() => {
-    const handleFirstClick = () => {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-          console.warn("Fullscreen request failed on click:", err);
-        });
-      }
-    };
-    document.addEventListener('click', handleFirstClick);
-    return () => document.removeEventListener('click', handleFirstClick);
   }, []);
 
   useEffect(() => {
@@ -96,10 +82,10 @@ export default function ProjectorScreen() {
   const activeParticipants = Object.values(participants || {}).filter((p: any) => p.active);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans overflow-hidden select-none relative w-full h-screen">
+    <div className="min-h-screen bg-white text-slate-800 flex flex-col font-sans overflow-hidden select-none relative w-full h-screen">
       
       {/* 1. Main Content: PDF/Iframe Slide taking FULL window space */}
-      <div className="absolute inset-0 w-full h-full z-0 flex items-center justify-center bg-slate-950">
+      <div className="absolute inset-0 w-full h-full z-0 flex items-center justify-center bg-white">
         {!isShowingLeaderboard && !currentQuestion && presentationUrl ? (
           <div className="w-full h-full relative">
             {code && <Whiteboard isHost={false} code={code} />}
@@ -126,61 +112,61 @@ export default function ProjectorScreen() {
           </div>
         ) : !isShowingLeaderboard && !currentQuestion ? (
           /* Standalone Fallback slide counter */
-          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950">
-            <span className="font-extrabold text-sm bg-blue-500/10 text-blue-400 border border-blue-500/20 px-6 py-2 rounded-full uppercase tracking-wider mb-8">Slide Presentasi</span>
-            <div className="text-[120px] md:text-[180px] font-black text-slate-200 leading-none select-none tracking-tight animate-pulse">
+          <div className="w-full h-full flex flex-col items-center justify-center bg-white">
+            <span className="font-extrabold text-sm bg-blue-50 text-blue-600 border border-blue-100 px-6 py-2 rounded-full uppercase tracking-wider mb-8">Slide Presentasi</span>
+            <div className="text-[120px] md:text-[180px] font-black text-slate-300 leading-none select-none tracking-tight animate-pulse">
               {activeSlide}
             </div>
           </div>
         ) : null}
       </div>
 
-      {/* 2. Top-Left Floating Info Badge */}
+      {/* 2. Floating Info Badge (Light Mode) */}
       {!isShowingLeaderboard && (
-        <div className="absolute top-6 left-6 z-20 pointer-events-none flex items-center gap-3 bg-slate-900/70 backdrop-blur-md border border-slate-800/80 p-3 px-4 rounded-2xl shadow-2xl">
+        <div className="absolute top-6 left-6 z-20 pointer-events-none flex items-center gap-3 bg-white/90 backdrop-blur-md border border-slate-200 p-3 px-4 rounded-2xl shadow-xl">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20 animate-pulse">
             <Play size={16} className="text-white fill-white" />
           </div>
           <div>
-            <h1 className="font-extrabold text-sm tracking-wide text-slate-100">{className}</h1>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Presenter: {hostName}</p>
+            <h1 className="font-extrabold text-sm tracking-wide text-slate-800">{className}</h1>
+            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Presenter: {hostName}</p>
           </div>
         </div>
       )}
 
-      {/* 3. Top-Right Floating Status Badge */}
+      {/* 3. Floating Status Badge (Light Mode) */}
       {!isShowingLeaderboard && (
-        <div className="absolute top-6 right-6 z-20 pointer-events-none flex items-center gap-4 bg-slate-900/70 backdrop-blur-md border border-slate-800/80 p-3 px-4 rounded-2xl shadow-2xl">
-          <div className="bg-slate-950/80 px-3 py-1 rounded-xl border border-slate-800/50 flex items-center gap-1.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Students</span>
-            <span className="text-xs font-black text-green-400">
+        <div className="absolute top-6 right-6 z-20 pointer-events-none flex items-center gap-4 bg-white/90 backdrop-blur-md border border-slate-200 p-3 px-4 rounded-2xl shadow-xl">
+          <div className="bg-slate-50 px-3 py-1 rounded-xl border border-slate-200 flex items-center gap-1.5">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Students</span>
+            <span className="text-xs font-black text-green-600">
               {activeParticipants.length} {rosterCount > 0 ? `/ ${rosterCount}` : ''}
             </span>
           </div>
-          <div className="text-right border-l border-slate-800 pl-3">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Class Code</span>
-            <span className="font-mono font-black text-lg text-blue-400 tracking-wider">{code}</span>
+          <div className="text-right border-l border-slate-200 pl-3">
+            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Class Code</span>
+            <span className="font-mono font-black text-lg text-blue-600 tracking-wider">{code}</span>
           </div>
         </div>
       )}
 
-      {/* 4. Bottom-Left Floating Page Indicator */}
+      {/* 4. Bottom-Left Floating Page Indicator (Light Mode) */}
       {!isShowingLeaderboard && (
-        <div className="absolute bottom-6 left-6 z-20 pointer-events-none bg-slate-900/70 backdrop-blur-md border border-slate-800/80 p-2.5 px-4 rounded-xl shadow-2xl text-slate-400 text-[10px] font-extrabold uppercase tracking-widest">
+        <div className="absolute bottom-6 left-6 z-20 pointer-events-none bg-white/90 backdrop-blur-md border border-slate-200 p-2.5 px-4 rounded-xl shadow-xl text-slate-500 text-[10px] font-extrabold uppercase tracking-widest">
           Bringgas PDI
         </div>
       )}
 
-      {/* 5. Bottom-Right Floating Page Index */}
+      {/* 5. Bottom-Right Floating Page Index (Light Mode) */}
       {!isShowingLeaderboard && (
-        <div className="absolute bottom-6 right-20 z-20 pointer-events-none bg-slate-900/70 backdrop-blur-md border border-slate-800/80 p-2.5 px-4 rounded-xl shadow-2xl text-slate-200 text-[10px] font-black uppercase tracking-widest">
+        <div className="absolute bottom-6 right-20 z-20 pointer-events-none bg-white/90 backdrop-blur-md border border-slate-200 p-2.5 px-4 rounded-xl shadow-xl text-slate-700 text-[10px] font-black uppercase tracking-widest">
           Slide {activeSlide} of {totalSlides || '?'}
         </div>
       )}
 
       {/* 6. Active Question overlay */}
       {!isShowingLeaderboard && currentQuestion && (
-        <div className="absolute inset-0 z-30 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-6">
+        <div className="absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-6">
           <div className="w-full max-w-5xl bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl p-8 md:p-10 flex flex-col justify-between min-h-[60vh] animate-in zoom-in-95 duration-300 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 opacity-5 rounded-full blur-3xl transform translate-x-1/3 -translate-y-1/3"></div>
             
@@ -272,16 +258,32 @@ export default function ProjectorScreen() {
         </div>
       )}
 
-      {/* 8. Floating Fullscreen Control */}
-      <div className="fixed bottom-6 right-6 z-50 pointer-events-auto">
-        <button
+      {/* 8. Fullscreen Splash Trigger Overlay */}
+      {!isFullscreen && (
+        <div 
           onClick={toggleFullscreen}
-          className="bg-slate-800/90 hover:bg-slate-700 text-white backdrop-blur-md border border-slate-700/50 p-3.5 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center group"
-          title={isFullscreen ? "Minimize Screen" : "Maximize Fullscreen"}
+          className="absolute inset-0 z-50 bg-slate-900/95 text-white flex flex-col justify-center items-center p-8 text-center cursor-pointer font-sans animate-in fade-in duration-300 animate-out fade-out"
         >
-          {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-        </button>
-      </div>
+          <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30 mb-6 hover:scale-105 active:scale-95 transition-all">
+            <Play size={36} className="text-white fill-white translate-x-0.5" />
+          </div>
+          <h2 className="text-3xl font-extrabold uppercase tracking-wider text-slate-100">Klik Untuk Memulai Presentasi</h2>
+          <p className="text-slate-400 mt-3 font-semibold text-lg max-w-lg">Tampilan proyektor siap. Klik di mana saja pada layar ini untuk mengaktifkan Fullscreen otomatis.</p>
+        </div>
+      )}
+
+      {/* 9. Floating Fullscreen Control (Light Mode) */}
+      {isFullscreen && (
+        <div className="fixed bottom-6 right-6 z-50 pointer-events-auto">
+          <button
+            onClick={toggleFullscreen}
+            className="bg-white/95 hover:bg-slate-50 text-slate-800 backdrop-blur-md border border-slate-200 p-3.5 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center group"
+            title="Minimize Screen"
+          >
+            <Minimize size={20} />
+          </button>
+        </div>
+      )}
 
     </div>
   );
