@@ -1,16 +1,12 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { create } from 'zustand';
 import { useWebSocketStore, MsgWhiteboardDraw, MsgWhiteboardClear, MsgWhiteboardDrawFinish, MsgWhiteboardPermit } from '../../store/websocketStore';
-import { Trash2, Edit3, Eraser, Unlock, Lock } from 'lucide-react';
+import { Trash2, Edit3, Eraser, Unlock, Lock, GripHorizontal } from 'lucide-react';
 
 interface WhiteboardProps {
   isHost: boolean;
   code: string;
   lines?: any[];
-  width?: number;
-  height?: number;
-  pdfWidth?: number;
-  pdfHeight?: number;
 }
 
 export const useWhiteboardToolStore = create<{
@@ -29,13 +25,13 @@ export const useWhiteboardToolStore = create<{
   setIsDrawingMode: (isDrawingMode) => set({ isDrawingMode }),
 }));
 
-export default function Whiteboard({ isHost, code, lines, width, height, pdfWidth, pdfHeight }: WhiteboardProps) {
+export default function Whiteboard({ isHost, code, lines }: WhiteboardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const isDrawingRef = useRef(false);
   const strokeSegmentsRef = useRef<any[]>([]);
-  const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
   
   const { classState, sendPacket, addLocalLines } = useWebSocketStore();
   const whiteboardLines = lines !== undefined ? lines : (classState?.whiteboardLines || []);
@@ -43,8 +39,8 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
   
   const { tool, color, isDrawingMode } = useWhiteboardToolStore();
 
-  const canDraw = isHost || whiteboardPermit === 'all';
-  const effectiveCanDraw = isHost ? isDrawingMode : canDraw;
+  // Strict permission check: Host must have drawing mode ON, students need permit='all'
+  const canDraw = isHost ? isDrawingMode : (whiteboardPermit === 'all');
   const brushSize = 4;
 
   // Initialize Canvas
@@ -53,18 +49,13 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
     if (!canvas) return;
 
     const resizeCanvas = () => {
-      if (width && height) {
-        canvas.width = width;
-        canvas.height = height;
+      const parent = canvas.parentElement;
+      if (parent) {
+        canvas.width = parent.clientWidth || window.innerWidth;
+        canvas.height = parent.clientHeight || window.innerHeight;
       } else {
-        const parent = canvas.parentElement;
-        if (parent) {
-          canvas.width = parent.clientWidth || window.innerWidth;
-          canvas.height = parent.clientHeight || window.innerHeight;
-        } else {
-          canvas.width = window.innerWidth;
-          canvas.height = window.innerHeight;
-        }
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
       }
       const context = canvas.getContext('2d');
       if (context) {
@@ -72,14 +63,10 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
         context.lineJoin = 'round';
         contextRef.current = context;
       }
-      setWindowSize({ w: canvas.width, h: canvas.height });
+      setCanvasSize({ w: canvas.width, h: canvas.height });
     };
 
     resizeCanvas();
-    
-    if (width && height) {
-      return;
-    }
 
     const parent = canvas.parentElement;
     if (parent) {
@@ -92,36 +79,30 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
       window.addEventListener('resize', resizeCanvas);
       return () => window.removeEventListener('resize', resizeCanvas);
     }
-  }, [width, height]);
+  }, []);
 
-  const getScreenCoords = (nx: number, ny: number) => {
+  // Center-relative coordinate normalization:
+  // Both teacher (narrow container) and student (wide container) have the same HEIGHT
+  // but different WIDTHs. The PDF is centered in both.
+  // By normalizing relative to the center using HEIGHT as the scale factor,
+  // coordinates are perfectly synchronized regardless of container width.
+  const getScreenCoords = useCallback((nx: number, ny: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
-    const refW = pdfWidth || canvas.width;
-    const refH = pdfHeight || canvas.height;
-    const refLeft = (canvas.width - refW) / 2;
-    const refTop = (canvas.height - refH) / 2;
-    
     return {
-      x: nx * refW + refLeft,
-      y: ny * refH + refTop
+      x: nx * canvas.height + canvas.width / 2,
+      y: ny * canvas.height + canvas.height / 2
     };
-  };
+  }, []);
 
-  const getNormalizedCoords = (offsetX: number, offsetY: number) => {
+  const getNormalizedCoords = useCallback((offsetX: number, offsetY: number) => {
     const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    
-    const refW = pdfWidth || canvas.width;
-    const refH = pdfHeight || canvas.height;
-    const refLeft = (canvas.width - refW) / 2;
-    const refTop = (canvas.height - refH) / 2;
-    
+    if (!canvas || canvas.height === 0) return { x: 0, y: 0 };
     return {
-      x: (offsetX - refLeft) / refW,
-      y: (offsetY - refTop) / refH
+      x: (offsetX - canvas.width / 2) / canvas.height,
+      y: (offsetY - canvas.height / 2) / canvas.height
     };
-  };
+  }, []);
 
   // Redraw all lines when whiteboardLines changes
   useEffect(() => {
@@ -157,10 +138,10 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
     
     context.globalCompositeOperation = 'source-over';
     
-  }, [whiteboardLines, windowSize, pdfWidth, pdfHeight]);
+  }, [whiteboardLines, canvasSize, getScreenCoords]);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!effectiveCanDraw) return;
+    if (!canDraw) return;
     
     if (e.nativeEvent instanceof TouchEvent) {
       e.nativeEvent.preventDefault();
@@ -214,11 +195,11 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
     }
     
     strokeSegmentsRef.current = [];
-    setWindowSize(prev => ({ ...prev }));
+    setCanvasSize(prev => ({ ...prev }));
   };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !effectiveCanDraw) return;
+    if (!isDrawing || !canDraw) return;
     
     if (e.nativeEvent instanceof TouchEvent) {
       e.nativeEvent.preventDefault();
@@ -274,7 +255,6 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     
-    // Fallback if width/height is 0 to avoid Infinity
     if (canvas.width === 0 || canvas.height === 0) {
       return { offsetX: 0, offsetY: 0 };
     }
@@ -306,13 +286,14 @@ export default function Whiteboard({ isHost, code, lines, width, height, pdfWidt
         onTouchEnd={finishDrawing}
         onTouchCancel={finishDrawing}
         onTouchMove={draw}
-        className={`w-full h-full ${effectiveCanDraw ? 'pointer-events-auto cursor-crosshair' : 'pointer-events-none'}`}
+        className={`w-full h-full ${canDraw ? 'pointer-events-auto cursor-crosshair' : 'pointer-events-none'}`}
         style={{ touchAction: 'none' }}
       />
     </div>
   );
 }
 
+// Draggable Whiteboard Toolbar
 export function WhiteboardToolbar({ isHost, code }: WhiteboardProps) {
   const { classState, sendPacket } = useWebSocketStore();
   const whiteboardPermit = classState?.whiteboardPermit || 'none';
@@ -320,6 +301,71 @@ export function WhiteboardToolbar({ isHost, code }: WhiteboardProps) {
 
   const canDraw = isHost || whiteboardPermit === 'all';
   const effectiveCanDraw = isHost ? isDrawingMode : canDraw;
+
+  // Drag state
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const dragOffset = useRef({ x: 0, y: 0 });
+
+  const handleDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (!toolbarRef.current) return;
+    e.preventDefault();
+    const rect = toolbarRef.current.getBoundingClientRect();
+    let clientX: number, clientY: number;
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    dragOffset.current = { x: clientX - rect.left, y: clientY - rect.top };
+    
+    if (!position) {
+      setPosition({ x: rect.left, y: rect.top });
+    }
+    
+    setIsDragging(true);
+  }, [position]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      let clientX: number, clientY: number;
+      if ('touches' in e) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      const newX = clientX - dragOffset.current.x;
+      const newY = clientY - dragOffset.current.y;
+      
+      // Clamp to viewport
+      const maxX = window.innerWidth - (toolbarRef.current?.offsetWidth || 200);
+      const maxY = window.innerHeight - (toolbarRef.current?.offsetHeight || 60);
+      setPosition({
+        x: Math.max(0, Math.min(newX, maxX)),
+        y: Math.max(0, Math.min(newY, maxY))
+      });
+    };
+
+    const handleEnd = () => setIsDragging(false);
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchmove', handleMove);
+    window.addEventListener('touchend', handleEnd);
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [isDragging]);
 
   if (!canDraw) return null;
 
@@ -329,13 +375,32 @@ export function WhiteboardToolbar({ isHost, code }: WhiteboardProps) {
     sendPacket(MsgWhiteboardPermit, { code, permit: newPermit });
   };
 
+  // When dragged, use fixed positioning; otherwise, let parent control layout
+  const positionStyle: React.CSSProperties = position
+    ? { position: 'fixed', left: position.x, top: position.y, zIndex: 9999 }
+    : {};
+
   return (
-    <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm w-full">
+    <div
+      ref={toolbarRef}
+      style={positionStyle}
+      className={`flex flex-wrap items-center gap-3 bg-white/95 backdrop-blur-md p-3 rounded-xl border border-slate-200 shadow-lg select-none ${isDragging ? 'shadow-2xl scale-[1.02]' : ''} transition-shadow`}
+    >
+      {/* Drag Handle */}
+      <div
+        onMouseDown={handleDragStart}
+        onTouchStart={handleDragStart}
+        className="flex items-center justify-center cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 px-1 border-r border-slate-200 pr-3"
+        title="Drag to move"
+      >
+        <GripHorizontal size={18} />
+      </div>
+
       {isHost && (
-        <div className="flex items-center gap-4 border-r border-slate-200 pr-4">
+        <div className="flex items-center gap-3 border-r border-slate-200 pr-3">
           <button
             onClick={() => setIsDrawingMode(!isDrawingMode)}
-            className={`px-4 py-2 rounded-xl font-bold text-sm transition-all border-2 flex items-center gap-2 ${isDrawingMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+            className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all border-2 flex items-center gap-1.5 ${isDrawingMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
           >
             <span>DRAW:</span>
             <span>{isDrawingMode ? 'ON' : 'OFF'}</span>
@@ -343,53 +408,50 @@ export function WhiteboardToolbar({ isHost, code }: WhiteboardProps) {
         </div>
       )}
 
-      <div className={`flex items-center gap-2 border-r border-slate-200 pr-4 transition-opacity ${!effectiveCanDraw ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className={`flex items-center gap-1.5 border-r border-slate-200 pr-3 transition-opacity ${!effectiveCanDraw ? 'opacity-40 pointer-events-none' : ''}`}>
         <button
           onClick={() => setTool('pen')}
-          className={`p-2 rounded-xl transition-all flex items-center gap-2 ${tool === 'pen' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}
+          className={`p-1.5 rounded-lg transition-all ${tool === 'pen' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}
         >
-          <Edit3 size={20} />
-          <span className="text-xs font-bold hidden sm:inline">Pen</span>
+          <Edit3 size={18} />
         </button>
         <button
           onClick={() => setTool('eraser')}
-          className={`p-2 rounded-xl transition-all flex items-center gap-2 ${tool === 'eraser' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}
+          className={`p-1.5 rounded-lg transition-all ${tool === 'eraser' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}
         >
-          <Eraser size={20} />
-          <span className="text-xs font-bold hidden sm:inline">Eraser</span>
+          <Eraser size={18} />
         </button>
       </div>
 
-      <div className={`flex items-center gap-3 border-r border-slate-200 pr-4 transition-opacity ${!effectiveCanDraw ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className={`flex items-center gap-2 border-r border-slate-200 pr-3 transition-opacity ${!effectiveCanDraw ? 'opacity-40 pointer-events-none' : ''}`}>
         {['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#000000', '#ffffff'].map(c => (
           <button
             key={c}
             onClick={() => { setColor(c); setTool('pen'); }}
-            className={`w-8 h-8 rounded-full transition-transform border-2 border-slate-200 ${color === c && tool === 'pen' ? 'scale-110 ring-2 ring-offset-2 ring-blue-500' : 'hover:scale-105'}`}
+            className={`w-7 h-7 rounded-full transition-transform border-2 border-slate-200 ${color === c && tool === 'pen' ? 'scale-110 ring-2 ring-offset-1 ring-blue-500' : 'hover:scale-105'}`}
             style={{ backgroundColor: c }}
           />
         ))}
       </div>
 
-      <div className={`flex items-center gap-4 transition-opacity ${!effectiveCanDraw ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className={`flex items-center gap-3 transition-opacity ${!effectiveCanDraw ? 'opacity-40 pointer-events-none' : ''}`}>
         {isHost && (
           <>
             <button
               onClick={() => sendPacket(MsgWhiteboardClear, { code })}
-              className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all flex items-center gap-2"
+              className="p-1.5 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
               title="Clear All"
             >
-              <Trash2 size={20} />
-              <span className="text-xs font-bold hidden sm:inline">Clear All</span>
+              <Trash2 size={18} />
             </button>
             <button
               onClick={togglePermit}
-              className={`p-2 rounded-xl transition-all flex items-center gap-2 ${whiteboardPermit === 'all' ? 'bg-green-100 text-green-600' : 'text-slate-500 hover:bg-slate-100'}`}
+              className={`p-1.5 rounded-lg transition-all flex items-center gap-1.5 ${whiteboardPermit === 'all' ? 'bg-green-100 text-green-600' : 'text-slate-500 hover:bg-slate-100'}`}
               title={whiteboardPermit === 'all' ? 'Students can draw' : 'Only Host can draw'}
             >
-              {whiteboardPermit === 'all' ? <Unlock size={20} /> : <Lock size={20} />}
-              <span className="text-xs font-semibold hidden md:inline">
-                {whiteboardPermit === 'all' ? 'Students Allowed' : 'Lock Drawing'}
+              {whiteboardPermit === 'all' ? <Unlock size={18} /> : <Lock size={18} />}
+              <span className="text-[10px] font-bold hidden md:inline">
+                {whiteboardPermit === 'all' ? 'UNLOCKED' : 'LOCKED'}
               </span>
             </button>
           </>

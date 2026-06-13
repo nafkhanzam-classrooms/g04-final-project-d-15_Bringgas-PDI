@@ -430,12 +430,7 @@ export default function ActiveSessionView() {
             {isPresentationFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
           </button>
 
-          {/* Floating Toolbar inside the Presentation Area (Only when in fullscreen and not during active quiz) */}
-          {isPresentationFullscreen && !classState?.currentQuestion && code && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto shadow-2xl rounded-xl">
-              <WhiteboardToolbar isHost={true} code={code} />
-            </div>
-          )}
+
 
           {/* Whiteboard Overlay for Non-Presentations is handled by IframeSlideViewer */}
 
@@ -514,8 +509,8 @@ export default function ActiveSessionView() {
           )}
         </div>
 
-        {/* Toolbar Outside PPT (Only when NOT in fullscreen) */}
-        {!isPresentationFullscreen && code && (
+        {/* Whiteboard Toolbar (draggable, always visible) */}
+        {code && (
           <div className="mt-2">
             <WhiteboardToolbar isHost={true} code={code} />
           </div>
