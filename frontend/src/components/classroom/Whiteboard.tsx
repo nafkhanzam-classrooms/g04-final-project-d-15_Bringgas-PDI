@@ -7,6 +7,7 @@ interface WhiteboardProps {
   isHost: boolean;
   code: string;
   lines?: any[];
+  isDraggable?: boolean;
 }
 
 export const useWhiteboardToolStore = create<{
@@ -295,7 +296,7 @@ export default function Whiteboard({ isHost, code, lines }: WhiteboardProps) {
 }
 
 // Draggable Whiteboard Toolbar
-export function WhiteboardToolbar({ isHost, code }: WhiteboardProps) {
+export function WhiteboardToolbar({ isHost, code, isDraggable = true }: WhiteboardProps) {
   const { classState, sendPacket } = useWebSocketStore();
   const whiteboardPermit = classState?.whiteboardPermit || 'none';
   const whiteboardActive = classState?.whiteboardActive ?? false;
@@ -389,14 +390,16 @@ export function WhiteboardToolbar({ isHost, code }: WhiteboardProps) {
       className={`flex flex-wrap items-center gap-3 bg-white/95 backdrop-blur-md p-3 rounded-xl border border-slate-200 shadow-lg select-none ${isDragging ? 'shadow-2xl scale-[1.02]' : ''} transition-shadow`}
     >
       {/* Drag Handle */}
-      <div
-        onMouseDown={handleDragStart}
-        onTouchStart={handleDragStart}
-        className="flex items-center justify-center cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 px-1 border-r border-slate-200 pr-3"
-        title="Drag to move"
-      >
-        <GripHorizontal size={18} />
-      </div>
+      {isDraggable && (
+        <div
+          onMouseDown={handleDragStart}
+          onTouchStart={handleDragStart}
+          className="flex items-center justify-center cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 px-1 border-r border-slate-200 pr-3"
+          title="Drag to move"
+        >
+          <GripHorizontal size={18} />
+        </div>
+      )}
 
       {isHost && (
         <div className="flex items-center gap-3 border-r border-slate-200 pr-3">

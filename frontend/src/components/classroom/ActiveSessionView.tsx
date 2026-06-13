@@ -519,7 +519,7 @@ export default function ActiveSessionView() {
         {/* Static Toolbar Outside (Only when NOT Fullscreen) */}
         {code && !isPresentationFullscreen && (
           <div className="mt-2 flex justify-center">
-            <WhiteboardToolbar isHost={true} code={code} />
+            <WhiteboardToolbar isHost={true} code={code} isDraggable={false} />
           </div>
         )}
 
