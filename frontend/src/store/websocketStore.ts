@@ -210,7 +210,31 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
           } else if (msgType === MsgQuizResult) {
             set({ lastQuizResult: payload });
           } else if (msgType === MsgError) {
-            set({ error: payload.message || 'Unknown server error' });
+            const msg = payload.message || 'Unknown server error';
+            set({ error: msg });
+
+            // If it is a critical ejection/class end/duplicate connection, clean local storage
+            const lowerMsg = msg.toLowerCase();
+            if (
+              lowerMsg.includes("diakhiri") || 
+              lowerMsg.includes("ditendang") || 
+              lowerMsg.includes("not found") ||
+              lowerMsg.includes("tidak ditemukan") ||
+              lowerMsg.includes("pin") ||
+              lowerMsg.includes("tidak terdaftar") ||
+              lowerMsg.includes("belum dimulai") ||
+              lowerMsg.includes("salah")
+            ) {
+              localStorage.removeItem('lopyta_student_code');
+              localStorage.removeItem('lopyta_student_pin');
+              localStorage.removeItem('lopyta_student_joined');
+              
+              // Close connection cleanly so that we do not trigger reconnect timeouts
+              const socket = get().ws;
+              if (socket) {
+                socket.close(1000, 'Kicked by server');
+              }
+            }
           }
         } catch (err) {
           console.error('Failed to parse WS message', err);
@@ -228,7 +252,23 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
         
         // Auto reconnect logic could go here
         if (event.code !== 1000) { // Not a clean close
-          set({ error: 'Connection lost. Reconnecting...' });
+          // Only set reconnect error if we didn't already encounter a critical ejection/kick error
+          const currentError = get().error;
+          const isCritical = currentError && (
+            currentError.includes("diakhiri") || 
+            currentError.includes("ditendang") || 
+            currentError.includes("not found") ||
+            currentError.includes("tidak ditemukan") ||
+            currentError.includes("pin") ||
+            currentError.includes("tidak terdaftar") ||
+            currentError.includes("belum dimulai") ||
+            currentError.includes("salah")
+          );
+
+          if (!isCritical) {
+            set({ error: 'Connection lost. Reconnecting...' });
+          }
+          
           reconnectTimeout = window.setTimeout(() => {
             get().connect();
           }, 3000);
