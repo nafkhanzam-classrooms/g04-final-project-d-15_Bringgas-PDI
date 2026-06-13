@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Trophy, Code, Play, Minimize } from 'lucide-react';
 import PdfSlideViewer from '../components/classroom/PdfSlideViewer';
+import Whiteboard from '../components/classroom/Whiteboard';
 
 const resolvePresentationUrl = (url: string) => {
   if (!url) return '';
@@ -90,17 +91,16 @@ export default function ProjectorScreen() {
       <div className="absolute inset-0 w-full h-full z-0 flex items-center justify-center bg-white">
         {!isShowingLeaderboard && !currentQuestion && presentationUrl ? (
           <div className="w-full h-full relative">
-            {presentationUrl ? (
-              <div className="absolute inset-0 z-10 w-full h-full">
-                <PdfSlideViewer 
-                  url={resolvePresentationUrl(presentationUrl)} 
-                  slideNumber={classState.activeSlide} 
-                  showWhiteboard={true}
-                  isHost={false}
-                  code={code}
-                />
-              </div>
-            ) : null}
+            <div className="absolute inset-0 z-10 w-full h-full">
+              <PdfSlideViewer 
+                url={resolvePresentationUrl(presentationUrl)} 
+                slideNumber={classState.activeSlide} 
+              />
+            </div>
+            {/* Fullscreen Whiteboard Overlay */}
+            <div className="absolute inset-0 z-20">
+              <Whiteboard isHost={false} code={code || ''} />
+            </div>
           </div>
         ) : !isShowingLeaderboard && !currentQuestion ? (
           /* Standalone Fallback slide counter */

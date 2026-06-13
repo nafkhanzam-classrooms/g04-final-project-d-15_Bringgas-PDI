@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import Whiteboard from './Whiteboard';
 
 // Use CDN for worker to avoid Vite bundling issues with PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -8,13 +7,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 interface PdfSlideViewerProps {
   url: string;
   slideNumber: number;
-  showWhiteboard?: boolean;
-  isHost?: boolean;
-  code?: string;
-  whiteboardLines?: any[];
 }
 
-export default function PdfSlideViewer({ url, slideNumber, showWhiteboard, isHost, code, whiteboardLines }: PdfSlideViewerProps) {
+export default function PdfSlideViewer({ url, slideNumber }: PdfSlideViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
@@ -149,16 +144,6 @@ export default function PdfSlideViewer({ url, slideNumber, showWhiteboard, isHos
         } : {}}
       >
         <canvas ref={canvasRef} className="w-full h-full block" />
-
-        {showWhiteboard && code && currentViewportSize && (
-          <Whiteboard 
-            isHost={isHost || false} 
-            code={code} 
-            lines={whiteboardLines}
-            pdfWidth={currentViewportSize.width}
-            pdfHeight={currentViewportSize.height}
-          />
-        )}
       </div>
     </div>
   );

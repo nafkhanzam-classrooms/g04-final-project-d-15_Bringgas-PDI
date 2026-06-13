@@ -8,7 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import type { QuestionBankItem } from '../../store/classStore';
 import VideoConference from './VideoConference';
 import PdfSlideViewer from './PdfSlideViewer';
-import { WhiteboardToolbar } from './Whiteboard';
+import Whiteboard, { WhiteboardToolbar } from './Whiteboard';
 
 const resolvePresentationUrl = (url: string) => {
   if (!url) return '';
@@ -496,11 +496,14 @@ export default function ActiveSessionView() {
                 <PdfSlideViewer 
                   url={resolvePresentationUrl(classState.presentationUrl)} 
                   slideNumber={classState.activeSlide} 
-                  showWhiteboard={true}
-                  isHost={true}
-                  code={code}
                 />
               </div>
+              {/* Fullscreen Whiteboard Overlay */}
+              {code && (
+                <div className="absolute inset-0 z-20">
+                  <Whiteboard isHost={true} code={code} />
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50">

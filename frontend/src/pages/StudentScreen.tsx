@@ -5,7 +5,7 @@ import Swal from 'sweetalert2';
 import { useWebSocketStore, MsgJoinClass, MsgSubmitAnswer } from '../store/websocketStore';
 import VideoConference from '../components/classroom/VideoConference';
 import PdfSlideViewer from '../components/classroom/PdfSlideViewer';
-import { WhiteboardToolbar } from '../components/classroom/Whiteboard';
+import Whiteboard, { WhiteboardToolbar } from '../components/classroom/Whiteboard';
 
 const resolvePresentationUrl = (url: string) => {
   if (!url) return '';
@@ -318,23 +318,20 @@ export default function StudentScreen() {
       ref={mainRef} 
       className="w-screen h-screen relative flex flex-col bg-white overflow-hidden select-none font-sans"
     >
-      {/* 1. Main Content: PDF/Iframe Slide taking FULL window space */}
+      {/* 1. Main Content: PDF Slide taking FULL window space */}
       <div className="absolute inset-0 w-full h-full z-0 flex items-center justify-center bg-white">
         {classState?.presentationUrl ? (
           <div className="w-full h-full relative">
-            {/* Whiteboard Overlay for Non-Presentations is no longer needed here since IframeSlideViewer handles it */}
-
-            {classState.presentationUrl ? (
-              <div className="absolute inset-0 z-10 w-full h-full">
-                <PdfSlideViewer 
-                  url={resolvePresentationUrl(classState.presentationUrl)} 
-                  slideNumber={classState.activeSlide} 
-                  showWhiteboard={true}
-                  isHost={false}
-                  code={code}
-                />
-              </div>
-            ) : null}
+            <div className="absolute inset-0 z-10 w-full h-full">
+              <PdfSlideViewer 
+                url={resolvePresentationUrl(classState.presentationUrl)} 
+                slideNumber={classState.activeSlide} 
+              />
+            </div>
+            {/* Fullscreen Whiteboard Overlay */}
+            <div className="absolute inset-0 z-20">
+              <Whiteboard isHost={false} code={code} />
+            </div>
           </div>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-white">
