@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { useWebSocketStore } from './websocketStore';
 
 // Helper to intercept 401 Unauthorized responses and redirect to login
 async function fetchWithAuth(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
