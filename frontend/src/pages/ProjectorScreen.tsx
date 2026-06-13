@@ -124,9 +124,9 @@ export default function ProjectorScreen() {
         ) : null}
       </div>
 
-      {/* 2. Floating Info Badge (Light Mode) */}
+      {/* 2. Floating Info Badge (Light Mode - Translucent) */}
       {!isShowingLeaderboard && (
-        <div className="absolute top-6 left-6 z-20 pointer-events-none flex items-center gap-3 bg-white/90 backdrop-blur-md border border-slate-200 p-3 px-4 rounded-2xl shadow-xl">
+        <div className="absolute top-6 left-6 z-20 pointer-events-auto flex items-center gap-3 bg-white/40 hover:bg-white/90 backdrop-blur-md border border-slate-200/60 p-3 px-4 rounded-2xl shadow-xl opacity-60 hover:opacity-100 transition-all duration-300">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20 animate-pulse">
             <Play size={16} className="text-white fill-white" />
           </div>
@@ -137,32 +137,32 @@ export default function ProjectorScreen() {
         </div>
       )}
 
-      {/* 3. Floating Status Badge (Light Mode) */}
+      {/* 3. Floating Status Badge (Light Mode - Translucent) */}
       {!isShowingLeaderboard && (
-        <div className="absolute top-6 right-6 z-20 pointer-events-none flex items-center gap-4 bg-white/90 backdrop-blur-md border border-slate-200 p-3 px-4 rounded-2xl shadow-xl">
-          <div className="bg-slate-50 px-3 py-1 rounded-xl border border-slate-200 flex items-center gap-1.5">
+        <div className="absolute top-6 right-6 z-20 pointer-events-auto flex items-center gap-4 bg-white/40 hover:bg-white/90 backdrop-blur-md border border-slate-200/60 p-3 px-4 rounded-2xl shadow-xl opacity-60 hover:opacity-100 transition-all duration-300">
+          <div className="bg-slate-50/50 px-3 py-1 rounded-xl border border-slate-200/50 flex items-center gap-1.5">
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Students</span>
             <span className="text-xs font-black text-green-600">
               {activeParticipants.length} {rosterCount > 0 ? `/ ${rosterCount}` : ''}
             </span>
           </div>
-          <div className="text-right border-l border-slate-200 pl-3">
+          <div className="text-right border-l border-slate-200/60 pl-3">
             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Class Code</span>
             <span className="font-mono font-black text-lg text-blue-600 tracking-wider">{code}</span>
           </div>
         </div>
       )}
 
-      {/* 4. Bottom-Left Floating Page Indicator (Light Mode) */}
+      {/* 4. Bottom-Left Floating Page Indicator (Light Mode - Translucent) */}
       {!isShowingLeaderboard && (
-        <div className="absolute bottom-6 left-6 z-20 pointer-events-none bg-white/90 backdrop-blur-md border border-slate-200 p-2.5 px-4 rounded-xl shadow-xl text-slate-500 text-[10px] font-extrabold uppercase tracking-widest">
+        <div className="absolute bottom-6 left-6 z-20 pointer-events-none bg-white/40 backdrop-blur-md border border-slate-200/50 p-2.5 px-4 rounded-xl shadow-xl text-slate-500 text-[10px] font-extrabold uppercase tracking-widest opacity-60">
           Bringgas PDI
         </div>
       )}
 
-      {/* 5. Bottom-Right Floating Page Index (Light Mode) */}
+      {/* 5. Bottom-Right Floating Page Index (Light Mode - Translucent) */}
       {!isShowingLeaderboard && (
-        <div className="absolute bottom-6 right-20 z-20 pointer-events-none bg-white/90 backdrop-blur-md border border-slate-200 p-2.5 px-4 rounded-xl shadow-xl text-slate-700 text-[10px] font-black uppercase tracking-widest">
+        <div className="absolute bottom-6 right-20 z-20 pointer-events-none bg-white/40 backdrop-blur-md border border-slate-200/50 p-2.5 px-4 rounded-xl shadow-xl text-slate-700 text-[10px] font-black uppercase tracking-widest opacity-60">
           Slide {activeSlide} of {totalSlides || '?'}
         </div>
       )}

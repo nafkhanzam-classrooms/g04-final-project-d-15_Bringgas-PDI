@@ -14,7 +14,23 @@ export default function PdfSlideViewer({ url, slideNumber }: PdfSlideViewerProps
   const containerRef = useRef<HTMLDivElement>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [isRendering, setIsRendering] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
+
+  // Track container dimensions to re-scale on resize/fullscreen events
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setDimensions({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        });
+      }
+    });
+    resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
 
   // Load PDF document once
   useEffect(() => {
@@ -32,7 +48,7 @@ export default function PdfSlideViewer({ url, slideNumber }: PdfSlideViewerProps
     };
   }, [url]);
 
-  // Render specific page when slideNumber changes
+  // Render specific page when slideNumber or dimensions change
   useEffect(() => {
     if (!pdfDoc || !canvasRef.current || !containerRef.current) return;
 
@@ -55,8 +71,8 @@ export default function PdfSlideViewer({ url, slideNumber }: PdfSlideViewerProps
         if (!ctx) return;
 
         // Calculate scale to fit container width/height while preserving aspect ratio
-        const containerWidth = containerRef.current!.clientWidth;
-        const containerHeight = containerRef.current!.clientHeight;
+        const containerWidth = containerRef.current!.clientWidth || dimensions.width || 800;
+        const containerHeight = containerRef.current!.clientHeight || dimensions.height || 600;
         
         // Get unscaled viewport
         const unscaledViewport = page.getViewport({ scale: 1 });
@@ -104,7 +120,7 @@ export default function PdfSlideViewer({ url, slideNumber }: PdfSlideViewerProps
         renderTaskRef.current.cancel();
       }
     };
-  }, [pdfDoc, slideNumber]);
+  }, [pdfDoc, slideNumber, dimensions.width, dimensions.height]);
 
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-transparent overflow-hidden">

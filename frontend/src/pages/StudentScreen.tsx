@@ -320,9 +320,9 @@ export default function StudentScreen() {
         {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
       </button>
 
-      {/* Top-Left Floating Info Badge */}
+      {/* Top-Left Floating Info Badge (Translucent) */}
       {!classState.currentQuestion && !classState.isShowingLeaderboard && (
-        <div className="absolute top-6 left-6 z-20 pointer-events-none flex items-center gap-3 bg-white/90 backdrop-blur-md border border-slate-200 p-3 px-4 rounded-2xl shadow-xl">
+        <div className="absolute top-6 left-6 z-20 pointer-events-auto flex items-center gap-3 bg-white/40 hover:bg-white/90 backdrop-blur-md border border-slate-200/60 p-3 px-4 rounded-2xl shadow-xl opacity-60 hover:opacity-100 transition-all duration-300">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
             <Zap size={16} className="text-white fill-white" />
           </div>
@@ -333,14 +333,14 @@ export default function StudentScreen() {
         </div>
       )}
 
-      {/* Top-Right Floating Status & Score Badge */}
+      {/* Top-Right Floating Status & Score Badge (Translucent) */}
       {!classState.currentQuestion && !classState.isShowingLeaderboard && (
-        <div className="absolute top-6 right-6 z-20 flex items-center gap-4 bg-white/90 backdrop-blur-md border border-slate-200 p-3 px-4 rounded-2xl shadow-xl pointer-events-auto">
+        <div className="absolute top-6 right-6 z-20 flex items-center gap-4 bg-white/40 hover:bg-white/90 backdrop-blur-md border border-slate-200/60 p-3 px-4 rounded-2xl shadow-xl pointer-events-auto opacity-60 hover:opacity-100 transition-all duration-300">
           <div className="text-right hidden md:block">
             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Student</span>
             <span className="font-black text-sm text-slate-800">{myName || 'Student'}</span>
           </div>
-          <div className="flex items-center gap-4 bg-slate-50 rounded-xl p-2 px-3 border border-slate-200 shadow-sm relative">
+          <div className="flex items-center gap-4 bg-slate-50/50 rounded-xl p-2 px-3 border border-slate-200/50 shadow-sm relative">
             <div className="flex flex-col items-center relative">
               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Score</span>
               <span className="font-black text-base text-blue-600 transition-all duration-300">{displayScore}</span>
