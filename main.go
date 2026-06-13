@@ -664,6 +664,15 @@ func main() {
 			}
 		}
 
+		// Enforce single active class per teacher in database
+		db := database.GetDB()
+		if db != nil {
+			_, dbErr := db.Exec("UPDATE classes SET is_active = 0 WHERE teacher_id = ? AND code != ?", teacherID, req.Code)
+			if dbErr != nil {
+				log.Printf("[Database] Failed to auto-end other classes in DB: %v", dbErr)
+			}
+		}
+
 		session.StartSession()
 		sess, err := sessionStore.Get(c)
 		if err == nil {
@@ -682,6 +691,15 @@ func main() {
 		}
 		if err := c.BodyParser(&req); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
+		}
+
+		// Unconditionally set this class as inactive in the database
+		db := database.GetDB()
+		if db != nil {
+			_, dbErr := db.Exec("UPDATE classes SET is_active = 0 WHERE code = ?", req.Code)
+			if dbErr != nil {
+				log.Printf("[Database] Failed to end class manually in DB: %v", dbErr)
+			}
 		}
 
 		session := sm.GetSession(req.Code)
