@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { useState, useEffect } from 'react';
-import { LogIn, User, Hash, Zap, Code, CheckCircle, Flame, Trophy } from 'lucide-react';
+import { LogIn, User, Hash, Zap, Code, CheckCircle, Flame, Trophy, Maximize, Minimize } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import Swal from 'sweetalert2';
 import { useWebSocketStore, MsgJoinClass, MsgSubmitAnswer } from '../store/websocketStore';
 import VideoConference from '../components/classroom/VideoConference';
@@ -32,6 +32,32 @@ export default function StudentScreen() {
   const [codeAnswer, setCodeAnswer] = useState('');
   const [runOutput, setRunOutput] = useState<{stdout: string, stderr: string, error?: string} | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+
+  const mainRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = () => {
+    if (!mainRef.current) return;
+    if (!document.fullscreenElement) {
+      mainRef.current.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+      }).catch(err => {
+        console.error("Error enabling fullscreen:", err);
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+      });
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === mainRef.current);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   useEffect(() => {
     connect();
@@ -289,7 +315,22 @@ export default function StudentScreen() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 relative flex flex-col">
+      <main 
+        ref={mainRef} 
+        className={`flex-1 relative flex flex-col transition-all bg-white ${
+          isFullscreen 
+            ? 'w-screen h-screen max-w-none max-h-none border-0' 
+            : ''
+        }`}
+      >
+        {/* Floating Fullscreen button for student in-place fullscreen */}
+        <button
+          onClick={toggleFullscreen}
+          className="absolute bottom-6 right-6 z-50 bg-white/95 hover:bg-slate-50 text-slate-800 border border-slate-200 p-3.5 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center animate-in fade-in"
+          title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+        >
+          {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+        </button>
         {/* Video Conference Overlay for Student */}
         {classState?.isVideoCallActive && (
           <VideoConference 
@@ -343,7 +384,11 @@ export default function StudentScreen() {
           // Slide View
           classState?.presentationUrl ? (
             <>
-              <div className="w-full aspect-video relative bg-slate-100 overflow-hidden mx-auto max-w-full max-h-[80vh]">
+              <div className={`relative bg-white overflow-hidden mx-auto transition-all ${
+                isFullscreen 
+                  ? 'w-full h-full absolute inset-0 z-0' 
+                  : 'w-full aspect-video max-w-full max-h-[80vh]'
+              }`}>
                 {/* Whiteboard Overlay */}
                 {code && <Whiteboard isHost={false} code={code} />}
 
@@ -368,7 +413,11 @@ export default function StudentScreen() {
                 )}
               </div>
               
-              {code && <WhiteboardToolbar isHost={false} code={code} />}
+              {code && (
+                <div className={isFullscreen ? 'absolute bottom-20 left-1/2 -translate-x-1/2 z-35 max-w-[90vw]' : ''}>
+                  <WhiteboardToolbar isHost={false} code={code} />
+                </div>
+              )}
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50">

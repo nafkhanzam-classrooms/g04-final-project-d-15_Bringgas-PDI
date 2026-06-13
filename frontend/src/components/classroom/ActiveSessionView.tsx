@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle, Trophy, Folder, ChevronDown, ChevronUp, Code, ThumbsUp, Monitor } from 'lucide-react';
+import { Users, StopCircle, Radio, PlayCircle, Send, PlusCircle, Trophy, Folder, ChevronDown, ChevronUp, Code, ThumbsUp, Monitor, Maximize, Minimize } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useWebSocketStore, MsgCreateClass, MsgSlideChange, MsgToggleVideoCall, MsgSendQuestion, MsgStopQuestion, MsgLeaderboard, MsgGradeCode } from '../../store/websocketStore';
 import { useClassStore } from '../../store/classStore';
@@ -69,6 +69,32 @@ export default function ActiveSessionView() {
   useEffect(() => {
     changeSlideRef.current = changeSlide;
   });
+
+  const presentationAreaRef = useRef<HTMLDivElement>(null);
+  const [isPresentationFullscreen, setIsPresentationFullscreen] = useState(false);
+
+  const togglePresentationFullscreen = () => {
+    if (!presentationAreaRef.current) return;
+    if (!document.fullscreenElement) {
+      presentationAreaRef.current.requestFullscreen().then(() => {
+        setIsPresentationFullscreen(true);
+      }).catch(err => {
+        console.error("Error enabling fullscreen:", err);
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsPresentationFullscreen(false);
+      });
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsPresentationFullscreen(document.fullscreenElement === presentationAreaRef.current);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   // Listen to keyboard arrow keys for slide navigation
   useEffect(() => {
@@ -383,7 +409,23 @@ export default function ActiveSessionView() {
         )}
 
         {/* Presentation Area */}
-        <div className="flex-1 w-full max-w-full aspect-video bg-white rounded-2xl shadow-lg border border-slate-100 flex flex-col relative overflow-hidden mx-auto max-h-[70vh]">
+        <div 
+          ref={presentationAreaRef} 
+          className={`flex-1 w-full flex flex-col relative overflow-hidden mx-auto bg-white transition-all ${
+            isPresentationFullscreen 
+              ? 'w-screen h-screen max-w-none max-h-none rounded-none border-0' 
+              : 'max-w-full aspect-video rounded-2xl shadow-lg border border-slate-100 max-h-[70vh]'
+          }`}
+        >
+          {/* Floating Fullscreen button for teacher in-place fullscreen */}
+          <button
+            onClick={togglePresentationFullscreen}
+            className="absolute bottom-6 right-6 z-50 bg-white/95 hover:bg-slate-50 text-slate-800 border border-slate-200 p-3.5 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center"
+            title={isPresentationFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+          >
+            {isPresentationFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+          </button>
+
           {/* Whiteboard Overlay */}
           {code && <Whiteboard isHost={true} code={code} />}
 
@@ -470,7 +512,11 @@ export default function ActiveSessionView() {
         </div>
 
         {/* Toolbar Outside PPT */}
-        {code && <WhiteboardToolbar isHost={true} code={code} />}
+        {code && (
+          <div className={isPresentationFullscreen ? 'absolute bottom-20 left-1/2 -translate-x-1/2 z-35 max-w-[90vw]' : ''}>
+            <WhiteboardToolbar isHost={true} code={code} />
+          </div>
+        )}
         
         <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
           <h3 className="font-bold text-lg text-slate-800">Slide {slideNumber} of {classState?.totalSlides || '?'}</h3>
