@@ -18,10 +18,8 @@ export default function PdfSlideViewer({ url, slideNumber, showWhiteboard, isHos
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
-  const [isRendering, setIsRendering] = useState(false);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [currentViewportSize, setCurrentViewportSize] = useState<{ width: number, height: number } | null>(null);
-  const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
 
   // Track container dimensions to re-scale on resize/fullscreen events
   useEffect(() => {
@@ -59,14 +57,10 @@ export default function PdfSlideViewer({ url, slideNumber, showWhiteboard, isHos
     if (!pdfDoc || !canvasRef.current || !containerRef.current) return;
 
     let active = true;
+    let renderTask: pdfjsLib.RenderTask | null = null;
 
-    const renderPage = async () => {
+    const timeoutId = setTimeout(async () => {
       try {
-        if (isRendering && renderTaskRef.current) {
-          renderTaskRef.current.cancel();
-        }
-        setIsRendering(true);
-
         const pageToRender = Math.min(Math.max(1, slideNumber), pdfDoc.numPages);
         const page = await pdfDoc.getPage(pageToRender);
         if (!active) return;
@@ -79,7 +73,7 @@ export default function PdfSlideViewer({ url, slideNumber, showWhiteboard, isHos
         // Calculate scale to fit container width/height while preserving aspect ratio
         const containerWidth = containerRef.current!.clientWidth || dimensions.width || 800;
         const containerHeight = containerRef.current!.clientHeight || dimensions.height || 600;
-        
+
         // Get unscaled viewport
         const unscaledViewport = page.getViewport({ scale: 1 });
         const scaleX = containerWidth / unscaledViewport.width;
@@ -110,31 +104,26 @@ export default function PdfSlideViewer({ url, slideNumber, showWhiteboard, isHos
           viewport: viewport,
         };
 
-        const renderTask = page.render(renderContext as any);
-        renderTaskRef.current = renderTask;
-        
+        renderTask = page.render(renderContext as any);
         await renderTask.promise;
       } catch (err: any) {
         if (err.name !== 'RenderingCancelledException') {
           console.error('Error rendering page:', err);
         }
-      } finally {
-        if (active) setIsRendering(false);
       }
-    };
-
-    renderPage();
+    }, 100); // 100ms debounce to prevent race conditions during layout shifts
 
     return () => {
       active = false;
-      if (renderTaskRef.current) {
-        renderTaskRef.current.cancel();
+      clearTimeout(timeoutId);
+      if (renderTask) {
+        renderTask.cancel();
       }
     };
   }, [pdfDoc, slideNumber, dimensions.width, dimensions.height]);
 
   return (
-    <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-transparent overflow-hidden">
+    <div ref={containerRef} className="relative w-full h-full flex items-center justify-center bg-transparent overflow-hidden">
       {!pdfDoc && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -149,18 +138,17 @@ export default function PdfSlideViewer({ url, slideNumber, showWhiteboard, isHos
           }}
         >
           <canvas ref={canvasRef} className="w-full h-full" />
-          {showWhiteboard && code && (
-            <Whiteboard 
-              isHost={isHost || false} 
-              code={code} 
-              lines={whiteboardLines}
-              width={currentViewportSize.width}
-              height={currentViewportSize.height}
-            />
-          )}
         </div>
       ) : (
         <canvas ref={canvasRef} className="max-w-full max-h-full shadow-lg opacity-0" />
+      )}
+      
+      {showWhiteboard && code && (
+        <Whiteboard 
+          isHost={isHost || false} 
+          code={code} 
+          lines={whiteboardLines}
+        />
       )}
     </div>
   );
