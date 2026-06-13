@@ -8,6 +8,7 @@ interface WhiteboardProps {
   code: string;
   lines?: any[];
   isDraggable?: boolean;
+  isFloating?: boolean;
 }
 
 export const useWhiteboardToolStore = create<{
@@ -296,7 +297,7 @@ export default function Whiteboard({ isHost, code, lines }: WhiteboardProps) {
 }
 
 // Draggable Whiteboard Toolbar
-export function WhiteboardToolbar({ isHost, code, isDraggable = true }: WhiteboardProps) {
+export function WhiteboardToolbar({ isHost, code, isDraggable = true, isFloating = true }: WhiteboardProps) {
   const { classState, sendPacket } = useWebSocketStore();
   const whiteboardPermit = classState?.whiteboardPermit || 'none';
   const whiteboardActive = classState?.whiteboardActive ?? false;
@@ -372,22 +373,31 @@ export function WhiteboardToolbar({ isHost, code, isDraggable = true }: Whiteboa
 
   if (!canDraw) return null;
 
-  const togglePermit = () => {
-    if (!isHost) return;
-    const newPermit = whiteboardPermit === 'all' ? 'none' : 'all';
-    sendPacket(MsgWhiteboardPermit, { code, permit: newPermit });
-  };
-
+  
   // When dragged, use fixed positioning; otherwise, let parent control layout
-  const positionStyle: React.CSSProperties = position
-    ? { position: 'fixed', left: position.x, top: position.y, zIndex: 9999 }
-    : {};
+  const positionStyle: React.CSSProperties = position ? {
+    position: 'fixed',
+    left: `${position.x}px`,
+    top: `${position.y}px`,
+    zIndex: 9999,
+    transform: 'none',
+    width: 'auto',
+  } : {};
+
+  const baseClasses = isFloating 
+    ? "absolute bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto bg-white/95 backdrop-blur-md p-3 rounded-xl border border-slate-200 shadow-lg select-none"
+    : "w-full bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center select-none";
+
+  const dragClasses = isDragging ? 'shadow-2xl scale-[1.02]' : 'transition-shadow transition-transform';
+
+  if (!canDraw) return null;
+
 
   return (
     <div
       ref={toolbarRef}
       style={positionStyle}
-      className={`flex flex-wrap items-center gap-3 bg-white/95 backdrop-blur-md p-3 rounded-xl border border-slate-200 shadow-lg select-none ${isDragging ? 'shadow-2xl scale-[1.02]' : ''} transition-shadow`}
+      className={`flex flex-wrap items-center gap-3 ${baseClasses} ${dragClasses}`}
     >
       {/* Drag Handle */}
       {isDraggable && (
@@ -404,7 +414,13 @@ export function WhiteboardToolbar({ isHost, code, isDraggable = true }: Whiteboa
       {isHost && (
         <div className="flex items-center gap-3 border-r border-slate-200 pr-3">
           <button
-            onClick={() => sendPacket(MsgWhiteboardActive, { code, active: !whiteboardActive })}
+            onClick={() => {
+              const newActive = !whiteboardActive;
+              useWebSocketStore.setState((state) => ({
+                classState: state.classState ? { ...state.classState, whiteboardActive: newActive } : null
+              }));
+              sendPacket(MsgWhiteboardActive, { code, active: newActive });
+            }}
             className={`px-4 py-2 rounded-lg font-bold text-sm transition-all border-2 flex items-center gap-1.5 ${whiteboardActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
           >
             <span>DRAW:</span>
@@ -450,9 +466,15 @@ export function WhiteboardToolbar({ isHost, code, isDraggable = true }: Whiteboa
               <Trash2 size={18} />
             </button>
             <button
-              onClick={togglePermit}
-              className={`p-1.5 rounded-lg transition-all flex items-center gap-1.5 ${whiteboardPermit === 'all' ? 'bg-green-100 text-green-600' : 'text-slate-500 hover:bg-slate-100'}`}
-              title={whiteboardPermit === 'all' ? 'Students can draw' : 'Only Host can draw'}
+              onClick={() => {
+                const newPermit = whiteboardPermit === 'all' ? 'none' : 'all';
+                useWebSocketStore.setState((state) => ({
+                  classState: state.classState ? { ...state.classState, whiteboardPermit: newPermit } : null
+                }));
+                sendPacket(MsgWhiteboardPermit, { code, permit: newPermit });
+              }}
+              className={`p-2 rounded-lg transition-colors ${whiteboardPermit === 'all' ? 'text-green-500 hover:bg-green-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
+              title={whiteboardPermit === 'all' ? "Students can draw" : "Students locked"}
             >
               {whiteboardPermit === 'all' ? <Unlock size={18} /> : <Lock size={18} />}
               <span className="text-[10px] font-bold hidden md:inline">
