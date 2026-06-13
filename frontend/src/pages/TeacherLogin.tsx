@@ -12,9 +12,7 @@ export default function TeacherLogin() {
         <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-primary blur-[100px] opacity-20 rounded-full mix-blend-multiply" />
         
         <div className="relative z-10">
-          <div className="mb-8 w-20 h-20 bg-white text-primary rounded-[20px] shadow-xl shadow-primary/10 flex items-center justify-center border border-white">
-            <School size={40} strokeWidth={1.5} />
-          </div>
+          <img src="/images/logo.png" alt="Bringgas PDI Logo" className="w-24 h-24 object-contain mb-8 drop-shadow-xl" />
           <h1 className="font-display text-4xl xl:text-5xl font-bold text-on-surface tracking-tight mb-4">
             Welcome to <br/><span className="text-primary">Bringgas PDI</span>
           </h1>
@@ -34,9 +32,7 @@ export default function TeacherLogin() {
           
           {/* Mobile Header */}
           <div className="lg:hidden flex flex-col items-center mb-10 text-center">
-            <div className="w-16 h-16 bg-surface-container text-primary rounded-2xl flex items-center justify-center shadow-inner mb-4">
-              <School size={32} strokeWidth={1.5} />
-            </div>
+            <img src="/images/logo.png" alt="Bringgas PDI Logo" className="w-20 h-20 object-contain mb-4 drop-shadow-md" />
             <h2 className="font-display text-3xl font-bold text-on-surface">Bringgas PDI</h2>
             <p className="text-on-surface-variant mt-2">Intelligent Instructor Portal</p>
           </div>

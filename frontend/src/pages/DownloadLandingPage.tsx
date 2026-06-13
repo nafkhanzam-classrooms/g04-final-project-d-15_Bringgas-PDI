@@ -1,4 +1,4 @@
-import { MonitorPlay, Zap, Users, ArrowRight, BookOpen, Presentation, CheckCircle2 } from 'lucide-react';
+import { MonitorPlay, Zap, ArrowRight, BookOpen, Presentation, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function DownloadLandingPage() {
@@ -13,9 +13,7 @@ export default function DownloadLandingPage() {
       <nav className="w-full bg-white/70 backdrop-blur-md border-b border-surface-container z-20 sticky top-0">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-md shadow-primary/20">
-              <MonitorPlay size={20} />
-            </div>
+            <img src="/images/logo.png" alt="Bringgas PDI Logo" className="w-12 h-12 object-contain" />
             <span className="font-display font-bold text-2xl tracking-tight text-on-surface">
               Bringgas <span className="text-primary">PDI</span>
             </span>
