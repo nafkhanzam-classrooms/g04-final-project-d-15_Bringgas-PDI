@@ -184,11 +184,32 @@ Selain WebSocket (`ws://` atau `wss://`) untuk pertukaran *state* interaktif, Lo
 Sistem Lopyta dioptimasi untuk berjalan dengan latensi sekecil mungkin dan dirancang menggunakan praktik arsitektur modern (*Modern Architecture*):
 
 - **Pemrosesan Backend**: Golang, [Fiber](https://gofiber.io/) (High-Performance HTTP Server).
-- **Transport Real-Time**: [Gorilla WebSocket](https://github.com/gorilla/websocket).
-- **Frontend & Antarmuka**: React 18, TypeScript, [Vite](https://vitejs.dev/), Tailwind CSS, Zustand (State Manager), Lucide React (Ikon).
-- **Basis Data Utama**: MariaDB (Relational Data / Storage).
-- **Broker Pesan & Sesi**: Redis (Session Store & Pub/Sub Network).
-- **Manajemen Server (DevOps)**: Nginx, Supervisor, Linux Environment.
+- **Transport Real-Time**: [Gorilla WebSocket](https://github.com/gorilla/websocket) dengan sistem *Ping/Pong* cerdas untuk mendeteksi perangkat yang terputus (*disconnect*).
+- **Frontend & Antarmuka**: React 18, TypeScript, [Vite](https://vitejs.dev/), Tailwind CSS, Zustand (*State Manager* tersentralisasi), Lucide React (Ikon).
+- **Basis Data Utama**: MariaDB (Penyimpanan data relasional dan arsip jangka panjang).
+- **Broker Pesan & Sesi**: Redis (Digunakan untuk *Session Store* yang terdistribusi dan *Pub/Sub Network* untuk sinkronisasi *multi-server*).
+- **Manajemen Server (DevOps)**: Nginx (*Load Balancing layer 7*), Supervisor, Lingkungan Linux (Ubuntu/Debian).
 
 ---
-*Dikembangkan secara penuh untuk ekosistem pembelajaran modern.*
+
+## 🔍 Alur Kerja Sistem (Data Flow)
+1. **Guru Membuat Kelas**: Saat Guru masuk menggunakan Google OAuth, sistem mencatat sesi mereka. Saat kelas baru dibuka, *state* kelas di-*cache* di dalam **Memori (RAM) Backend Golang** agar super-cepat, serta di-*broadcast* ke **Redis Pub/Sub** agar *node server* lain mengetahui keberadaan kelas ini.
+2. **Siswa Bergabung**: Siswa memasukkan 6-digit PIN. Permintaan divalidasi dengan memori lokal server atau Redis. Jika valid, koneksi ditingkatkan menjadi **WebSocket**.
+3. **Interaksi Real-Time**: Jika Guru memindahkan *slide* presentasi atau memberikan pertanyaan, *event* dikirim melalui WebSocket ke server, lalu didistribusikan langsung ke semua koneksi Siswa. Jika ada Siswa di server (*node*) berbeda, sistem menggunakan Redis Pub/Sub untuk memastikan latensi sinkronisasi tetap berada di bawah standar wajar (*< 20 milidetik*).
+4. **Penyimpanan Permanen**: Data skor kuis, histori kelas, dan repositori soal akan disimpan secara aman (*persistent*) ke MariaDB.
+
+---
+
+## 🌐 Live Demo & Akses Aplikasi
+
+Aplikasi Bringgas PDI dapat diakses secara langsung pada lingkungan produksi di alamat berikut:
+
+- **👨‍🏫 Panel Guru (Host Dashboard)**: [https://guru.lopyta.com](https://guru.lopyta.com)
+  *(Gunakan Akun Google untuk mendaftar dan masuk secara aman. Melalui portal ini, Anda bisa membuat kelas baru, meluncurkan presentasi, dan mengelola bank soal).*
+  
+- **🧑‍🎓 Portal Siswa (Participant Screen)**: [https://siswa.lopyta.com](https://siswa.lopyta.com)
+  *(Tidak memerlukan akun. Siswa hanya perlu memasukkan **Access Code (PIN) 6-digit** yang dibagikan oleh Guru di layar utama, beserta nama panggilan mereka).*
+
+---
+
+*Bringgas PDI - Dikembangkan secara penuh untuk memajukan ekosistem pembelajaran digital yang interaktif dan responsif.*

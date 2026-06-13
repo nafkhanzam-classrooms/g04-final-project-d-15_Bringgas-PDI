@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAuthStore } from './store/authStore';
 
@@ -35,6 +35,7 @@ function ProtectedRoute({ children }: { children: any }) {
 
 function App() {
   const { checkAuth } = useAuthStore();
+  const location = useLocation();
   
   useEffect(() => {
     const hostname = window.location.hostname;
@@ -49,7 +50,7 @@ function App() {
   const hostname = window.location.hostname;
   const isTeacherDomain = hostname.includes('guru');
   const isWails = typeof window.go !== 'undefined';
-  const isRootPath = window.location.pathname === '/';
+  const isRootPath = location.pathname === '/';
 
   // 1. If accessed via web browser on the teacher domain exactly at the root path, show the Landing Page
   if (isTeacherDomain && !isWails && isRootPath) {
