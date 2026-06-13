@@ -5,7 +5,7 @@ import Swal from 'sweetalert2';
 import { useWebSocketStore, MsgJoinClass, MsgSubmitAnswer } from '../store/websocketStore';
 import VideoConference from '../components/classroom/VideoConference';
 import PdfSlideViewer from '../components/classroom/PdfSlideViewer';
-import Whiteboard, { WhiteboardToolbar } from '../components/classroom/Whiteboard';
+import { WhiteboardToolbar } from '../components/classroom/Whiteboard';
 
 const resolvePresentationUrl = (url: string) => {
   if (!url) return '';
@@ -318,12 +318,9 @@ export default function StudentScreen() {
       <div className="absolute inset-0 w-full h-full z-0 flex items-center justify-center bg-white">
         {classState?.presentationUrl ? (
           <div className="w-full h-full relative">
-            {/* Whiteboard Overlay (Only if not a PDF slide; PDF slides render whiteboard internally) */}
-            {code && (!classState.presentationUrl || !classState.presentationUrl.toLowerCase().endsWith('.pdf')) && (
-              <Whiteboard isHost={false} code={code} />
-            )}
+            {/* Whiteboard Overlay for Non-Presentations is no longer needed here since IframeSlideViewer handles it */}
 
-            {classState.presentationUrl.toLowerCase().endsWith('.pdf') ? (
+            {classState.presentationUrl ? (
               <div className="absolute inset-0 z-10 w-full h-full">
                 <PdfSlideViewer 
                   url={resolvePresentationUrl(classState.presentationUrl)} 
@@ -333,18 +330,7 @@ export default function StudentScreen() {
                   code={code}
                 />
               </div>
-            ) : (
-              <iframe 
-                src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
-                  resolvePresentationUrl(classState.presentationUrl)
-                )}`} 
-                width="100%" 
-                height="100%" 
-                frameBorder="0"
-                className="w-full h-full border-0 absolute top-0 left-0"
-                title="PowerPoint Presentation"
-              />
-            )}
+            ) : null}
           </div>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-white">

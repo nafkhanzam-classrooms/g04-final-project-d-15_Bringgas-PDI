@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"embed"
 	"encoding/json"
@@ -149,7 +150,17 @@ func main() {
 
 	// 5. Initialize Distributed State Replication (now powered inside by Redis Pub/Sub!)
 	syncAddr := fmt.Sprintf("127.0.0.1:%d", *syncPort)
-	repManager = classroom.NewReplicationManager(nodeName, syncAddr, *peerSync, sm, broadcastCB)
+	broadcastRawCB := func(sessionCode string, payload []byte) {
+		registry.mu.RLock()
+		if students, exists := registry.participants[sessionCode]; exists {
+			for _, studentConn := range students {
+				studentConn.WriteMessage(websocket.BinaryMessage, payload)
+			}
+		}
+		registry.mu.RUnlock()
+	}
+
+	repManager = classroom.NewReplicationManager(nodeName, syncAddr, *peerSync, sm, broadcastCB, broadcastRawCB)
 	repManager.Start()
 	defer repManager.Stop()
 
@@ -1466,6 +1477,18 @@ func handleWebSocket(c *websocket.Conn) {
 						broadcastPayload, _ := json.Marshal(line)
 						packet := protocol.EncodePacket(protocol.MsgWhiteboardDraw, 0, broadcastPayload)
 						
+						// Publish to cluster so other nodes can broadcast
+						if classroom.RedisClient != nil {
+							event := classroom.PubSubEvent{
+								Sender:  nodeName,
+								Action:  "draw",
+								Code:    req.Code,
+								Payload: packet,
+							}
+							evtPayload, _ := json.Marshal(event)
+							classroom.RedisClient.Publish(context.Background(), classroom.RedisPubSubChannel, evtPayload)
+						}
+						
 						registry.mu.RLock()
 						if hostConn, exists := registry.hosts[req.Code]; exists && !isHost {
 							hostConn.WriteMessage(websocket.BinaryMessage, packet)
@@ -1505,8 +1528,23 @@ func handleWebSocket(c *websocket.Conn) {
 				session := sm.GetSession(req.Code)
 				if session != nil && isHost {
 					session.ClearWhiteboard()
-					repManager.ReplicateSessionState(session)
+					
 					packet := protocol.EncodePacket(protocol.MsgWhiteboardClear, 0, []byte("{}"))
+					
+					// Publish to cluster so other nodes can clear
+					if classroom.RedisClient != nil {
+						event := classroom.PubSubEvent{
+							Sender:  nodeName,
+							Action:  "clear_whiteboard",
+							Code:    req.Code,
+							Payload: packet,
+						}
+						evtPayload, _ := json.Marshal(event)
+						classroom.RedisClient.Publish(context.Background(), classroom.RedisPubSubChannel, evtPayload)
+					}
+					
+					// Sync to Redis for persistence
+					repManager.ReplicateSessionState(session)
 					
 					registry.mu.RLock()
 					if hostConn, exists := registry.hosts[req.Code]; exists {

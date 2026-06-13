@@ -8,7 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import type { QuestionBankItem } from '../../store/classStore';
 import VideoConference from './VideoConference';
 import PdfSlideViewer from './PdfSlideViewer';
-import Whiteboard, { WhiteboardToolbar } from './Whiteboard';
+import { WhiteboardToolbar } from './Whiteboard';
 
 const resolvePresentationUrl = (url: string) => {
   if (!url) return '';
@@ -433,10 +433,7 @@ export default function ActiveSessionView() {
             </div>
           )}
 
-          {/* Whiteboard Overlay (Only if not a PDF slide; PDF slides render whiteboard internally) */}
-          {code && (!classState?.presentationUrl || !classState.presentationUrl.toLowerCase().endsWith('.pdf')) && (
-            <Whiteboard isHost={true} code={code} />
-          )}
+          {/* Whiteboard Overlay for Non-Presentations is handled by IframeSlideViewer */}
 
           {classState?.currentQuestion ? (
             <div className="absolute inset-0 z-20 bg-slate-50 flex flex-col items-center justify-start text-center p-8 overflow-y-auto w-full h-full">
@@ -491,28 +488,15 @@ export default function ActiveSessionView() {
             </div>
           ) : classState?.presentationUrl ? (
             <div className="flex-1 w-full h-full relative bg-slate-50 overflow-hidden">
-              {classState.presentationUrl.toLowerCase().endsWith('.pdf') ? (
-                <div className="absolute inset-0 z-10">
-                  <PdfSlideViewer 
-                    url={resolvePresentationUrl(classState.presentationUrl)} 
-                    slideNumber={classState.activeSlide} 
-                    showWhiteboard={true}
-                    isHost={true}
-                    code={code}
-                  />
-                </div>
-              ) : (
-                <iframe 
-                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
-                    resolvePresentationUrl(classState.presentationUrl)
-                  )}`}
-                  width="100%" 
-                  height="100%" 
-                  frameBorder="0"
-                  className="w-full h-full border-0 absolute top-0 left-0"
-                  title="PowerPoint Presentation"
-                ></iframe>
-              )}
+              <div className="absolute inset-0 z-10">
+                <PdfSlideViewer 
+                  url={resolvePresentationUrl(classState.presentationUrl)} 
+                  slideNumber={classState.activeSlide} 
+                  showWhiteboard={true}
+                  isHost={true}
+                  code={code}
+                />
+              </div>
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50">

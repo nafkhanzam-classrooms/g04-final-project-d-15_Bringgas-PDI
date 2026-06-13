@@ -9,9 +9,10 @@ import (
 
 // PubSubEvent represents a real-time event broadcasted across the server cluster
 type PubSubEvent struct {
-	Sender string `json:"sender"`
-	Action string `json:"action"` // "sync" or "delete"
-	Code   string `json:"code"`
+	Sender  string `json:"sender"`
+	Action  string `json:"action"` // "sync", "delete", "draw", "clear_whiteboard"
+	Code    string `json:"code"`
+	Payload []byte `json:"payload,omitempty"`
 }
 
 // ReplicationManager handles inter-server real-time synchronization via Redis Pub/Sub
@@ -21,18 +22,20 @@ type ReplicationManager struct {
 	peerAddr       string                   // Retained for interface compatibility in main.go
 	sessionManager *SessionManager
 	broadcastCB    func(sessionCode string) // Callback to notify local WebSocket clients of updated state
+	broadcastRawCB func(sessionCode string, payload []byte) // Callback to broadcast raw packets
 	closeChan      chan struct{}
 	wg             sync.WaitGroup
 }
 
 // NewReplicationManager creates a new ReplicationManager leveraging Redis Pub/Sub
-func NewReplicationManager(nodeName, syncAddr, peerAddr string, sm *SessionManager, broadcastCB func(sessionCode string)) *ReplicationManager {
+func NewReplicationManager(nodeName, syncAddr, peerAddr string, sm *SessionManager, broadcastCB func(sessionCode string), broadcastRawCB func(sessionCode string, payload []byte)) *ReplicationManager {
 	return &ReplicationManager{
 		nodeName:       nodeName,
 		syncAddr:       syncAddr,
 		peerAddr:       peerAddr,
 		sessionManager: sm,
 		broadcastCB:    broadcastCB,
+		broadcastRawCB: broadcastRawCB,
 		closeChan:      make(chan struct{}),
 	}
 }
@@ -108,6 +111,18 @@ func (rm *ReplicationManager) listenPubSub() {
 				// Notify local WebSocket clients
 				if rm.broadcastCB != nil {
 					rm.broadcastCB(event.Code)
+				}
+				
+			case "draw":
+				// We don't save to the session here; the originating node already saved it to Redis via the full sync at the end of the stroke.
+				// We just broadcast the real-time drawing packet to local students so they see it instantly.
+				if rm.broadcastRawCB != nil && len(event.Payload) > 0 {
+					rm.broadcastRawCB(event.Code, event.Payload)
+				}
+				
+			case "clear_whiteboard":
+				if rm.broadcastRawCB != nil && len(event.Payload) > 0 {
+					rm.broadcastRawCB(event.Code, event.Payload)
 				}
 
 			case "delete":

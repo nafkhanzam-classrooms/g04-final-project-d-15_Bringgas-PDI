@@ -388,7 +388,7 @@ export default function ClassSettingsView() {
 
       {activeTab === 'presentation' && (
         <div className="bg-white p-8 border border-slate-200 rounded-2xl shadow-sm max-w-2xl">
-          <h3 className="font-sans text-2xl font-bold uppercase mb-4">Upload PPT/PDF</h3>
+          <h3 className="font-sans text-2xl font-bold uppercase mb-4">Upload PDF</h3>
           <p className="mb-6 font-sans text-sm text-slate-500">Upload your presentation file. This file will be loaded into the viewer when you start the class.</p>
           
           {classes.find(c => c.code === code)?.presentationUrl ? (
@@ -407,7 +407,7 @@ export default function ClassSettingsView() {
             type="file" 
             ref={fileInputRef}
             onChange={handleUploadPresentation}
-            accept=".ppt,.pptx,.pdf"
+            accept=".pdf"
             className="hidden"
             id="ppt-upload"
           />
@@ -416,7 +416,7 @@ export default function ClassSettingsView() {
             className={`cursor-pointer w-full py-8 border-4 border-dashed border-slate-200 flex flex-col items-center justify-center transition-all ${isUploading ? 'bg-slate-100 opacity-50' : 'hover:bg-slate-100 bg-white'}`}
           >
             <FileUp size={48} className="mb-4 text-violet-600" />
-            <span className="font-bold uppercase text-lg">{isUploading ? 'Uploading...' : 'Click to Upload (.pptx / .pdf)'}</span>
+            <span className="font-bold uppercase text-lg">{isUploading ? 'Uploading...' : 'Click to Upload (.pdf)'}</span>
           </label>
         </div>
       )}

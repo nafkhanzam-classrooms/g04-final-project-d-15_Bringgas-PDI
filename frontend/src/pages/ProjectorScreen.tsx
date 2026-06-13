@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Trophy, Code, Play, Minimize } from 'lucide-react';
 import PdfSlideViewer from '../components/classroom/PdfSlideViewer';
-import Whiteboard from '../components/classroom/Whiteboard';
 
 const resolvePresentationUrl = (url: string) => {
   if (!url) return '';
@@ -91,34 +90,17 @@ export default function ProjectorScreen() {
       <div className="absolute inset-0 w-full h-full z-0 flex items-center justify-center bg-white">
         {!isShowingLeaderboard && !currentQuestion && presentationUrl ? (
           <div className="w-full h-full relative">
-            {/* Whiteboard Overlay (Only if not a PDF slide; PDF slides render whiteboard internally) */}
-            {code && (!presentationUrl || !presentationUrl.toLowerCase().endsWith('.pdf')) && (
-              <Whiteboard isHost={false} code={code} lines={classState?.whiteboardLines} />
-            )}
-
-            {presentationUrl.toLowerCase().endsWith('.pdf') ? (
+            {presentationUrl ? (
               <div className="absolute inset-0 z-10 w-full h-full">
                 <PdfSlideViewer 
                   url={resolvePresentationUrl(presentationUrl)} 
-                  slideNumber={activeSlide} 
+                  slideNumber={classState.activeSlide} 
                   showWhiteboard={true}
                   isHost={false}
                   code={code}
-                  whiteboardLines={classState?.whiteboardLines}
                 />
               </div>
-            ) : (
-              <iframe 
-                src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
-                  resolvePresentationUrl(presentationUrl)
-                )}`}
-                width="100%" 
-                height="100%" 
-                frameBorder="0"
-                className="w-full h-full border-0 absolute top-0 left-0"
-                title="PowerPoint Presentation"
-              ></iframe>
-            )}
+            ) : null}
           </div>
         ) : !isShowingLeaderboard && !currentQuestion ? (
           /* Standalone Fallback slide counter */

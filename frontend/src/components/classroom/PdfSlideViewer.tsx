@@ -70,9 +70,12 @@ export default function PdfSlideViewer({ url, slideNumber, showWhiteboard, isHos
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Calculate scale to fit container width/height while preserving aspect ratio
-        const containerWidth = containerRef.current!.clientWidth || dimensions.width || 800;
-        const containerHeight = containerRef.current!.clientHeight || dimensions.height || 600;
+        const containerWidth = containerRef.current!.clientWidth || dimensions.width;
+        const containerHeight = containerRef.current!.clientHeight || dimensions.height;
+        
+        if (!containerWidth || !containerHeight) {
+          return; // Wait for layout to avoid rendering at 0x0 or falling back prematurely
+        }
 
         // Get unscaled viewport
         const unscaledViewport = page.getViewport({ scale: 1 });
@@ -84,10 +87,18 @@ export default function PdfSlideViewer({ url, slideNumber, showWhiteboard, isHos
 
         // High DPI canvas rendering for sharp text
         const outputScale = window.devicePixelRatio || 1;
-        canvas.width = Math.floor(viewport.width * outputScale);
-        canvas.height = Math.floor(viewport.height * outputScale);
-        canvas.style.width = Math.floor(viewport.width) + "px";
-        canvas.style.height = Math.floor(viewport.height) + "px";
+        const newWidth = Math.floor(viewport.width * outputScale);
+        const newHeight = Math.floor(viewport.height * outputScale);
+        
+        if (canvas.width !== newWidth || canvas.height !== newHeight) {
+          canvas.width = newWidth;
+          canvas.height = newHeight;
+          canvas.style.width = Math.floor(viewport.width) + "px";
+          canvas.style.height = Math.floor(viewport.height) + "px";
+        } else {
+          // Clear canvas explicitly before rendering new page if size didn't change
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
 
         setCurrentViewportSize({
           width: Math.floor(viewport.width),
