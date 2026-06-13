@@ -75,10 +75,10 @@ export default function ClassesView() {
                 <input 
                   type="text" 
                   value={newEntryCode}
-                  onChange={e => setNewEntryCode(e.target.value.toUpperCase())}
+                  onChange={e => setNewEntryCode(e.target.value.toUpperCase().slice(0, 6))}
                   className="flex-1 border border-slate-200 rounded-xl bg-white p-3 font-sans font-bold tracking-wide focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="CUSTOM"
-                  maxLength={10}
+                  placeholder="6 KODE"
+                  maxLength={6}
                 />
                 <button 
                   type="button"
@@ -131,10 +131,7 @@ export default function ClassesView() {
                   <div className={`w-3 h-3 rounded-full border border-slate-200 rounded-xl ${cls.isActive ? 'bg-blue-600 animate-pulse' : 'bg-slate-100'}`} />
                 </div>
                 
-                <div className="mt-auto pt-6 border-t-2 border-slate-200/10 flex justify-between items-center">
-                  <div className="font-sans font-bold text-sm bg-slate-100 px-2 py-1 border border-slate-200">
-                    KEY: {cls.studentEntryCode || 'NONE'}
-                  </div>
+                <div className="mt-auto pt-6 border-t-2 border-slate-200/10 flex justify-end items-center">
                   <div className="flex gap-2">
                     <button 
                       onClick={() => navigate(`/host/classes/${cls.code}/settings`)}

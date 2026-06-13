@@ -68,6 +68,15 @@ export default function ClassSettingsView() {
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStudentName || !newStudentPin) return;
+    if (newStudentPin.length !== 6) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'PIN Tidak Valid',
+        text: 'PIN code harus tepat 6 karakter.',
+        confirmButtonColor: '#000000',
+      });
+      return;
+    }
 
     try {
       const res = await fetch(`/api/teacher/classes/${code}/students`, {
@@ -104,7 +113,7 @@ export default function ClassSettingsView() {
   };
 
   const handleRollPin = () => {
-    setNewStudentPin(Math.floor(1000 + Math.random() * 9000).toString());
+    setNewStudentPin(Math.floor(100000 + Math.random() * 900000).toString());
   };
 
   const handleAddTrigger = async (e: React.FormEvent) => {
@@ -220,7 +229,7 @@ export default function ClassSettingsView() {
               <div>
                 <label className="block font-sans text-sm font-bold uppercase mb-2">PIN Code</label>
                 <div className="flex gap-2">
-                  <input type="text" value={newStudentPin} onChange={e => setNewStudentPin(e.target.value)} required className="flex-1 p-2 border border-slate-200 rounded-xl focus:outline-none tracking-widest font-sans" maxLength={6} />
+                  <input type="text" value={newStudentPin} onChange={e => setNewStudentPin(e.target.value.slice(0, 6))} required className="flex-1 p-2 border border-slate-200 rounded-xl focus:outline-none tracking-widest font-sans" maxLength={6} minLength={6} placeholder="6 digit" />
                   <button type="button" onClick={handleRollPin} className="px-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-slate-100 shadow-sm active:shadow-none active:translate-y-0">
                     <Dices size={18} />
                   </button>

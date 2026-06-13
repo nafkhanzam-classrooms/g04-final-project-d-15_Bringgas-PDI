@@ -50,6 +50,9 @@ func RegisterNewRoutes(app *fiber.App, authGuard fiber.Handler) {
 		if req.Name == "" || req.PIN == "" {
 			return c.Status(400).JSON(fiber.Map{"error": "Name and PIN required"})
 		}
+		if len(req.PIN) != 6 {
+			return c.Status(400).JSON(fiber.Map{"error": "PIN code harus tepat 6 karakter"})
+		}
 
 		res, err := database.DB.Exec("INSERT INTO class_students (class_code, student_name, pin_code) VALUES (?, ?, ?)", code, req.Name, req.PIN)
 		if err != nil {

@@ -225,9 +225,10 @@ export default function StudentScreen() {
                 <input
                   type="text"
                   value={code}
-                  onChange={e => setCode(e.target.value.toUpperCase())}
+                  onChange={e => setCode(e.target.value.toUpperCase().slice(0, 6))}
                   className="w-full pl-12 pr-4 py-4 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-bold font-mono text-xl uppercase tracking-widest transition-all"
-                  placeholder="CODE"
+                  placeholder="6 KODE"
+                  maxLength={6}
                   required
                 />
               </div>
@@ -242,9 +243,10 @@ export default function StudentScreen() {
                 <input
                   type="password"
                   value={pin}
-                  onChange={e => setPin(e.target.value)}
+                  onChange={e => setPin(e.target.value.slice(0, 6))}
                   className="w-full pl-12 pr-4 py-4 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-bold text-lg transition-all tracking-[0.5em]"
-                  placeholder="••••"
+                  placeholder="••••••"
+                  maxLength={6}
                   required
                 />
               </div>

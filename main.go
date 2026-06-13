@@ -386,6 +386,44 @@ func main() {
 	app.Post("/api/auth/logout", func(c *fiber.Ctx) error {
 		sess, err := sessionStore.Get(c)
 		if err == nil {
+			// End all active classes belonging to this teacher before destroying session
+			teacherID, _ := sess.Get("teacher_id").(int)
+			if teacherID > 0 {
+				log.Printf("[Auth] Teacher ID %d logging out — ending all active classes", teacherID)
+
+				// End in-memory sessions and eject student websockets
+				allSessions := sm.GetAllSessions()
+				for _, session := range allSessions {
+					if session.TeacherID == teacherID && session.IsActive {
+						session.EndSession()
+						repManager.ReplicateSessionState(session)
+						BroadcastClassState(session.Code)
+
+						// Eject all student websockets for this class
+						registry.mu.Lock()
+						if clients, ok := registry.participants[session.Code]; ok {
+							for name, conn := range clients {
+								payload, _ := json.Marshal(map[string]string{"message": "Sesi kelas telah diakhiri karena Guru logout."})
+								conn.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(protocol.MsgError, 0, payload))
+								conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "TeacherLogout"))
+								conn.Close()
+								delete(clients, name)
+							}
+						}
+						registry.mu.Unlock()
+					}
+				}
+
+				// Bulk-deactivate in the database
+				db := database.GetDB()
+				if db != nil {
+					_, dbErr := db.Exec("UPDATE classes SET is_active = 0 WHERE teacher_id = ? AND is_active = 1", teacherID)
+					if dbErr != nil {
+						log.Printf("[Database] Failed to end classes on teacher logout: %v", dbErr)
+					}
+				}
+			}
+
 			sess.Destroy()
 		}
 		return c.JSON(fiber.Map{"success": true})
@@ -574,9 +612,9 @@ func main() {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid payload"})
 		}
 
-		// Length check of entry code
-		if len(req.StudentEntryCode) > 10 {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Kode Khusus maksimal 10 karakter."})
+		// Length check of entry code (harus tepat 6 karakter jika diisi)
+		if req.StudentEntryCode != "" && len(req.StudentEntryCode) != 6 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Access Code harus tepat 6 karakter."})
 		}
 
 		session := sm.CreateSession(req.ClassName, teacherName, teacherID, req.StudentEntryCode, time.Time{})
