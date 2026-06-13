@@ -627,6 +627,44 @@ func main() {
 		return c.JSON(session.CopyState())
 	})
 
+	app.Put("/api/teacher/classes/:code", authGuard, func(c *fiber.Ctx) error {
+		teacherID := c.Locals("teacher_id").(int)
+		code := c.Params("code")
+
+		var req struct {
+			ClassName string `json:"className"`
+		}
+		if err := c.BodyParser(&req); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid payload"})
+		}
+		if req.ClassName == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Nama kelas harus diisi."})
+		}
+
+		db := database.GetDB()
+		if db == nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Database offline"})
+		}
+
+		_, err := db.Exec("UPDATE classes SET class_name = ? WHERE code = ? AND teacher_id = ?", req.ClassName, code, teacherID)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		session := sm.GetSession(code)
+		if session == nil {
+			session, _ = classroom.GetSessionFromRedis(code)
+		}
+		if session != nil {
+			session.ClassName = req.ClassName
+			sm.AddSession(session)
+			repManager.ReplicateSessionState(session)
+			BroadcastClassState(code)
+		}
+
+		return c.JSON(fiber.Map{"success": true})
+	})
+
 	app.Delete("/api/teacher/classes/:code", authGuard, func(c *fiber.Ctx) error {
 		teacherID := c.Locals("teacher_id").(int)
 		code := c.Params("code")

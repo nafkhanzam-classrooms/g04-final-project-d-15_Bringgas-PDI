@@ -121,9 +121,22 @@ func (sm *SessionManager) CreateSession(className, hostName string, teacherID in
 	defer sm.mu.Unlock()
 
 	var code string
+	db := database.GetDB()
 	for {
 		code = GenerateRandomCode()
-		if _, exists := sm.sessions[code]; !exists {
+		inMemory := false
+		if _, exists := sm.sessions[code]; exists {
+			inMemory = true
+		}
+		inDB := false
+		if db != nil && !inMemory {
+			var dummy int
+			err := db.QueryRow("SELECT 1 FROM classes WHERE code = ? LIMIT 1", code).Scan(&dummy)
+			if err == nil {
+				inDB = true
+			}
+		}
+		if !inMemory && !inDB {
 			break
 		}
 	}

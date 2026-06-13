@@ -65,6 +65,30 @@ func RegisterNewRoutes(app *fiber.App, authGuard fiber.Handler) {
 		return c.JSON(fiber.Map{"id": id, "student_name": req.Name, "pin_code": req.PIN})
 	})
 
+	app.Put("/api/teacher/classes/:code/students/:id", authGuard, func(c *fiber.Ctx) error {
+		code := c.Params("code")
+		id := c.Params("id")
+		var req struct {
+			Name string `json:"student_name"`
+			PIN  string `json:"pin_code"`
+		}
+		if err := c.BodyParser(&req); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
+		}
+		if req.Name == "" || req.PIN == "" {
+			return c.Status(400).JSON(fiber.Map{"error": "Name and PIN required"})
+		}
+		if len(req.PIN) != 6 {
+			return c.Status(400).JSON(fiber.Map{"error": "PIN code harus tepat 6 karakter"})
+		}
+
+		_, err := database.DB.Exec("UPDATE class_students SET student_name = ?, pin_code = ? WHERE id = ? AND class_code = ?", req.Name, req.PIN, id, code)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": "Gagal memperbarui siswa (PIN kemungkinan sudah digunakan di kelas ini)"})
+		}
+		return c.JSON(fiber.Map{"success": true})
+	})
+
 	app.Delete("/api/teacher/classes/:code/students/:id", authGuard, func(c *fiber.Ctx) error {
 		id := c.Params("id")
 		_, err := database.DB.Exec("DELETE FROM class_students WHERE id = ?", id)

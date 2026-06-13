@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, FileUp, Dices, Plus, Trash2, Link } from 'lucide-react';
+import { ArrowLeft, Users, FileUp, Dices, Plus, Trash2, Link, Pencil, Check, X } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useClassStore } from '../../store/classStore';
 
@@ -21,8 +21,14 @@ export default function ClassSettingsView() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Editing states
+  const [isEditingClassName, setIsEditingClassName] = useState(false);
+  const [editedClassName, setEditedClassName] = useState('');
+  const [editingStudent, setEditingStudent] = useState<any | null>(null);
+
   useEffect(() => {
     if (code) {
+      fetchClasses();
       fetchStudents();
       fetchTriggers();
       fetchQuestions(); // We need all questions to map them
@@ -65,6 +71,18 @@ export default function ClassSettingsView() {
     }
   };
 
+  const startEditStudent = (student: any) => {
+    setEditingStudent(student);
+    setNewStudentName(student.student_name);
+    setNewStudentPin(student.pin_code);
+  };
+
+  const cancelEditStudent = () => {
+    setEditingStudent(null);
+    setNewStudentName('');
+    setNewStudentPin('');
+  };
+
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStudentName || !newStudentPin) return;
@@ -79,21 +97,35 @@ export default function ClassSettingsView() {
     }
 
     try {
-      const res = await fetch(`/api/teacher/classes/${code}/students`, {
-        method: 'POST',
+      const url = editingStudent 
+        ? `/api/teacher/classes/${code}/students/${editingStudent.id}`
+        : `/api/teacher/classes/${code}/students`;
+      const method = editingStudent ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ student_name: newStudentName, pin_code: newStudentPin })
       });
       if (res.ok) {
-        setNewStudentName('');
-        setNewStudentPin('');
+        cancelEditStudent();
         fetchStudents();
+        if (editingStudent) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil',
+            text: 'Data siswa berhasil diperbarui!',
+            confirmButtonColor: '#000000',
+            timer: 1500,
+            showConfirmButton: false,
+          });
+        }
       } else {
         const err = await res.json();
         Swal.fire({
           icon: 'error',
           title: 'Gagal',
-          text: err.error || 'Failed to add student',
+          text: err.error || 'Gagal menyimpan data siswa',
           confirmButtonColor: '#000000',
         });
       }
@@ -144,7 +176,30 @@ export default function ClassSettingsView() {
     }
   };
 
-  const { classes, uploadPresentation, fetchClasses } = useClassStore();
+  const { classes, uploadPresentation, fetchClasses, editClass } = useClassStore();
+
+  const handleSaveClassName = async () => {
+    if (!editedClassName.trim() || !code) return;
+    const success = await editClass(code, editedClassName.trim());
+    if (success) {
+      setIsEditingClassName(false);
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: 'Nama kelas berhasil diperbarui!',
+        confirmButtonColor: '#000000',
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: 'Gagal memperbarui nama kelas',
+        confirmButtonColor: '#000000',
+      });
+    }
+  };
 
   const handleUploadPresentation = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -186,14 +241,56 @@ export default function ClassSettingsView() {
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-full">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 flex-wrap">
         <button 
           onClick={() => navigate('/host/classes')}
           className="p-2 border border-slate-200 rounded-xl bg-white shadow-sm hover:shadow-none hover:-translate-y-1 transition-all"
         >
           <ArrowLeft size={20} />
         </button>
-        <h2 className="font-sans text-4xl font-bold uppercase">Class Settings ({code})</h2>
+        <div className="flex items-center gap-3">
+          {isEditingClassName ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={editedClassName}
+                onChange={e => setEditedClassName(e.target.value)}
+                className="p-2 text-2xl border border-slate-200 rounded-xl focus:outline-none font-bold uppercase"
+                autoFocus
+              />
+              <button
+                onClick={handleSaveClassName}
+                className="p-2 text-white bg-green-600 rounded-xl hover:bg-green-700 shadow-sm"
+                title="Save Class Name"
+              >
+                <Check size={20} />
+              </button>
+              <button
+                onClick={() => setIsEditingClassName(false)}
+                className="p-2 text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 shadow-sm"
+                title="Cancel"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <h2 className="font-sans text-4xl font-bold uppercase">
+                Class Settings ({code}) {classes.find(c => c.code === code) ? `- ${classes.find(c => c.code === code)?.className}` : ''}
+              </h2>
+              <button
+                onClick={() => {
+                  setEditedClassName(classes.find(c => c.code === code)?.className || '');
+                  setIsEditingClassName(true);
+                }}
+                className="p-2 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 transition-all text-slate-500 hover:text-slate-800"
+                title="Edit Class Name"
+              >
+                <Pencil size={16} />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-4 border-b border-slate-200 pb-4 overflow-x-auto">
@@ -220,7 +317,9 @@ export default function ClassSettingsView() {
       {activeTab === 'roster' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="col-span-1 bg-white p-6 border border-slate-200 rounded-2xl shadow-sm">
-            <h3 className="font-sans text-2xl font-bold uppercase mb-4">Add Student</h3>
+            <h3 className="font-sans text-2xl font-bold uppercase mb-4">
+              {editingStudent ? 'Edit Student' : 'Add Student'}
+            </h3>
             <form onSubmit={handleAddStudent} className="space-y-4">
               <div>
                 <label className="block font-sans text-sm font-bold uppercase mb-2">Student Name</label>
@@ -235,9 +334,20 @@ export default function ClassSettingsView() {
                   </button>
                 </div>
               </div>
-              <button type="submit" className="w-full py-3 bg-violet-600 text-white font-bold uppercase border border-slate-200 rounded-xl shadow-sm hover:shadow-none hover:-translate-y-1 transition-all flex justify-center items-center gap-2">
-                <Plus size={18} strokeWidth={3}/> Add
-              </button>
+              {editingStudent ? (
+                <div className="flex gap-2">
+                  <button type="submit" className="flex-1 py-3 bg-green-600 text-white font-bold uppercase border border-slate-200 rounded-xl shadow-sm hover:shadow-none hover:-translate-y-1 transition-all flex justify-center items-center gap-2">
+                    <Check size={18} strokeWidth={3}/> Save
+                  </button>
+                  <button type="button" onClick={cancelEditStudent} className="flex-1 py-3 bg-slate-100 text-slate-800 font-bold uppercase border border-slate-200 rounded-xl shadow-sm hover:bg-slate-200 hover:-translate-y-1 transition-all flex justify-center items-center gap-2">
+                    <X size={18} strokeWidth={3}/> Cancel
+                  </button>
+                </div>
+              ) : (
+                <button type="submit" className="w-full py-3 bg-violet-600 text-white font-bold uppercase border border-slate-200 rounded-xl shadow-sm hover:shadow-none hover:-translate-y-1 transition-all flex justify-center items-center gap-2">
+                  <Plus size={18} strokeWidth={3}/> Add
+                </button>
+              )}
             </form>
           </div>
           
@@ -259,8 +369,11 @@ export default function ClassSettingsView() {
                     <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50-low">
                       <td className="p-4 font-bold">{s.student_name}</td>
                       <td className="p-4 font-sans font-bold tracking-widest">{s.pin_code}</td>
-                      <td className="p-4 text-right">
-                        <button onClick={() => handleDeleteStudent(s.id)} className="text-red-500 hover:text-red-700">
+                      <td className="p-4 text-right flex justify-end gap-2">
+                        <button onClick={() => startEditStudent(s)} className="text-blue-500 hover:text-blue-700" title="Edit Student">
+                          <Pencil size={18} />
+                        </button>
+                        <button onClick={() => handleDeleteStudent(s.id)} className="text-red-500 hover:text-red-700" title="Delete Student">
                           <Trash2 size={18} />
                         </button>
                       </td>
