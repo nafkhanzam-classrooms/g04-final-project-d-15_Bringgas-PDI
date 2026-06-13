@@ -180,6 +180,17 @@ func main() {
 	os.MkdirAll("./uploads", 0755)
 	os.MkdirAll("./bin_releases", 0755)
 
+	// Explicit CORS header middleware for static uploads
+	app.Use("/uploads", func(c *fiber.Ctx) error {
+		c.Set("Access-Control-Allow-Origin", "*")
+		c.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		c.Set("Access-Control-Allow-Headers", "*")
+		if c.Method() == "OPTIONS" {
+			return c.SendStatus(200)
+		}
+		return c.Next()
+	})
+
 	// Serve Static Files
 	app.Static("/uploads", "./uploads")
 	app.Static("/downloads", "./bin_releases")

@@ -1,12 +1,45 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Trophy, Code, Play } from 'lucide-react';
+import { Trophy, Code, Play, Maximize, Minimize } from 'lucide-react';
 import PdfSlideViewer from '../components/classroom/PdfSlideViewer';
 import Whiteboard from '../components/classroom/Whiteboard';
+
+const resolvePresentationUrl = (url: string) => {
+  if (!url) return '';
+  if (url.includes('/uploads/')) {
+    const idx = url.indexOf('/uploads/');
+    return window.location.origin + url.substring(idx);
+  }
+  return url;
+};
+
 
 export default function ProjectorScreen() {
   const { code } = useParams();
   const [classState, setClassState] = useState<any>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+      }).catch(err => {
+        console.error("Error attempting to enable fullscreen:", err);
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+      });
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   useEffect(() => {
     if (!code) return;
@@ -173,14 +206,14 @@ export default function ProjectorScreen() {
               {presentationUrl.toLowerCase().endsWith('.pdf') ? (
                 <div className="absolute inset-0 z-10">
                   <PdfSlideViewer 
-                    url={presentationUrl} 
+                    url={resolvePresentationUrl(presentationUrl)} 
                     slideNumber={activeSlide} 
                   />
                 </div>
               ) : (
                 <iframe 
                   src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
-                    presentationUrl.startsWith('http') ? presentationUrl : window.location.origin + presentationUrl
+                    resolvePresentationUrl(presentationUrl)
                   )}`}
                   width="100%" 
                   height="100%" 
@@ -201,6 +234,17 @@ export default function ProjectorScreen() {
           )
         )}
       </main>
+
+      {/* Floating Fullscreen Control */}
+      <div className="fixed bottom-6 right-6 z-50 pointer-events-auto">
+        <button
+          onClick={toggleFullscreen}
+          className="bg-slate-800/90 hover:bg-slate-700 text-white backdrop-blur-md border border-slate-700/50 p-3.5 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center group"
+          title={isFullscreen ? "Minimize Screen" : "Maximize Fullscreen"}
+        >
+          {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+        </button>
+      </div>
 
       {/* Minimal Footer */}
       {!isShowingLeaderboard && (

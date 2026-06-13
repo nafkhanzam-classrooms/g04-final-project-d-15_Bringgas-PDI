@@ -10,6 +10,16 @@ import VideoConference from './VideoConference';
 import PdfSlideViewer from './PdfSlideViewer';
 import Whiteboard, { WhiteboardToolbar } from './Whiteboard';
 
+const resolvePresentationUrl = (url: string) => {
+  if (!url) return '';
+  if (url.includes('/uploads/')) {
+    const idx = url.indexOf('/uploads/');
+    return window.location.origin + url.substring(idx);
+  }
+  return url;
+};
+
+
 export default function ActiveSessionView() {
   const { code } = useParams();
   const navigate = useNavigate();
@@ -55,26 +65,32 @@ export default function ActiveSessionView() {
     }
   }, [code]);
 
+  const changeSlideRef = useRef<any>(null);
+  useEffect(() => {
+    changeSlideRef.current = changeSlide;
+  });
+
   // Listen to keyboard arrow keys for slide navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
         document.activeElement?.tagName === 'INPUT' ||
-        document.activeElement?.tagName === 'TEXTAREA'
+        document.activeElement?.tagName === 'TEXTAREA' ||
+        document.activeElement?.getAttribute('contenteditable') === 'true'
       ) {
         return;
       }
       if (e.key === 'ArrowLeft') {
-        changeSlide(-1);
+        changeSlideRef.current(-1);
       } else if (e.key === 'ArrowRight') {
-        changeSlide(1);
+        changeSlideRef.current(1);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [slideNumber, classState]);
+  }, []);
 
   // BroadcastChannel for projector
   useEffect(() => {
@@ -331,7 +347,7 @@ export default function ActiveSessionView() {
               <span className="hidden md:inline">{classState?.isVideoCallActive ? 'End Video Call' : 'Start Video Call'}</span>
             </button>
             <button 
-              onClick={() => window.open(`/host/projector/${code}`, '_blank')}
+              onClick={() => window.open(`/host/projector/${code}`, 'projector', 'width=1280,height=720,menubar=no,status=no,toolbar=no,location=no,resizable=yes')}
               className="px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100"
             >
               <Monitor size={18} />
@@ -418,14 +434,14 @@ export default function ActiveSessionView() {
               {classState.presentationUrl.toLowerCase().endsWith('.pdf') ? (
                 <div className="absolute inset-0 z-10">
                   <PdfSlideViewer 
-                    url={classState.presentationUrl} 
+                    url={resolvePresentationUrl(classState.presentationUrl)} 
                     slideNumber={classState.activeSlide} 
                   />
                 </div>
               ) : (
                 <iframe 
                   src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
-                    classState.presentationUrl.startsWith('http') ? classState.presentationUrl : window.location.origin + classState.presentationUrl
+                    resolvePresentationUrl(classState.presentationUrl)
                   )}`}
                   width="100%" 
                   height="100%" 

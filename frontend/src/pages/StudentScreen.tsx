@@ -7,6 +7,16 @@ import VideoConference from '../components/classroom/VideoConference';
 import PdfSlideViewer from '../components/classroom/PdfSlideViewer';
 import Whiteboard, { WhiteboardToolbar } from '../components/classroom/Whiteboard';
 
+const resolvePresentationUrl = (url: string) => {
+  if (!url) return '';
+  if (url.includes('/uploads/')) {
+    const idx = url.indexOf('/uploads/');
+    return window.location.origin + url.substring(idx);
+  }
+  return url;
+};
+
+
 export default function StudentScreen() {
   const { isConnected, connect, classState, myName, sendPacket, sendWithRetry, lastQuizResult, clearLastQuizResult, error, clearError } = useWebSocketStore();
   const [localScore, setLocalScore] = useState(0);
@@ -340,14 +350,14 @@ export default function StudentScreen() {
                 {classState.presentationUrl.toLowerCase().endsWith('.pdf') ? (
                   <div className="absolute inset-0 z-10">
                     <PdfSlideViewer 
-                      url={classState.presentationUrl} 
+                      url={resolvePresentationUrl(classState.presentationUrl)} 
                       slideNumber={classState.activeSlide} 
                     />
                   </div>
                 ) : (
                   <iframe 
                     src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
-                      classState.presentationUrl.startsWith('http') ? classState.presentationUrl : window.location.origin + classState.presentationUrl
+                      resolvePresentationUrl(classState.presentationUrl)
                     )}`} 
                     width="100%" 
                     height="100%" 
