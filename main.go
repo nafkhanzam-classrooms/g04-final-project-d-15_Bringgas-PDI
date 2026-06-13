@@ -167,8 +167,11 @@ func main() {
 			if oldConn, exists := clients[studentName]; exists {
 				oldPayload, _ := json.Marshal(map[string]string{"message": "Sesi Anda ditendang karena login ganda dari tab/kelas lain."})
 				oldConn.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(protocol.MsgError, 0, oldPayload))
-				oldConn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Kicked"))
-				oldConn.Close()
+				go func(conn *websocket.Conn) {
+					time.Sleep(500 * time.Millisecond)
+					conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Kicked"))
+					conn.Close()
+				}(oldConn)
 				delete(clients, studentName)
 
 				if oldSession := sm.GetSession(code); oldSession != nil {
@@ -1149,8 +1152,11 @@ func handleWebSocket(c *websocket.Conn) {
 				if oldSession != nil && oldSession.TeacherID == req.TeacherID && oldConn != c {
 					oldPayload, _ := json.Marshal(map[string]string{"message": "Sesi sebelumnya ditutup karena Anda membuka sesi baru."})
 					oldConn.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(protocol.MsgError, 0, oldPayload))
-					oldConn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Kicked"))
-					oldConn.Close()
+					go func(conn *websocket.Conn) {
+						time.Sleep(500 * time.Millisecond)
+						conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Kicked"))
+						conn.Close()
+					}(oldConn)
 					delete(registry.hosts, code)
 				}
 			}
@@ -1206,8 +1212,11 @@ func handleWebSocket(c *websocket.Conn) {
 				if oldConn, exists := clients[currentName]; exists && oldConn != c {
 					oldPayload, _ := json.Marshal(map[string]string{"message": "Sesi Anda ditendang karena login ganda dari tab/kelas lain."})
 					oldConn.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(protocol.MsgError, 0, oldPayload))
-					oldConn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Kicked"))
-					oldConn.Close()
+					go func(conn *websocket.Conn) {
+						time.Sleep(500 * time.Millisecond)
+						conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Kicked"))
+						conn.Close()
+					}(oldConn)
 					delete(clients, currentName)
 					
 					// Also mark inactive in the old session

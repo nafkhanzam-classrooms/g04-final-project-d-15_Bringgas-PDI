@@ -306,11 +306,15 @@ export default function StudentScreen() {
 
             <button
               type="submit"
-              disabled={!isConnected}
+              disabled={!isConnected || hasJoined}
               className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-xl uppercase tracking-wider shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:translate-y-[-2px] transition-all flex justify-center items-center gap-3 disabled:opacity-50 disabled:hover:translate-y-0"
             >
-              <LogIn size={24} />
-              {isConnected ? "Join Class" : "Connecting..."}
+              {hasJoined ? (
+                <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <LogIn size={24} />
+              )}
+              {!isConnected ? "Connecting..." : (hasJoined ? "Sedang Masuk..." : "Join Class")}
             </button>
           </form>
         </div>
