@@ -1,4 +1,6 @@
 # /.agents
 .env
 /lopyta-server
+/classroom-bringgas
+/main
 /uploads
