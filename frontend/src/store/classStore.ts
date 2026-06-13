@@ -47,6 +47,7 @@ interface ClassState {
   createClass: (className: string, studentEntryCode: string) => Promise<TeacherClass | null>;
   startClass: (code: string) => Promise<boolean>;
   endClass: (code: string) => Promise<boolean>;
+  deleteClass: (code: string) => Promise<boolean>;
   uploadPresentation: (code: string, file: File) => Promise<boolean>;
   
   fetchQuestionSets: () => Promise<void>;
@@ -137,6 +138,24 @@ export const useClassStore = create<ClassState>((set, get) => ({
 			return res.ok;
 		} catch (err) {
 			console.error('Failed to end class', err);
+			return false;
+		}
+	},
+
+	deleteClass: async (code) => {
+		try {
+			const res = await fetchWithAuth(`/api/teacher/classes/${code}`, {
+				method: 'DELETE'
+			});
+			if (res.ok) {
+				set((state) => ({
+					classes: state.classes.filter(c => c.code !== code)
+				}));
+				return true;
+			}
+			return false;
+		} catch (err) {
+			console.error('Failed to delete class', err);
 			return false;
 		}
 	},

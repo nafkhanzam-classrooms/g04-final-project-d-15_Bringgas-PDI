@@ -91,13 +91,20 @@ export default function ProjectorScreen() {
       <div className="absolute inset-0 w-full h-full z-0 flex items-center justify-center bg-white">
         {!isShowingLeaderboard && !currentQuestion && presentationUrl ? (
           <div className="w-full h-full relative">
-            {code && <Whiteboard isHost={false} code={code} />}
+            {/* Whiteboard Overlay (Only if not a PDF slide; PDF slides render whiteboard internally) */}
+            {code && (!presentationUrl || !presentationUrl.toLowerCase().endsWith('.pdf')) && (
+              <Whiteboard isHost={false} code={code} lines={classState?.whiteboardLines} />
+            )}
 
             {presentationUrl.toLowerCase().endsWith('.pdf') ? (
               <div className="absolute inset-0 z-10 w-full h-full">
                 <PdfSlideViewer 
                   url={resolvePresentationUrl(presentationUrl)} 
                   slideNumber={activeSlide} 
+                  showWhiteboard={true}
+                  isHost={false}
+                  code={code}
+                  whiteboardLines={classState?.whiteboardLines}
                 />
               </div>
             ) : (

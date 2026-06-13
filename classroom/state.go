@@ -74,6 +74,7 @@ type ClassSession struct {
 	CurrentQuestion      *QuizQuestion           `json:"currentQuestion"`
 	Leaderboard          []LeaderboardEntry      `json:"leaderboard"`
 	WhiteboardLines      []WhiteboardLine        `json:"whiteboardLines"`
+	WhiteboardSlides     map[int][]WhiteboardLine `json:"whiteboardSlides"`
 	WhiteboardPermit     string                  `json:"whiteboardPermit"`
 	CreatedAt         time.Time               `json:"createdAt"`
 	mu                sync.RWMutex
@@ -148,6 +149,7 @@ func (sm *SessionManager) CreateSession(className, hostName string, teacherID in
 		Participants:     make(map[string]*Participant),
 		Leaderboard:      []LeaderboardEntry{},
 		WhiteboardLines:  make([]WhiteboardLine, 0),
+		WhiteboardSlides: make(map[int][]WhiteboardLine),
 		WhiteboardPermit: "none",
 		CreatedAt:        time.Now(),
 	}
@@ -436,15 +438,25 @@ func (s *ClassSession) EndSession() {
 	}(s.Code)
 }
 
-// ChangeSlide updates slide position
+// ChangeSlide updates slide position and manages slide-specific whiteboard drawings
 func (s *ClassSession) ChangeSlide(slide int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if slide >= 1 {
+		if s.WhiteboardSlides == nil {
+			s.WhiteboardSlides = make(map[int][]WhiteboardLine)
+		}
+		// Save lines for current slide
+		s.WhiteboardSlides[s.ActiveSlide] = s.WhiteboardLines
+
 		s.ActiveSlide = slide
-		// Optional: Clear whiteboard when slide changes? 
-		// For now we will auto-clear the board on slide changes to prevent memory buildup
-		s.WhiteboardLines = make([]WhiteboardLine, 0)
+
+		// Load lines for the new slide
+		if lines, ok := s.WhiteboardSlides[slide]; ok {
+			s.WhiteboardLines = lines
+		} else {
+			s.WhiteboardLines = make([]WhiteboardLine, 0)
+		}
 	}
 }
 
@@ -567,6 +579,12 @@ func (s *ClassSession) CopyState() *ClassSession {
 	copied.WhiteboardLines = make([]WhiteboardLine, len(s.WhiteboardLines))
 	copy(copied.WhiteboardLines, s.WhiteboardLines)
 
+	copied.WhiteboardSlides = make(map[int][]WhiteboardLine)
+	for k, v := range s.WhiteboardSlides {
+		copied.WhiteboardSlides[k] = make([]WhiteboardLine, len(v))
+		copy(copied.WhiteboardSlides[k], v)
+	}
+
 	return copied
 }
 
@@ -641,18 +659,26 @@ func (s *ClassSession) ToggleLeaderboard(active bool) {
 	s.IsShowingLeaderboard = active
 }
 
-// AddWhiteboardLine appends a line to the class whiteboard session
+// AddWhiteboardLine appends a line to the class whiteboard session and slides cache
 func (s *ClassSession) AddWhiteboardLine(line WhiteboardLine) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.WhiteboardSlides == nil {
+		s.WhiteboardSlides = make(map[int][]WhiteboardLine)
+	}
 	s.WhiteboardLines = append(s.WhiteboardLines, line)
+	s.WhiteboardSlides[s.ActiveSlide] = s.WhiteboardLines
 }
 
-// ClearWhiteboard clears all drawings
+// ClearWhiteboard clears all drawings on the active slide
 func (s *ClassSession) ClearWhiteboard() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.WhiteboardSlides == nil {
+		s.WhiteboardSlides = make(map[int][]WhiteboardLine)
+	}
 	s.WhiteboardLines = make([]WhiteboardLine, 0)
+	s.WhiteboardSlides[s.ActiveSlide] = s.WhiteboardLines
 }
 
 // SetWhiteboardPermit updates the permission for drawing

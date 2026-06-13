@@ -3,7 +3,10 @@ package main
 import (
 	"classroom-bringgas/classroom"
 	"classroom-bringgas/database"
+	"database/sql"
 	"fmt"
+	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -91,6 +94,18 @@ func RegisterNewRoutes(app *fiber.App, authGuard fiber.Handler) {
 		savePath := filepath.Join("./uploads", filename)
 		if err := c.SaveFile(file, savePath); err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": "Failed to save file"})
+		}
+
+		// Fetch old presentation URL to clean up disk storage
+		var oldUrl sql.NullString
+		errQuery := database.DB.QueryRow("SELECT presentation_url FROM classes WHERE code = ?", code).Scan(&oldUrl)
+		if errQuery == nil && oldUrl.Valid && oldUrl.String != "" && strings.HasPrefix(oldUrl.String, "/uploads/") {
+			oldFileName := filepath.Base(oldUrl.String)
+			oldFilePath := filepath.Join("./uploads", oldFileName)
+			if _, errStat := os.Stat(oldFilePath); errStat == nil {
+				os.Remove(oldFilePath)
+				log.Printf("[Cleanup] Deleted old presentation file: %s", oldFilePath)
+			}
 		}
 
 		// Update database

@@ -87,6 +87,9 @@ func GetSessionFromRedis(code string) (*ClassSession, error) {
 	if session.Leaderboard == nil {
 		session.Leaderboard = []LeaderboardEntry{}
 	}
+	if session.WhiteboardSlides == nil {
+		session.WhiteboardSlides = make(map[int][]WhiteboardLine)
+	}
 
 	return &session, nil
 }

@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -623,6 +625,70 @@ func main() {
 		repManager.ReplicateSessionState(session)
 
 		return c.JSON(session.CopyState())
+	})
+
+	app.Delete("/api/teacher/classes/:code", authGuard, func(c *fiber.Ctx) error {
+		teacherID := c.Locals("teacher_id").(int)
+		code := c.Params("code")
+
+		db := database.GetDB()
+		if db == nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Database offline"})
+		}
+
+		// 1. Get presentation URL to delete file from disk if it exists
+		var presentationUrl sql.NullString
+		err := db.QueryRow("SELECT presentation_url FROM classes WHERE code = ? AND teacher_id = ?", code, teacherID).Scan(&presentationUrl)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Kelas tidak ditemukan"})
+			}
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		// 2. Delete file if exists
+		if presentationUrl.Valid && presentationUrl.String != "" && strings.HasPrefix(presentationUrl.String, "/uploads/") {
+			fileName := filepath.Base(presentationUrl.String)
+			filePath := filepath.Join("./uploads", fileName)
+			if _, err := os.Stat(filePath); err == nil {
+				os.Remove(filePath)
+				log.Printf("[Cleanup] Deleted presentation file: %s", filePath)
+			}
+		}
+
+		// 3. Eject participants and clear websocket connections if active
+		session := sm.GetSession(code)
+		if session != nil {
+			session.EndSession()
+
+			// Eject all participants
+			registry.mu.Lock()
+			if clients, ok := registry.participants[code]; ok {
+				for name, conn := range clients {
+					payload, _ := json.Marshal(map[string]string{"message": "Sesi kelas telah diakhiri karena Kelas dihapus oleh Guru."})
+					conn.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(protocol.MsgError, 0, payload))
+					conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Deleted"))
+					conn.Close()
+					delete(clients, name)
+				}
+			}
+			registry.mu.Unlock()
+
+			// Remove session from memory
+			sm.RemoveSession(code)
+		}
+
+		// 4. Delete from Redis
+		repManager.ReplicateSessionDelete(code)
+
+		// 5. Delete from DB (cascade deletes triggers and students)
+		db.Exec("DELETE FROM submissions WHERE class_code = ?", code)
+		_, dbErr := db.Exec("DELETE FROM classes WHERE code = ? AND teacher_id = ?", code, teacherID)
+		if dbErr != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Gagal menghapus kelas dari database"})
+		}
+
+		return c.JSON(fiber.Map{"success": true})
 	})
 
 	// Start class manually endpoint
@@ -1386,9 +1452,13 @@ func handleWebSocket(c *websocket.Conn) {
 				session := sm.GetSession(req.Code)
 				if session != nil && isHost {
 					session.ClearWhiteboard()
+					repManager.ReplicateSessionState(session)
 					packet := protocol.EncodePacket(protocol.MsgWhiteboardClear, 0, []byte("{}"))
 					
 					registry.mu.RLock()
+					if hostConn, exists := registry.hosts[req.Code]; exists {
+						hostConn.WriteMessage(websocket.BinaryMessage, packet)
+					}
 					if students, exists := registry.participants[req.Code]; exists {
 						for _, studentConn := range students {
 							studentConn.WriteMessage(websocket.BinaryMessage, packet)

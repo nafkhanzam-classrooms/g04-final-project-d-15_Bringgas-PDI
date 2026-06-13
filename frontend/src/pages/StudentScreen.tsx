@@ -25,9 +25,26 @@ export default function StudentScreen() {
   const [streakMilestone, setStreakMilestone] = useState(0);
   const [scorePopup, setScorePopup] = useState<{ points: number, visible: boolean }>({ points: 0, visible: false });
 
-  const [code, setCode] = useState(() => localStorage.getItem('lopyta_student_code') || '');
-  const [pin, setPin] = useState(() => localStorage.getItem('lopyta_student_pin') || '');
-  const [hasJoined, setHasJoined] = useState(() => localStorage.getItem('lopyta_student_joined') === 'true');
+  const [code, setCode] = useState(() => {
+    const saved = localStorage.getItem('lopyta_student_code') || '';
+    return saved.length === 6 ? saved : '';
+  });
+  const [pin, setPin] = useState(() => {
+    const saved = localStorage.getItem('lopyta_student_pin') || '';
+    return saved.length === 6 ? saved : '';
+  });
+  const [hasJoined, setHasJoined] = useState(() => {
+    const joined = localStorage.getItem('lopyta_student_joined') === 'true';
+    const savedCode = localStorage.getItem('lopyta_student_code') || '';
+    const savedPin = localStorage.getItem('lopyta_student_pin') || '';
+    if (joined && savedCode.length === 6 && savedPin.length === 6) {
+      return true;
+    }
+    localStorage.removeItem('lopyta_student_code');
+    localStorage.removeItem('lopyta_student_pin');
+    localStorage.removeItem('lopyta_student_joined');
+    return false;
+  });
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [codeAnswer, setCodeAnswer] = useState('');
   const [runOutput, setRunOutput] = useState<{ stdout: string, stderr: string, error?: string } | null>(null);
@@ -133,6 +150,26 @@ export default function StudentScreen() {
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!pin.trim() || !code.trim() || !isConnected) return;
+
+    if (code.trim().length !== 6) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Kode Kelas Tidak Valid',
+        text: 'Kode kelas harus terdiri dari tepat 6 karakter.',
+        confirmButtonColor: '#ef4444',
+      });
+      return;
+    }
+
+    if (pin.trim().length !== 6) {
+      Swal.fire({
+        icon: 'error',
+        title: 'PIN Tidak Valid',
+        text: 'PIN harus terdiri dari tepat 6 digit.',
+        confirmButtonColor: '#ef4444',
+      });
+      return;
+    }
 
     // Save to local storage
     localStorage.setItem('lopyta_student_code', code.toUpperCase());
@@ -281,14 +318,19 @@ export default function StudentScreen() {
       <div className="absolute inset-0 w-full h-full z-0 flex items-center justify-center bg-white">
         {classState?.presentationUrl ? (
           <div className="w-full h-full relative">
-            {/* Whiteboard Overlay */}
-            {code && <Whiteboard isHost={false} code={code} />}
+            {/* Whiteboard Overlay (Only if not a PDF slide; PDF slides render whiteboard internally) */}
+            {code && (!classState.presentationUrl || !classState.presentationUrl.toLowerCase().endsWith('.pdf')) && (
+              <Whiteboard isHost={false} code={code} />
+            )}
 
             {classState.presentationUrl.toLowerCase().endsWith('.pdf') ? (
               <div className="absolute inset-0 z-10 w-full h-full">
                 <PdfSlideViewer 
                   url={resolvePresentationUrl(classState.presentationUrl)} 
                   slideNumber={classState.activeSlide} 
+                  showWhiteboard={true}
+                  isHost={false}
+                  code={code}
                 />
               </div>
             ) : (

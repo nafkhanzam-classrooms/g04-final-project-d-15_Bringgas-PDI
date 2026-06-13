@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Search, Dices, Plus, Settings } from 'lucide-react';
+import { Play, Search, Dices, Plus, Settings, Trash2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useClassStore } from '../../store/classStore';
 
 export default function ClassesView() {
-  const { classes, isLoading, fetchClasses, createClass, startClass } = useClassStore();
+  const { classes, isLoading, fetchClasses, createClass, startClass, deleteClass } = useClassStore();
   const navigate = useNavigate();
   
   const [newClassName, setNewClassName] = useState('');
@@ -18,10 +18,53 @@ export default function ClassesView() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClassName.trim()) return;
+
+    if (newEntryCode && newEntryCode.length !== 6) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Kode Akses Tidak Valid',
+        text: 'Access Code (Optional) harus tepat 6 karakter.',
+        confirmButtonColor: '#ef4444',
+      });
+      return;
+    }
     
     await createClass(newClassName, newEntryCode);
     setNewClassName('');
     setNewEntryCode('');
+  };
+
+  const handleDeleteClass = async (code: string, className: string) => {
+    Swal.fire({
+      title: 'Hapus Kelas?',
+      text: `Apakah Anda yakin ingin menghapus kelas "${className}"? Semua data nilai, siswa, dan file presentasi akan dihapus permanen!`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Ya, Hapus Kelas',
+      cancelButtonText: 'Batal'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const ok = await deleteClass(code);
+        if (ok) {
+          Swal.fire({
+            title: 'Berhasil Dihapus',
+            text: 'Kelas telah berhasil dihapus.',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: 'Gagal menghapus kelas. Silakan coba lagi.',
+            confirmButtonColor: '#000000',
+          });
+        }
+      }
+    });
   };
 
   const handleRollCode = () => {
@@ -133,6 +176,13 @@ export default function ClassesView() {
                 
                 <div className="mt-auto pt-6 border-t-2 border-slate-200/10 flex justify-end items-center">
                   <div className="flex gap-2">
+                    <button 
+                      onClick={() => handleDeleteClass(cls.code, cls.className)}
+                      className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white w-10 h-10 border border-red-200 rounded-xl shadow-sm hover:shadow-none hover:-translate-y-1 flex items-center justify-center transition-all"
+                      title="Delete Class"
+                    >
+                      <Trash2 size={18} strokeWidth={2.5} />
+                    </button>
                     <button 
                       onClick={() => navigate(`/host/classes/${cls.code}/settings`)}
                       className="bg-slate-100 text-slate-800 w-10 h-10 border border-slate-200 rounded-xl shadow-sm hover:shadow-none hover:-translate-y-1 flex items-center justify-center transition-all"

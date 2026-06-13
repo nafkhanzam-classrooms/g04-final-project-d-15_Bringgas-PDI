@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+import Whiteboard from './Whiteboard';
 
 // Use CDN for worker to avoid Vite bundling issues with PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -7,14 +8,19 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 interface PdfSlideViewerProps {
   url: string;
   slideNumber: number;
+  showWhiteboard?: boolean;
+  isHost?: boolean;
+  code?: string;
+  whiteboardLines?: any[];
 }
 
-export default function PdfSlideViewer({ url, slideNumber }: PdfSlideViewerProps) {
+export default function PdfSlideViewer({ url, slideNumber, showWhiteboard, isHost, code, whiteboardLines }: PdfSlideViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [isRendering, setIsRendering] = useState(false);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [currentViewportSize, setCurrentViewportSize] = useState<{ width: number, height: number } | null>(null);
   const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
 
   // Track container dimensions to re-scale on resize/fullscreen events
@@ -89,6 +95,11 @@ export default function PdfSlideViewer({ url, slideNumber }: PdfSlideViewerProps
         canvas.style.width = Math.floor(viewport.width) + "px";
         canvas.style.height = Math.floor(viewport.height) + "px";
 
+        setCurrentViewportSize({
+          width: Math.floor(viewport.width),
+          height: Math.floor(viewport.height)
+        });
+
         const transform = outputScale !== 1 
           ? [outputScale, 0, 0, outputScale, 0, 0] 
           : undefined;
@@ -129,7 +140,28 @@ export default function PdfSlideViewer({ url, slideNumber }: PdfSlideViewerProps
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       )}
-      <canvas ref={canvasRef} className="max-w-full max-h-full shadow-lg" />
+      {currentViewportSize ? (
+        <div 
+          className="relative shadow-lg" 
+          style={{ 
+            width: `${currentViewportSize.width}px`, 
+            height: `${currentViewportSize.height}px` 
+          }}
+        >
+          <canvas ref={canvasRef} className="w-full h-full" />
+          {showWhiteboard && code && (
+            <Whiteboard 
+              isHost={isHost || false} 
+              code={code} 
+              lines={whiteboardLines}
+              width={currentViewportSize.width}
+              height={currentViewportSize.height}
+            />
+          )}
+        </div>
+      ) : (
+        <canvas ref={canvasRef} className="max-w-full max-h-full shadow-lg opacity-0" />
+      )}
     </div>
   );
 }

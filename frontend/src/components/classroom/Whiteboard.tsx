@@ -6,6 +6,9 @@ import { Trash2, Edit3, Eraser, Unlock, Lock } from 'lucide-react';
 interface WhiteboardProps {
   isHost: boolean;
   code: string;
+  lines?: any[];
+  width?: number;
+  height?: number;
 }
 
 export const useWhiteboardToolStore = create<{
@@ -24,7 +27,7 @@ export const useWhiteboardToolStore = create<{
   setIsDrawingMode: (isDrawingMode) => set({ isDrawingMode }),
 }));
 
-export default function Whiteboard({ isHost, code }: WhiteboardProps) {
+export default function Whiteboard({ isHost, code, lines, width, height }: WhiteboardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -32,7 +35,7 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
   const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   
   const { classState, sendPacket } = useWebSocketStore();
-  const whiteboardLines = classState?.whiteboardLines || [];
+  const whiteboardLines = lines !== undefined ? lines : (classState?.whiteboardLines || []);
   const whiteboardPermit = classState?.whiteboardPermit || 'none';
   
   const { tool, color, isDrawingMode } = useWhiteboardToolStore();
@@ -47,13 +50,18 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
     if (!canvas) return;
 
     const resizeCanvas = () => {
-      const parent = canvas.parentElement;
-      if (parent) {
-        canvas.width = parent.clientWidth;
-        canvas.height = parent.clientHeight;
+      if (width && height) {
+        canvas.width = width;
+        canvas.height = height;
       } else {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        const parent = canvas.parentElement;
+        if (parent) {
+          canvas.width = parent.clientWidth;
+          canvas.height = parent.clientHeight;
+        } else {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+        }
       }
       const context = canvas.getContext('2d');
       if (context) {
@@ -65,9 +73,12 @@ export default function Whiteboard({ isHost, code }: WhiteboardProps) {
     };
 
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    return () => window.removeEventListener('resize', resizeCanvas);
-  }, []);
+    
+    if (!width || !height) {
+      window.addEventListener('resize', resizeCanvas);
+      return () => window.removeEventListener('resize', resizeCanvas);
+    }
+  }, [width, height]);
 
   // Redraw all lines when whiteboardLines changes
   useEffect(() => {
