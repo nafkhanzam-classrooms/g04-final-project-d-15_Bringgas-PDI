@@ -107,7 +107,7 @@ export default function PdfSlideViewer({ url, slideNumber }: PdfSlideViewerProps
   }, [pdfDoc, slideNumber]);
 
   return (
-    <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-slate-50 overflow-hidden">
+    <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-transparent overflow-hidden">
       {!pdfDoc && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>

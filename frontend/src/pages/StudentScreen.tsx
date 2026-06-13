@@ -25,9 +25,9 @@ export default function StudentScreen() {
   const [streakMilestone, setStreakMilestone] = useState(0);
   const [scorePopup, setScorePopup] = useState<{points: number, visible: boolean}>({points: 0, visible: false});
   
-  const [code, setCode] = useState(() => sessionStorage.getItem('lopyta_student_code') || '');
-  const [pin, setPin] = useState(() => sessionStorage.getItem('lopyta_student_pin') || '');
-  const [hasJoined, setHasJoined] = useState(() => sessionStorage.getItem('lopyta_student_joined') === 'true');
+  const [code, setCode] = useState(() => localStorage.getItem('lopyta_student_code') || '');
+  const [pin, setPin] = useState(() => localStorage.getItem('lopyta_student_pin') || '');
+  const [hasJoined, setHasJoined] = useState(() => localStorage.getItem('lopyta_student_joined') === 'true');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [codeAnswer, setCodeAnswer] = useState('');
   const [runOutput, setRunOutput] = useState<{stdout: string, stderr: string, error?: string} | null>(null);
@@ -68,9 +68,9 @@ export default function StudentScreen() {
           confirmButtonColor: '#3b82f6',
         }).then(() => {
           clearError();
-          sessionStorage.removeItem('lopyta_student_code');
-          sessionStorage.removeItem('lopyta_student_pin');
-          sessionStorage.removeItem('lopyta_student_joined');
+          localStorage.removeItem('lopyta_student_code');
+          localStorage.removeItem('lopyta_student_pin');
+          localStorage.removeItem('lopyta_student_joined');
           window.location.reload();
         });
       } else {
@@ -108,10 +108,10 @@ export default function StudentScreen() {
     e.preventDefault();
     if (!pin.trim() || !code.trim() || !isConnected) return;
     
-    // Save to session storage
-    sessionStorage.setItem('lopyta_student_code', code.toUpperCase());
-    sessionStorage.setItem('lopyta_student_pin', pin);
-    sessionStorage.setItem('lopyta_student_joined', 'true');
+    // Save to local storage
+    localStorage.setItem('lopyta_student_code', code.toUpperCase());
+    localStorage.setItem('lopyta_student_pin', pin);
+    localStorage.setItem('lopyta_student_joined', 'true');
     
     // Send PIN in entryCode
     // We don't send the packet here to avoid double sending, as the useEffect below will handle it
@@ -119,9 +119,9 @@ export default function StudentScreen() {
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem('lopyta_student_code');
-    sessionStorage.removeItem('lopyta_student_pin');
-    sessionStorage.removeItem('lopyta_student_joined');
+    localStorage.removeItem('lopyta_student_code');
+    localStorage.removeItem('lopyta_student_pin');
+    localStorage.removeItem('lopyta_student_joined');
     setHasJoined(false);
     setCode('');
     setPin('');

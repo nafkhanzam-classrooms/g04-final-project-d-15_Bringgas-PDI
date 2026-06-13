@@ -115,9 +115,9 @@ export default function ActiveSessionView() {
   // Broadcast updates
   useEffect(() => {
     if (classState && channelRef.current) {
-      channelRef.current.postMessage({ type: 'STATE_UPDATE', classState });
+      channelRef.current.postMessage({ type: 'STATE_UPDATE', classState, rosterCount });
     }
-  }, [classState]);
+  }, [classState, rosterCount]);
 
   useEffect(() => {
     fetchQuestionSets();
@@ -347,7 +347,16 @@ export default function ActiveSessionView() {
               <span className="hidden md:inline">{classState?.isVideoCallActive ? 'End Video Call' : 'Start Video Call'}</span>
             </button>
             <button 
-              onClick={() => window.open(`/host/projector/${code}`, 'projector', 'width=1280,height=720,menubar=no,status=no,toolbar=no,location=no,resizable=yes')}
+              onClick={() => {
+                const popup = window.open(`/host/projector/${code}`, 'projector', 'width=1280,height=720,menubar=no,status=no,toolbar=no,location=no,resizable=yes');
+                if (popup) {
+                  popup.addEventListener('load', () => {
+                    popup.document.documentElement.requestFullscreen().catch(err => {
+                      console.log("Auto-fullscreen on load blocked:", err);
+                    });
+                  });
+                }
+              }}
               className="px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100"
             >
               <Monitor size={18} />
