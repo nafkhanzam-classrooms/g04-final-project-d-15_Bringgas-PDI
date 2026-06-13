@@ -80,12 +80,16 @@ export default function StudentScreen() {
     connect();
   }, [connect]);
 
-  // Auto-join on page refresh
+  const ws = useWebSocketStore(state => state.ws);
+  const [lastConnectedWs, setLastConnectedWs] = useState<WebSocket | null>(null);
+
+  // Auto-join on page refresh or WebSocket reconnect
   useEffect(() => {
-    if (isConnected && hasJoined && code && pin && !classState) {
+    if (isConnected && hasJoined && code && pin && ws && ws !== lastConnectedWs) {
+      setLastConnectedWs(ws);
       sendPacket(MsgJoinClass, { code, entryCode: pin });
     }
-  }, [isConnected, hasJoined, code, pin, classState, sendPacket]);
+  }, [isConnected, hasJoined, code, pin, ws, lastConnectedWs, sendPacket]);
 
   // Handle quiz result clear when question changes
   useEffect(() => {

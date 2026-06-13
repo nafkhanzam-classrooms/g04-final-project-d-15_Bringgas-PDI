@@ -167,9 +167,13 @@ export default function ActiveSessionView() {
     };
   }, [isConnected, connect, fetchQuestionBank]);
 
-  // If there's a code in URL but no active classState, we should tell the backend we are the host for this class.
+  const ws = useWebSocketStore(state => state.ws);
+  const [lastConnectedWs, setLastConnectedWs] = useState<WebSocket | null>(null);
+
+  // If there's a code in URL, we should tell the backend we are the host for this class on every connect/reconnect
   useEffect(() => {
-    if (isConnected && code && (!classState || classState.code !== code)) {
+    if (isConnected && code && ws && ws !== lastConnectedWs) {
+      setLastConnectedWs(ws);
       sendPacket(MsgCreateClass, { code });
       
       // If we recovered a slide number > 1 from sessionStorage, sync it to the backend immediately

@@ -160,7 +160,26 @@ func main() {
 		registry.mu.RUnlock()
 	}
 
-	repManager = classroom.NewReplicationManager(nodeName, syncAddr, *peerSync, sm, broadcastCB, broadcastRawCB)
+	// Callback: When a peer node kicks a student (duplicate login), evict the student from this node too
+	kickStudentCB := func(studentName string) {
+		registry.mu.Lock()
+		for code, clients := range registry.participants {
+			if oldConn, exists := clients[studentName]; exists {
+				oldPayload, _ := json.Marshal(map[string]string{"message": "Sesi Anda ditendang karena login ganda dari tab/kelas lain."})
+				oldConn.WriteMessage(websocket.BinaryMessage, protocol.EncodePacket(protocol.MsgError, 0, oldPayload))
+				oldConn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Kicked"))
+				oldConn.Close()
+				delete(clients, studentName)
+
+				if oldSession := sm.GetSession(code); oldSession != nil {
+					oldSession.DisconnectParticipant(studentName)
+				}
+			}
+		}
+		registry.mu.Unlock()
+	}
+
+	repManager = classroom.NewReplicationManager(nodeName, syncAddr, *peerSync, sm, broadcastCB, broadcastRawCB, kickStudentCB)
 	repManager.Start()
 	defer repManager.Stop()
 
@@ -1194,6 +1213,18 @@ func handleWebSocket(c *websocket.Conn) {
 				}
 			}
 			registry.mu.Unlock()
+
+			// Broadcast kick event to other nodes in the cluster
+			if classroom.RedisClient != nil {
+				event := classroom.PubSubEvent{
+					Sender:  nodeName,
+					Action:  "kick_student",
+					Code:    currentCode,
+					Payload: []byte(currentName),
+				}
+				evtPayload, _ := json.Marshal(event)
+				classroom.RedisClient.Publish(context.Background(), classroom.RedisPubSubChannel, evtPayload)
+			}
 
 			registry.mu.Lock()
 			if _, ok := registry.participants[currentCode]; !ok {

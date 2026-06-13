@@ -23,12 +23,13 @@ type ReplicationManager struct {
 	sessionManager *SessionManager
 	broadcastCB    func(sessionCode string) // Callback to notify local WebSocket clients of updated state
 	broadcastRawCB func(sessionCode string, payload []byte) // Callback to broadcast raw packets
+	kickStudentCB  func(studentName string)                 // Callback to kick student by name
 	closeChan      chan struct{}
 	wg             sync.WaitGroup
 }
 
 // NewReplicationManager creates a new ReplicationManager leveraging Redis Pub/Sub
-func NewReplicationManager(nodeName, syncAddr, peerAddr string, sm *SessionManager, broadcastCB func(sessionCode string), broadcastRawCB func(sessionCode string, payload []byte)) *ReplicationManager {
+func NewReplicationManager(nodeName, syncAddr, peerAddr string, sm *SessionManager, broadcastCB func(sessionCode string), broadcastRawCB func(sessionCode string, payload []byte), kickStudentCB func(studentName string)) *ReplicationManager {
 	return &ReplicationManager{
 		nodeName:       nodeName,
 		syncAddr:       syncAddr,
@@ -36,6 +37,7 @@ func NewReplicationManager(nodeName, syncAddr, peerAddr string, sm *SessionManag
 		sessionManager: sm,
 		broadcastCB:    broadcastCB,
 		broadcastRawCB: broadcastRawCB,
+		kickStudentCB:  kickStudentCB,
 		closeChan:      make(chan struct{}),
 	}
 }
@@ -123,6 +125,13 @@ func (rm *ReplicationManager) listenPubSub() {
 			case "clear_whiteboard":
 				if rm.broadcastRawCB != nil && len(event.Payload) > 0 {
 					rm.broadcastRawCB(event.Code, event.Payload)
+				}
+
+			case "kick_student":
+				studentName := string(event.Payload)
+				if rm.kickStudentCB != nil && studentName != "" {
+					rm.kickStudentCB(studentName)
+					log.Printf("[%s] Cross-node kick: student %s evicted by peer %s.", rm.nodeName, studentName, event.Sender)
 				}
 
 			case "delete":
