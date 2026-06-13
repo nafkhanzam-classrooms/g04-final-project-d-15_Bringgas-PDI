@@ -106,6 +106,7 @@ interface WebSocketState {
   clearError: () => void;
   clearLastQuizResult: () => void;
   addUnsyncedLine: (code: string, slide: number, line: WhiteboardLine) => void;
+  addUnsyncedLines: (code: string, slide: number, lines: WhiteboardLine[]) => void;
   reconcileUnsyncedLines: (code: string, slide: number, syncedLines: WhiteboardLine[]) => void;
   clearUnsyncedLines: (code: string) => void;
 }
@@ -408,15 +409,22 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
     clearLastQuizResult: () => set({ lastQuizResult: null }),
 
     addUnsyncedLine: (code, slide, line) => {
+      get().addUnsyncedLines(code, slide, [line]);
+    },
+
+    addUnsyncedLines: (code, slide, lines) => {
+      if (lines.length === 0) return;
       const key = `${code}_${slide}`;
       const storageKey = `lopyta_unsynced_whiteboard_${code}_${slide}`;
       
       set((state) => {
         const currentList = state.unsyncedLines[key] || [];
-        const exists = currentList.some(l => JSON.stringify(l.points) === JSON.stringify(line.points));
-        if (exists) return state;
+        const newLines = lines.filter(line => 
+          !currentList.some(l => JSON.stringify(l.points) === JSON.stringify(line.points))
+        );
+        if (newLines.length === 0) return state;
 
-        const updated = [...currentList, line];
+        const updated = [...currentList, ...newLines];
         localStorage.setItem(storageKey, JSON.stringify(updated));
         return {
           unsyncedLines: {

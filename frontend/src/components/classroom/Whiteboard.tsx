@@ -31,10 +31,12 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [currentLine, setCurrentLine] = useState<number[]>([]);
   const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+
+  const currentLineRef = useRef<number[]>([]);
+  const strokeSegmentsRef = useRef<any[]>([]);
   
-  const { classState, sendPacket, unsyncedLines, addUnsyncedLine } = useWebSocketStore();
+  const { classState, sendPacket, unsyncedLines, addUnsyncedLine, addUnsyncedLines } = useWebSocketStore();
   const whiteboardLines = lines !== undefined ? lines : (classState?.whiteboardLines || []);
   const activeSlide = classState?.activeSlide || 1;
   const localUnsynced = unsyncedLines[`${code}_${activeSlide}`] || [];
@@ -59,8 +61,8 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
       } else {
         const parent = canvas.parentElement;
         if (parent) {
-          canvas.width = parent.clientWidth;
-          canvas.height = parent.clientHeight;
+          canvas.width = parent.clientWidth || window.innerWidth;
+          canvas.height = parent.clientHeight || window.innerHeight;
         } else {
           canvas.width = window.innerWidth;
           canvas.height = window.innerHeight;
@@ -77,7 +79,18 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
 
     resizeCanvas();
     
-    if (!width || !height) {
+    if (width && height) {
+      return;
+    }
+
+    const parent = canvas.parentElement;
+    if (parent) {
+      const resizeObserver = new ResizeObserver(() => {
+        resizeCanvas();
+      });
+      resizeObserver.observe(parent);
+      return () => resizeObserver.disconnect();
+    } else {
       window.addEventListener('resize', resizeCanvas);
       return () => window.removeEventListener('resize', resizeCanvas);
     }
@@ -133,8 +146,9 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
     
     const canvas = canvasRef.current;
     if (canvas) {
-      setCurrentLine([offsetX / canvas.width, offsetY / canvas.height]);
+      currentLineRef.current = [offsetX / canvas.width, offsetY / canvas.height];
     }
+    strokeSegmentsRef.current = [];
   };
 
   const finishDrawing = () => {
@@ -143,9 +157,9 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
     setIsDrawing(false);
 
     // If it was just a click (dot)
-    if (currentLine.length === 2) {
+    if (currentLineRef.current.length === 2) {
       const newLine = {
-        points: [currentLine[0], currentLine[1], currentLine[0], currentLine[1]],
+        points: [currentLineRef.current[0], currentLineRef.current[1], currentLineRef.current[0], currentLineRef.current[1]],
         color,
         size: brushSize,
         tool
@@ -155,8 +169,11 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
         code,
         ...newLine
       });
+    } else if (strokeSegmentsRef.current.length > 0) {
+      addUnsyncedLines(code, activeSlide, strokeSegmentsRef.current);
     }
-    setCurrentLine([]);
+    currentLineRef.current = [];
+    strokeSegmentsRef.current = [];
   };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -182,29 +199,27 @@ export default function Whiteboard({ isHost, code, lines, width, height }: White
       context.lineTo(offsetX, offsetY);
       context.stroke();
 
-      setCurrentLine(prev => {
-        const newX = offsetX / canvas.width;
-        const newY = offsetY / canvas.height;
-        const next = [...prev, newX, newY];
-        
-        // Send true real-time segments
-        if (prev.length >= 2) {
-          const lastX = prev[prev.length - 2];
-          const lastY = prev[prev.length - 1];
-          const newLine = {
-            points: [lastX, lastY, newX, newY],
-            color,
-            size: brushSize,
-            tool
-          };
-          addUnsyncedLine(code, activeSlide, newLine);
-          sendPacket(MsgWhiteboardDraw, {
-            code,
-            ...newLine
-          });
-        }
-        return next;
-      });
+      const newX = offsetX / canvas.width;
+      const newY = offsetY / canvas.height;
+      
+      currentLineRef.current.push(newX, newY);
+
+      // Send true real-time segments
+      if (currentLineRef.current.length >= 4) {
+        const lastX = currentLineRef.current[currentLineRef.current.length - 4];
+        const lastY = currentLineRef.current[currentLineRef.current.length - 3];
+        const newLine = {
+          points: [lastX, lastY, newX, newY],
+          color,
+          size: brushSize,
+          tool
+        };
+        strokeSegmentsRef.current.push(newLine);
+        sendPacket(MsgWhiteboardDraw, {
+          code,
+          ...newLine
+        });
+      }
     }
   };
 
