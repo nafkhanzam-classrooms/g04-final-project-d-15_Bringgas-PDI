@@ -399,9 +399,7 @@ export default function StudentScreen() {
 
       {/* Whiteboard Toolbar Overlay */}
       {code && !classState.currentQuestion && !classState.isShowingLeaderboard && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-35 max-w-[90vw] pointer-events-auto">
-          <WhiteboardToolbar isHost={false} code={code} />
-        </div>
+        <WhiteboardToolbar isHost={false} code={code} isFloating={true} />
       )}
 
       {/* Video Conference Overlay for Student */}

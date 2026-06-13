@@ -502,9 +502,7 @@ export default function ActiveSessionView() {
               
               {/* Floating Toolbar (Only in Fullscreen) */}
               {code && isPresentationFullscreen && (
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto">
-                  <WhiteboardToolbar isHost={true} code={code} />
-                </div>
+                <WhiteboardToolbar isHost={true} code={code} isFloating={true} />
               )}
             </div>
           ) : (
@@ -518,9 +516,7 @@ export default function ActiveSessionView() {
 
         {/* Static Toolbar Outside (Only when NOT Fullscreen) */}
         {code && !isPresentationFullscreen && (
-          <div className="mt-2 flex justify-center">
-            <WhiteboardToolbar isHost={true} code={code} isDraggable={false} />
-          </div>
+          <WhiteboardToolbar isHost={true} code={code} isDraggable={false} isFloating={false} />
         )}
 
 
