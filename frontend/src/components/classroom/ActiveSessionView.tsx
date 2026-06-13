@@ -417,19 +417,19 @@ export default function ActiveSessionView() {
               : 'max-w-full aspect-video rounded-2xl shadow-lg border border-slate-100 max-h-[70vh]'
           }`}
         >
-          {/* Floating Toolbar and Fullscreen button (hidden during active quiz) */}
-          {!classState?.currentQuestion && code && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 w-max max-w-[95vw] pointer-events-auto">
-              <div className="shadow-2xl rounded-xl">
-                <WhiteboardToolbar isHost={true} code={code} />
-              </div>
-              <button
-                onClick={togglePresentationFullscreen}
-                className="bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 p-4 rounded-xl shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center h-14 w-14 flex-shrink-0"
-                title={isPresentationFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-              >
-                {isPresentationFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-              </button>
+          {/* Floating Fullscreen button for teacher in-place fullscreen */}
+          <button
+            onClick={togglePresentationFullscreen}
+            className="absolute bottom-6 right-6 z-50 bg-white/95 hover:bg-slate-50 text-slate-800 border border-slate-200 p-3.5 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center"
+            title={isPresentationFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+          >
+            {isPresentationFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+          </button>
+
+          {/* Floating Toolbar inside the Presentation Area (Only when in fullscreen and not during active quiz) */}
+          {isPresentationFullscreen && !classState?.currentQuestion && code && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto shadow-2xl rounded-xl">
+              <WhiteboardToolbar isHost={true} code={code} />
             </div>
           )}
 
@@ -523,6 +523,12 @@ export default function ActiveSessionView() {
           )}
         </div>
 
+        {/* Toolbar Outside PPT (Only when NOT in fullscreen) */}
+        {!isPresentationFullscreen && code && (
+          <div className="mt-2">
+            <WhiteboardToolbar isHost={true} code={code} />
+          </div>
+        )}
 
         <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
           <h3 className="font-bold text-lg text-slate-800">Slide {slideNumber} of {classState?.totalSlides || '?'}</h3>
